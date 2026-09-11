@@ -1,8 +1,8 @@
-import { Form, Input, SubmitButton, labelClasses } from './form'
+import { Form, Input, SubmitButton, FormGroup } from './form'
 import { subBrandingSchema } from '@/lib/validate'
 import { truncateDesc } from '@/lib/domains/seo'
 import { useField, useFormikContext } from 'formik'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useId, useState } from 'react'
 import { useToast } from '@/components/ui/toast'
 import { FileUpload } from './file-upload'
 import Button from '@/components/ui/button'
@@ -46,13 +46,13 @@ function AssetField ({ label, name, subName, hint, defaultAsset, brand, width = 
   const [field, , helpers] = useField(name)
   const formik = useFormikContext()
   const [freshUrl, setFreshUrl] = useState(null)
+  const labelId = useId()
 
   const previewUrl = freshUrl || (field.value ? `${PUBLIC_MEDIA_URL}/${field.value}` : defaultAsset)
 
   return (
-    <div className='mb-4'>
-      <label className={labelClasses()}>{label}</label>
-      <div className='flex items-end gap-4'>
+    <FormGroup label={label} labelId={labelId}>
+      <div role='group' aria-labelledby={labelId} className='flex items-end gap-4'>
         <div className={styles.preview}>
           {previewUrl
             ? (
@@ -103,7 +103,7 @@ function AssetField ({ label, name, subName, hint, defaultAsset, brand, width = 
           {hint && <small className='text-muted'>{hint}</small>}
         </div>
       </div>
-    </div>
+    </FormGroup>
   )
 }
 

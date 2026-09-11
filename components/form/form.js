@@ -2,8 +2,9 @@ import { Formik, Form as FormikForm } from 'formik'
 import { createContext, useCallback, useEffect, useRef } from 'react'
 import { useToast } from '@/components/ui/toast'
 import { useMe } from '@/components/me'
+import { clearFieldDrafts } from '@/lib/form-draft'
 
-export class SessionRequiredError extends Error {
+class SessionRequiredError extends Error {
   constructor () {
     super('session required')
     this.name = 'SessionRequiredError'
@@ -28,21 +29,6 @@ export function Form ({
     }
   }, [])
 
-  const clearLocalStorage = useCallback((values) => {
-    Object.keys(values).forEach(v => {
-      window.localStorage.removeItem(storageKeyPrefix + '-' + v)
-      if (Array.isArray(values[v])) {
-        values[v].forEach(
-          (iv, i) => {
-            Object.keys(iv).forEach(k => {
-              window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}].${k}`)
-            })
-            window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}]`)
-          })
-      }
-    })
-  }, [storageKeyPrefix])
-
   const onSubmitInner = useCallback(async (values, ...args) => {
     if (requireSession && !me) {
       throw new SessionRequiredError()
@@ -58,15 +44,15 @@ export function Form ({
       return
     }
 
-    if (!storageKeyPrefix) return
-    clearLocalStorage(values)
-  }, [me, onSubmit, clearLocalStorage, storageKeyPrefix])
+    clearFieldDrafts(storageKeyPrefix, values)
+  }, [me, onSubmit, storageKeyPrefix])
 
   return (
     <Formik
       initialValues={initial}
       enableReinitialize={enableReinitialize}
       validateOnChange={validateOnChange}
+      validateOnMount={!!validateImmediately}
       validate={validate}
       validationSchema={schema}
       initialTouched={validateImmediately && initial}

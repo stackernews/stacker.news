@@ -1,14 +1,11 @@
 import { useEffect, useId, useRef } from 'react'
-import { useField, useFormikContext } from 'formik'
+import { useFormikField } from './use-formik-field'
 import { OTPField } from '@base-ui/react/otp-field'
 import { FormGroup, inputClasses, errorClasses } from './field'
 
 export function OtpInput ({ name, length = 6, label, groupClassName, disabled, autoFocus, onChange, ...props }) {
-  const formik = useFormikContext()
-  const [field, meta, helpers] = useField({ name })
+  const { field, meta, helpers, invalid } = useFormikField({ name })
   const labelId = useId()
-  // only show invalid after a submit attempt
-  const invalid = formik.submitCount > 0 && meta.touched && meta.error
 
   const firstSlotRef = useRef(null)
   useEffect(() => {

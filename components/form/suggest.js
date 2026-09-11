@@ -11,7 +11,7 @@ import { InputInner } from './input'
 
 const INITIAL_SUGGESTIONS = { array: [], index: 0 }
 
-export function BaseSuggest ({
+function BaseSuggest ({
   query, onSelect, dropdownStyle,
   transformItem = item => item, selectWithTab = true, filterItems = () => true,
   getSuggestionsQuery, queryName, itemsField,

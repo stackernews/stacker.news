@@ -272,7 +272,7 @@ export default function TerritoryForm ({ sub }) {
                 append={<InputAddon className='font-mono'>sats</InputAddon>}
               />
               <SatFilterRanges />
-              <label className={labelClasses()}>nsfw</label>
+              <div className={labelClasses()}>nsfw</div>
               <Checkbox
                 inline
                 label={

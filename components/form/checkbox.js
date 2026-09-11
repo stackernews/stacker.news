@@ -16,8 +16,7 @@ export function Checkbox ({
 }) {
   const inGroup = useContext(CheckboxGroupContext)
   // type lets formik derive checked from the array when the checkbox has a value
-  const { field, meta, helpers } = useFormikField({ ...props, type }, { noForm })
-  const invalid = meta.touched && meta.error
+  const { field, helpers, invalid } = useFormikField({ ...props, type }, { noForm })
   const id = props.id || props.name
 
   return (

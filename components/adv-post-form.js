@@ -8,6 +8,7 @@ import styles from './adv-post-form.module.css'
 import { useMe } from './me'
 import { useRouter } from 'next/router'
 import { useFormikContext } from 'formik'
+import { fieldDraftKey } from '@/lib/form-draft'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
@@ -43,7 +44,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
     if (storageKeyPrefix) {
       for (let i = 0; i < MAX_FORWARDS; i++) {
         ['nym', 'pct'].forEach(key => {
-          const value = window.localStorage.getItem(`${storageKeyPrefix}-forward[${i}].${key}`)
+          const value = window.localStorage.getItem(fieldDraftKey(storageKeyPrefix, `forward[${i}].${key}`))
           if (value !== undefined && value !== null) {
             formik?.setFieldValue(`forward[${i}].${key}`, value)
           }

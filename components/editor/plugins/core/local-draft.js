@@ -1,6 +1,6 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { useContext, useCallback, useEffect, useRef } from 'react'
-import { StorageKeyPrefixContext } from '@/components/form'
+import { useCallback, useEffect, useRef } from 'react'
+import { useFieldDraft } from '@/components/form/use-field-draft'
 import { $setText } from '@/lib/lexical/utils'
 import { $markdownToLexical } from '@/lib/lexical/utils/mdast'
 import { isMarkdownMode } from '@/lib/lexical/commands/utils'
@@ -17,8 +17,7 @@ export default function LocalDraftPlugin ({ name }) {
   const prevText = useRef(text.value)
 
   // local storage keys, e.g. 'reply-123456-text'
-  const storageKeyPrefix = useContext(StorageKeyPrefixContext)
-  const storageKey = storageKeyPrefix ? storageKeyPrefix + '-' + name : undefined
+  const { storageKey } = useFieldDraft(name)
 
   /**
    * saves or removes draft from local storage based on editor emptiness

@@ -13,7 +13,7 @@ export function SubmitButton ({
 
   return (
     <Button
-      variant={variant || 'main'}
+      variant={variant}
       className={cn(formik.isSubmitting && 'pulse', className)}
       type='submit'
       disabled={disabled}

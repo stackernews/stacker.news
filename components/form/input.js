@@ -101,6 +101,7 @@ export function InputInner ({
                 ref={innerRef}
                 {...field}
                 {...inputProps}
+                value={noForm ? inputProps.value : (inputProps.value ?? field.value ?? '')}
                 id={props.id || props.name}
                 render={as === 'textarea' ? <textarea /> : undefined}
                 onKeyDown={onKeyDownInner}
@@ -136,11 +137,11 @@ export function InputInner ({
             </div>
             {!hideError && invalid &&
               <Field.Error match className={errorClasses()}>
-                {meta.touched && meta.error}
+                {meta.error}
               </Field.Error>}
           </Field.Root>
         </div>
-        {AppendColumn && <AppendColumn className={meta.touched && meta.error ? 'invisible' : ''} />}
+        {AppendColumn && <AppendColumn className={invalid ? 'invisible' : ''} />}
       </div>
       {hint && (
         <small className={hintClasses()}>
@@ -152,7 +153,7 @@ export function InputInner ({
           {warn}
         </small>
       )}
-      {!warn && maxLength && !(meta.touched && meta.error && invalid) && (
+      {!warn && maxLength && !invalid && (
         <small className={hintClasses({ className: remaining < 0 ? 'text-danger' : 'text-muted' })}>
           {`${numWithUnits(remaining, { abbreviate: false, unitSingular: 'character', unitPlural: 'characters' })} remaining`}
         </small>

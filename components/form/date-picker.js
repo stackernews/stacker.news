@@ -5,6 +5,7 @@ import 'react-datepicker/dist/react-datepicker.css'
 import { whenRange } from '@/lib/time'
 import { cn } from '@/lib/cn'
 import { FormGroup, inputClasses, errorClasses } from './field'
+import { useFormikField } from './use-formik-field'
 
 function DatePickerSkeleton () {
   return (
@@ -106,42 +107,26 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
   )
 }
 
-export function DateTimeInput ({ label, groupClassName, name, ...props }) {
-  const [, meta] = useField({ ...props, name })
+export function DateTimeInput ({ label, groupClassName, name, className, ...props }) {
+  const { field, meta, helpers, invalid } = useFormikField({ ...props, name })
   return (
     <FormGroup label={label} htmlFor={props.id || name} className={groupClassName}>
       <div>
-        <DateTimePicker id={props.id || name} name={name} {...props} />
-        <div className={errorClasses()}>
-          {meta.error}
-        </div>
-      </div>
-    </FormGroup>
-  )
-}
-
-function DateTimePicker ({ name, className, ...props }) {
-  const [field, , helpers] = useField({ ...props, name })
-  const ReactDatePicker = dynamic(() => import('react-datepicker').then(mod => mod.default), {
-    ssr: false,
-    loading: () => <span>loading date picker</span>
-  })
-  return (
-    <>
-      {ReactDatePicker && (
         <ReactDatePicker
           {...field}
           {...props}
+          id={props.id || name}
           showTimeSelect
           dateFormat='Pp'
           className={cn(inputClasses(), className)}
+          customInput={<input data-invalid={invalid ? '' : undefined} aria-invalid={!!invalid} />}
           selected={(field.value && new Date(field.value)) || null}
           value={(field.value && new Date(field.value)) || null}
-          onChange={(val) => {
-            helpers.setValue(val)
-          }}
+          onChange={val => helpers.setValue(val)}
+          onBlur={() => helpers.setTouched(true)}
         />
-      )}
-    </>
+        {invalid && <div className={errorClasses()}>{meta.error}</div>}
+      </div>
+    </FormGroup>
   )
 }

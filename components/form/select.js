@@ -6,8 +6,7 @@ import { FormGroup, hintClasses, errorClasses } from './field'
 import styles from './select.module.css'
 
 export function Select ({ label, items, info, groupClassName, onChange, noForm, overrideValue, hint, className, ...props }) {
-  const { field, meta, helpers, formik } = useFormikField(props, { noForm })
-  const invalid = meta.touched && meta.error
+  const { field, meta, helpers, formik, invalid } = useFormikField(props, { noForm })
 
   useEffect(() => {
     if (overrideValue) {
@@ -50,7 +49,7 @@ export function Select ({ label, items, info, groupClassName, onChange, noForm, 
       </span>
       {invalid &&
         <div className={errorClasses()}>
-          {meta.touched && meta.error}
+          {meta.error}
         </div>}
       {hint &&
         <small className={hintClasses()}>

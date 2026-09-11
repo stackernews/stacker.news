@@ -42,7 +42,7 @@
 }
 .scannerOverlay {
   position: fixed;
-  z-index: 2000;
+  z-index: var(--sn-z-scanner);
   inset: 0;
   display: flex;
   flex-direction: column;

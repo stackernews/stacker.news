@@ -1,4 +1,5 @@
 import '@/styles/tokens.css'
+import '@/wallets/client/tokens.css'
 import '@/styles/tailwind.css'
 import '@/styles/base.css'
 import '@/styles/app.css'

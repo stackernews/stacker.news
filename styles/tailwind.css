@@ -12,10 +12,6 @@
 @source '../wallets';
 @source '../svgs';
 
-/* words that aren't utility usage */
-@source not inline('container');
-@source not inline('table');
-
 /* :where() keeps the dark variant at zero specificity */
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 

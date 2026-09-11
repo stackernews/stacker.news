@@ -1,3 +1,4 @@
+import { cn } from '@/lib/cn'
 import { Fragment, useCallback, forwardRef, useRef } from 'react'
 import { UPLOAD_TYPES_ALLOW, MEDIA_URL } from '@/lib/constants'
 import { useToast } from '@/components/ui/toast'
@@ -121,7 +122,7 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
         }}
       />
       <div
-        className={className} onClick={() => ref.current?.click()} style={{ cursor: 'pointer' }} tabIndex={0} onKeyDown={(e) => {
+        className={cn('cursor-pointer', className)} onClick={() => ref.current?.click()} tabIndex={0} onKeyDown={(e) => {
           if (e.key === 'Enter') { ref.current?.click() }
         }}
       >

@@ -51,16 +51,6 @@
     filter: var(--filter);
 }
 
-.cover {
-    background: var(--sn-body-bg);
-    width: 100%;
-    overflow: hidden;
-    mix-blend-mode: color;
-    position: absolute;
-    left: 4px;
-    width: 17px;
-}
-
 .pending {
     fill: var(--hover-fill);
     animation-name: pulse;

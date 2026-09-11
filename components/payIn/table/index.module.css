@@ -77,10 +77,4 @@
 .money > * {
   padding: .2rem 0;
 }
-
-.sats {
-  text-align: right;
-  display: grid;
-  align-items: center;
-}
 }

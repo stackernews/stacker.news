@@ -7,12 +7,6 @@ import { cn } from '@/lib/cn'
 import { closeClasses } from '@/components/ui/close'
 import styles from './modal.module.css'
 
-export class ModalClosedError extends Error {
-  constructor () {
-    super('modal closed')
-  }
-}
-
 export const ShowModalContext = createContext(() => null)
 
 export function ShowModalProvider ({ children }) {

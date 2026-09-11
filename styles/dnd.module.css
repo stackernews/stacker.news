@@ -13,7 +13,7 @@
   cursor: grabbing;
   opacity: 0.75;
   transform: scale(1.05) rotate(1.5deg);
-  z-index: 1000;
+  z-index: var(--sn-z-drag);
 }
 
 .dragOver {

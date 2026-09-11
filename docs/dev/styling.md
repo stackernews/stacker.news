@@ -75,7 +75,7 @@ utility to the SVG itself.
 Overlays rendered through portals share the z-index tokens in `styles/tokens.css`.
 Use these tokens instead of local numeric values. From lowest to highest, the
 order is sticky content, fixed content, drawers, modals, menus, popovers, tooltips,
-then toasts. Menus appear above modals and below popovers.
+then the full-screen scanner and toasts. Decorative overlays stay below navigation; drag elevation retains its existing position in the ladder. Menus appear above modals and below popovers.
 
 Breakpoints apply across the app. Changing one affects responsive layouts beyond
 the component you're working on.
@@ -85,7 +85,10 @@ the component you're working on.
 Tooltips, popovers, preview cards, menus, dialogs, drawers, and toasts render into
 `body` through portals. Their modules define appearance and transitions. Base UI
 handles focus, dismissal, keyboard navigation, and delayed unmounting where
-supported. Close buttons use `closeClasses()` from `components/ui/close.js`.
+supported. Menu, popover, and tooltip components add the shared `motion` class
+from `popup-motion.module.css` in JavaScript; tooltip retains its instant-open
+override. Compact account/editor menu items use `MenuItem variant='compact'` and `MenuItemText`.
+Close buttons use `closeClasses()` from `components/ui/close.js`.
 
 ### Shared arrows
 
@@ -128,6 +131,11 @@ Form controls use Base UI's `data-invalid` attribute for validation errors, set 
 `Field.Root` or by the component itself. In modules, style invalid state only with
 `[data-invalid]`.
 
+Errors appear after a submit attempt unless `Form` opts into `validateImmediately`.
+Input, Select, Checkbox, OTP, MultiSelect, and DateTimeInput share this policy
+through `useFormikField`. Formik-backed text inputs normalize missing values to
+empty strings; `noForm` inputs can still use uncontrolled `defaultValue`.
+
 ### Input group corners
 
 `components/form/field.module.css` joins input group corners through sibling
@@ -158,6 +166,8 @@ it ends.
 `pages/_app.js` imports global styles in this order:
 
 - `styles/tokens.css`: light and dark design tokens.
+- `wallets/client/tokens.css`: wallet radii, spacing, and surface values. Root scope
+  is intentional because wallet passphrase UI also renders in body portals.
 - `styles/tailwind.css`: layer order, Tailwind imports, sources, theme mapping,
   and the dark variant.
 - `styles/base.css`: application element defaults in the base layer.

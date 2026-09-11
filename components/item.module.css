@@ -70,31 +70,11 @@ a.title:visited {
     flex-shrink: 0;
 }
 
-.ad {
-    fill: #a5a5a5ac;
-    margin-right: .4rem;
-    margin-left: -.2rem;
-    flex-shrink: 0;
-}
-
 .dontLike {
     fill: #a5a5a5;
     flex-shrink: 0;
     cursor: pointer;
     margin-right: 2px;
-}
-
-.case {
-    fill: #a5a5a5;
-    margin-right: .2rem;
-    margin-top: .2rem;
-    padding: 0 2px;
-}
-
-.linkSmall {
-    width: 128px;
-    display: inline-block;
-    vertical-align: text-top;
 }
 
 a.link:visited {
@@ -138,15 +118,6 @@ a.link:visited {
 
 .item .jobBoostGroup .companyImage {
     margin-left: 0;
-}
-
-.itemDead {
-    pointer-events: none;
-    opacity: .5;
-}
-
-.item .cover {
-    top: 4px;
 }
 
 .hunk {

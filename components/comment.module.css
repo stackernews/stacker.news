@@ -43,11 +43,6 @@
     --sn-text-max-height: calc(25vh + 10lh);
 }
 
-.edit {
-    display: inline-block;
-    cursor: pointer;
-}
-
 .collapsed .hunk {
     margin-bottom: .5rem;
 }
@@ -109,12 +104,6 @@
 .replyPadder {
     padding: .25rem 0;
     padding-bottom: .5rem;
-}
-
-.replyContainer {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
 }
 
 .comment {

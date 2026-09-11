@@ -17,7 +17,7 @@ import { signOut } from 'next-auth/react'
 import Badges from '../badge'
 import LightningIcon from '../../svgs/bolt.svg'
 import SearchIcon from '../../svgs/search-line.svg'
-import classNames from 'classnames'
+import { cn } from '@/lib/cn'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
 import { useWalletIndicator } from '@/wallets/client/hooks'
@@ -32,7 +32,7 @@ export function Brand ({ className }) {
   const logoUrl = branding?.logoId ? `${PUBLIC_MEDIA_URL}/${branding.logoId}` : null
 
   return (
-    <Link href='/' className={classNames(styles.brand, className)}>
+    <Link href='/' className={cn(styles.brand, className)}>
       {logoUrl
         ? <img src={logoUrl} alt='site logo' width={36} height={36} className={styles.brandImage} loading='eager' decoding='async' />
         : <SnIcon width={36} height={36} />}
@@ -99,7 +99,7 @@ export function SearchItem ({ className }) {
 
 export function NavPrice ({ className }) {
   return (
-    <NavItem className={classNames(styles.price, className)}>
+    <NavItem className={cn(styles.price, className)}>
       <Price className={navLinkClasses({ className: 'font-mono' })} />
     </NavItem>
   )
@@ -165,7 +165,7 @@ export const Indicator = ({ show, top = '0px', right = '0px', variant = 'seconda
       {children}
       {show && (
         <span
-          className={classNames('absolute p-1', variant === 'danger' ? 'bg-danger' : 'bg-secondary')}
+          className={cn('absolute p-1', variant === 'danger' ? 'bg-danger' : 'bg-secondary')}
           style={{ top, right, height: '5px', width: '5px', border: '1px solid var(--sn-body-bg)' }}
         >
           <span className='invisible'>{' '}</span>
@@ -230,7 +230,7 @@ export function SignUpButton ({ className, width }) {
 
   return (
     <Button
-      className={classNames('items-center ps-2 pe-4 py-0', className)}
+      className={cn('items-center ps-2 pe-4 py-0', className)}
       // 161px is the width of the 'switch account' button
       style={{ borderWidth: '2px', width: width || SWITCH_ACCOUNT_BUTTON_WIDTH }}
       id='signup'
@@ -351,13 +351,13 @@ function SwitchAccountButton ({ handleClose }) {
 export function LoginButtons ({ handleClose, className }) {
   return (
     <>
-      <MenuItem className={classNames('py-1', className)}>
+      <MenuItem className={cn('py-1', className)}>
         <LoginButton />
       </MenuItem>
-      <MenuItem className={classNames('py-1', className)}>
+      <MenuItem className={cn('py-1', className)}>
         <SignUpButton className='py-1' />
       </MenuItem>
-      <MenuItem className={classNames('py-1', className)}>
+      <MenuItem className={cn('py-1', className)}>
         <SwitchAccountButton handleClose={handleClose} />
       </MenuItem>
     </>
@@ -367,7 +367,7 @@ export function LoginButtons ({ handleClose, className }) {
 export function AnonDropdown () {
   return (
     <div className='relative'>
-      <Menu className={classNames(styles.dropdown, 'pe-0')}>
+      <Menu className={cn(styles.dropdown, 'pe-0')}>
         <MenuTrigger className={navLinkClasses({ className: 'font-normal px-0' })}>
           <span className={navLinkClasses({ className: 'p-0' })}>
             @anon<Badges user={{ id: USER_ID.anon }} />
@@ -385,13 +385,13 @@ export function Sorts ({ prefix, className }) {
   return (
     <>
       <NavItem className={className}>
-        <NavLink href={prefix + '/'} eventKey='' className={classNames(styles.navSort, 'py-1')}>lit</NavLink>
+        <NavLink href={prefix + '/'} eventKey='' className={cn(styles.navSort, 'py-1')}>lit</NavLink>
       </NavItem>
       <NavItem className={className}>
-        <NavLink href={prefix + '/new'} eventKey='new' className={classNames(styles.navSort, 'py-1')}>new</NavLink>
+        <NavLink href={prefix + '/new'} eventKey='new' className={cn(styles.navSort, 'py-1')}>new</NavLink>
       </NavItem>
       <NavItem className={className}>
-        <NavLink href={prefix + '/top/posts/day'} eventKey='top' className={classNames(styles.navSort, 'py-1')}>top</NavLink>
+        <NavLink href={prefix + '/top/posts/day'} eventKey='top' className={cn(styles.navSort, 'py-1')}>top</NavLink>
       </NavItem>
     </>
   )
@@ -409,7 +409,7 @@ export function PostItem ({ className, prefix, size }) {
       className={buttonClasses({
         variant: isLurker ? 'grey' : 'primary',
         size,
-        className: classNames(className, textOverride, 'md:py-1')
+        className: cn(className, textOverride, 'md:py-1')
       })}
     >
       post

@@ -189,26 +189,6 @@
   opacity: 0.5;
 }
 
-/* skeleton animation */
-.skeleton .otherItem {
-  display: inline-flex;
-  width: 100%;
-  height: 100%;
-  border-radius: 0.27rem;
-  background-size: 200% 100%;
-  animation: shimmer 4s infinite linear;
-  margin-bottom: 0.5rem;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
 .modeTab {
   --tab-border-color: var(--sn-border-color);
   --tab-bg: var(--sn-input-bg);
@@ -253,42 +233,6 @@
   --tab-border-color: var(--sn-primary);
   --tab-shadow: 0 0 4px var(--sn-primary);
   --tab-clip: inset(-0.2rem -0.2rem -0.1rem -0.2rem);
-}
-
-/* table action menu */
-.tableCellActionButtonContainer {
-  position: absolute;
-  z-index: 3;
-  top: 0;
-  left: 0;
-  will-change: transform;
-}
-.tableCellActionButton {
-  background-color: var(--sn-comment-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--sn-border-color);
-  border-radius: 4px;
-  position: absolute;
-  top: 17px;
-  right: 2px;
-  cursor: pointer;
-  font-size: 12px;
-  line-height: 1;
-  padding: 0;
-  width: 12px;
-  height: 12px;
-}
-
-.tableCellActionButton:hover {
-  background-color: var(--sn-toolbar-active);
-}
-
-.tableCellActionButton svg {
-  fill: var(--sn-body-color);
-  width: 12px;
-  height: 12px;
 }
 
 .dragOver {

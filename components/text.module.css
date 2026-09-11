@@ -11,10 +11,6 @@
     --grid-gap: 0.5rem;
 }
 
-.text.topLevel {
-    --grid-gap: 0.75rem;
-}
-
   /* Hide the section label for visual users. */
 .text :global(.sr-only) {
     position: absolute;
@@ -51,13 +47,6 @@
     }
 }
 
-.heading {
-    position: relative;
-    margin-left: -22px;
-    padding-left: 22px;
-    display: block;
-}
-
 .text hr {
     border-top: 3px solid var(--sn-quote-bar);
 }
@@ -70,7 +59,7 @@
     padding-bottom: calc(var(--grid-gap) * 0.5);
 }
 
-.text>*:not(.heading) {
+.text>* {
     padding-top: calc(var(--grid-gap) * 0.5);
     padding-bottom: calc(var(--grid-gap) * 0.5);
 }
@@ -89,16 +78,16 @@
     margin-top: 0 !important;
 }
 
-.text blockquote, .text.topLevel blockquote  {
+.text blockquote {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
 }
 
-.text blockquote *:first-child, .text.topLevel blockquote *:first-child {
+.text blockquote *:first-child {
     padding-top: 0;
 }
 
-.text blockquote *:last-child, .text.topLevel blockquote *:last-child {
+.text blockquote *:last-child {
     padding-bottom: 0;
 }
 
@@ -145,33 +134,6 @@
 .text h1 a, .text h2 a, .text h3 a, .text h4 a, .text h5 a, .text h6 a {
     text-decoration: none;
     color: inherit !important;
-}
-
-.topLevel.text h1 {
-    font-size: 1.6rem;
-}
-
-.topLevel.text h2 {
-    font-size: 1.45rem;
-}
-
-.topLevel.text h3 {
-    font-size: 1.3rem;
-}
-
-.topLevel.text h4 {
-    font-size: 1.15rem;
-}
-
-/* Utility classes used in rehype plugins in md.js */
-.subscript {
-    vertical-align: sub;
-    font-size: smaller;
-}
-
-.superscript {
-    vertical-align: super;
-    font-size: smaller;
 }
 
 }

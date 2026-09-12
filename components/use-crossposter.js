@@ -2,12 +2,15 @@ import { useCallback } from 'react'
 import { useToast } from './toast'
 import { Button } from 'react-bootstrap'
 import Nostr, { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
+import { normalizeLineSeparators } from '@/lib/text'
 import { gql } from '@apollo/client'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client/react'
 import { SETTINGS } from '@/fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
 
-function itemToContent (item, { includeTitle = true } = {}) {
+// exported for tests: the content we hand to Nostr must be free of invisible
+// line/paragraph separators, otherwise other clients render it differently (#546)
+export function itemToContent (item, { includeTitle = true } = {}) {
   let content = includeTitle ? item.title : ''
 
   if (item.url) {
@@ -20,7 +23,7 @@ function itemToContent (item, { includeTitle = true } = {}) {
 
   content += `\n\nhttps://stacker.news/items/${item.id}`
 
-  return content.trim()
+  return normalizeLineSeparators(content.trim())
 }
 
 function discussionToEvent (item) {

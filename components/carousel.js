@@ -38,23 +38,6 @@ function useSwiping ({ moveLeft, moveRight }) {
   }, [onTouchStart, onTouchEnd])
 }
 
-// listen on the container, not document: Dialog.Popup stops propagation of arrow keys
-function useArrowKeys (ref, { moveLeft, moveRight }) {
-  const onKeyDown = useCallback((e) => {
-    if (e.key === 'ArrowLeft') {
-      moveLeft()
-    } else if (e.key === 'ArrowRight') {
-      moveRight()
-    }
-  }, [moveLeft, moveRight])
-
-  useEffect(() => {
-    const el = ref.current
-    el?.addEventListener('keydown', onKeyDown)
-    return () => el?.removeEventListener('keydown', onKeyDown)
-  }, [ref, onKeyDown])
-}
-
 function Carousel ({ close, mediaArr, src, setOptions }) {
   const [index, setIndex] = useState(mediaArr.findIndex(([key]) => key === src))
   const [currentSrc, canGoLeft, canGoRight] = useMemo(() => {
@@ -77,15 +60,20 @@ function Carousel ({ close, mediaArr, src, setOptions }) {
     setIndex(i => Math.min(mediaArr.length - 1, i + 1))
   }, [setIndex, mediaArr.length])
 
-  // focus the container so arrow keys land on it, tabIndex -1 keeps it out of the tab order
+  // focus the container so arrow keys land on it, tabIndex -1 keeps it out of the tab order.
+  // handle keys here, not on document: Dialog.Popup stops propagation of arrow keys
   const containerRef = useRef(null)
   useEffect(() => { containerRef.current?.focus() }, [])
 
+  const onKeyDown = useCallback((e) => {
+    if (e.key === 'ArrowLeft') moveLeft()
+    else if (e.key === 'ArrowRight') moveRight()
+  }, [moveLeft, moveRight])
+
   useSwiping({ moveLeft, moveRight })
-  useArrowKeys(containerRef, { moveLeft, moveRight })
 
   return (
-    <div ref={containerRef} tabIndex={-1} className={styles.fullScreenContainer} onClick={close}>
+    <div ref={containerRef} tabIndex={-1} className={styles.fullScreenContainer} onClick={close} onKeyDown={onKeyDown}>
       <img className={styles.fullScreen} src={currentSrc} />
       <div className={styles.fullScreenNavContainer}>
         <div

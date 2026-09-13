@@ -113,7 +113,15 @@ export default function useDecoratorNodeSelection (nodeKey, opts = {}) {
     const element = editor.getElementByKey(nodeKey)
     if (!element) return
     if (element === document.activeElement || element.contains(document.activeElement)) {
+      // Safari on iOS can still scroll when focusing a contenteditable, even
+      // when preventScroll is requested. Keep the browser focus fix above from
+      // moving the user away from the text they were editing.
+      const scrollX = window.scrollX
+      const scrollY = window.scrollY
       editor.getRootElement()?.focus({ preventScroll: true })
+      if (window.scrollX !== scrollX || window.scrollY !== scrollY) {
+        window.scrollTo(scrollX, scrollY)
+      }
     }
   }, [editor, nodeKey, isFocused, active])
 

@@ -51,7 +51,7 @@ function Parent ({ item, rootText }) {
       </Link>
       {root.subNames?.map(subName => (
         <Link key={subName} href={`/~${subName}`}>
-          {' '}<Badge>{subName}</Badge>
+          {' '}<Badge className='-mt-px'>{subName}</Badge>
         </Link>
       ))}
     </>
@@ -249,7 +249,7 @@ export default function Comment ({
                   commentsText='replies'
                   commentTextSingular='reply'
                   className={`${itemStyles.other} ${styles.other}`}
-                  embellishUser={op && <><span> </span><Badge variant={op === 'fwd' ? 'secondary' : 'boost'} className={classNames(styles.op, 'align-text-top')}>{op}</Badge></>}
+                  embellishUser={op && <><span> </span><Badge variant={op === 'fwd' ? 'secondary' : 'boost'} className={classNames(styles.op, 'align-text-top -mt-px ms-0')}>{op}</Badge></>}
                   onQuoteReply={quoteReply}
                   nested={!includeParent}
                   {...props}

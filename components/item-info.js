@@ -166,22 +166,22 @@ export default function ItemInfo ({
         return (
           <SubPreviewCard key={subName} sub={subName}>
             <Link href={href} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined}>
-              {' '}<Badge>{subName} {isExternal && <LinkExternal width={10} height={10} />}</Badge>
+              {' '}<Badge className='-mt-px'>{subName} {isExternal && <LinkExternal width={10} height={10} />}</Badge>
             </Link>
           </SubPreviewCard>
         )
       })}
       {sub?.nsfw &&
-        <Badge>nsfw</Badge>}
+        <Badge className='-mt-px'>nsfw</Badge>}
       {item.freebie && !item.position &&
         <Link href='/new/freebies'>
-          {' '}<Badge>freebie</Badge>
+          {' '}<Badge className='-mt-px'>freebie</Badge>
         </Link>}
       {isDesperado &&
         <span
           role='button' onClick={() => showModal((onClose) => <ItemDetails item={item} me={me} />)}
         >
-          {' '}<Badge>-{abbrNum(item.downSats)} sats</Badge>
+          {' '}<Badge className='-mt-px'>-{abbrNum(item.downSats)} sats</Badge>
         </span>}
       {extraBadges}
       {

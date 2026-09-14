@@ -82,13 +82,16 @@ the component you're working on.
 
 ## Popups
 
-Tooltips, popovers, preview cards, menus, dialogs, drawers, and toasts render into
-`body` through portals. Their modules define appearance and transitions. Base UI
-handles focus, dismissal, keyboard navigation, and delayed unmounting where
-supported. Menu, popover, and tooltip components add the shared `motion` class
-from `popup-motion.module.css` in JavaScript; tooltip retains its instant-open
-override. Compact account/editor menu items use `MenuItem variant='compact'` and `MenuItemText`.
-Close buttons use `closeClasses()` from `components/ui/close.js`.
+Popups render into `body` through portals by default. Menus can use a container
+from `MenuProvider`; sticky-bar menus use the bar so they follow its position and
+visibility.
+
+Modules define appearance and transitions. Base UI handles focus, dismissal,
+keyboard navigation, and delayed unmounting where supported. Menu, popover, and
+tooltip components add the shared `motion` class from `popup-motion.module.css`
+in JavaScript; tooltip retains its instant-open override. Compact account/editor
+menu items use `MenuItem variant='compact'` and `MenuItemText`. Close buttons use
+`closeClasses()` from `components/ui/close.js`.
 
 ### Shared arrows
 
@@ -101,9 +104,8 @@ Tooltips, popovers, and preview cards use `components/ui/arrow.module.css`.
 - `data-side` reports the popup side, so a bottom popup places its arrow on the
   top edge.
 
-The popover keeps a transform after its opening transition because it establishes
-the arrow's containing block. Removing the transform would anchor the arrow to
-the positioner instead, making it jump.
+The popover uses `position: relative` to anchor its arrow. The shared `motion`
+class applies `scale(0.98)` only in the starting and ending states.
 
 ### Focus
 
@@ -175,6 +177,7 @@ it ends.
   animations, and third-party integration styles.
 - `katex/dist/katex.min.css`: KaTeX styling with its font URLs intact.
 - `styles/text.css`: unlayered rendered-content and editor styles.
+- `nprogress/nprogress.css`: navigation progress bar styles.
 
 Component styles live beside their components in `*.module.css`. Class helpers
 that combine utilities live in the corresponding JavaScript modules.

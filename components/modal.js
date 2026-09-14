@@ -139,7 +139,7 @@ export default function useModal () {
                   : null}
                 <Dialog.Close
                   aria-label='close'
-                  className={closeClasses({ className: cn(btn, 'ms-auto pe-6 text-[160%] leading-4', fullScreen && 'p-5') })}
+                  className={closeClasses({ className: cn(btn, 'ms-auto pe-6 text-2xl leading-4', fullScreen && 'p-5') })}
                 >X
                 </Dialog.Close>
               </div>

@@ -14,6 +14,7 @@ export default function PastBounties ({ item }) {
 
   return (
     <AccordionItem
+      keepMounted // need to preserve pending zaps while collapsed
       header={<div className='font-bold'>{item.user.name}'s bounties</div>}
       body={
         <Items

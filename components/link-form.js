@@ -183,7 +183,8 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
           })
         }}
       />
-      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item}>
+      {/* keepMounted to preserve editor state while options is collapsed */}
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} keepMounted>
         <SNInput
           label='context'
           name='text'
@@ -203,6 +204,8 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
             <div className='mt-4'>
               <AccordionItem
                 show
+                // preserve pending zaps and their undo controls while collapsed
+                keepMounted
                 headerColor='#c03221'
                 header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>dupes</div>}
                 body={

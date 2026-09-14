@@ -260,6 +260,7 @@ export default function TerritoryBranding ({ sub }) {
     <div className='w-full'>
       <AccordionItem
         show={hasDomain}
+        keepMounted // preserve unsaved domain and branding while collapsed
         header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
         body={
           <>

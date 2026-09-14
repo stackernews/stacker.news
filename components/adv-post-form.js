@@ -23,7 +23,7 @@ const FormStatus = {
   ERROR: 'error'
 }
 
-export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
+export default function AdvPostForm ({ children, item, storageKeyPrefix, keepMounted }) {
   const { me } = useMe()
   const router = useRouter()
   const [itemType, setItemType] = useState()
@@ -104,6 +104,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
     <AccordionItem
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
       show={show}
+      keepMounted={keepMounted}
       body={
         <>
           {children}

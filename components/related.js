@@ -9,6 +9,7 @@ export default function Related ({ title, itemId, ...props }) {
   const variables = { title, id: itemId, limit: LIMIT }
   return (
     <AccordionItem
+      keepMounted // need to preserve pending zaps while collapsed
       header={<div className='font-bold'>related posts</div>}
       body={
         <Items

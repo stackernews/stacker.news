@@ -261,6 +261,7 @@ export default function TerritoryForm ({ sub }) {
               />}
           </>}
         <AccordionItem
+          keepMounted // keeps the sat filter in sync while collapsed
           header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
           body={
             <>

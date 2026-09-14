@@ -5,7 +5,7 @@ import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 import ArrowDown from '@/svgs/arrow-down-s-fill.svg'
 import { cn } from '@/lib/cn'
 
-export default function AccordionItem ({ header, body, className, headerColor = 'var(--sn-grey)', show }) {
+export default function AccordionItem ({ header, body, className, headerColor = 'var(--sn-grey)', show, keepMounted }) {
   const [open, setOpen] = useState(!!show)
 
   useEffect(() => {
@@ -21,7 +21,7 @@ export default function AccordionItem ({ header, body, className, headerColor = 
           : <ArrowRight style={{ fill: headerColor }} height={20} width={20} />}
         <div style={{ color: headerColor }}>{header}</div>
       </CollapsibleTrigger>
-      <CollapsiblePanel className={cn('mt-2', className)}>{body}</CollapsiblePanel>
+      <CollapsiblePanel className={cn('mt-2', className)} keepMounted={keepMounted}>{body}</CollapsiblePanel>
     </Collapsible>
   )
 }

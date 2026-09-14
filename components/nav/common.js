@@ -327,9 +327,6 @@ export function LogoutDropdownItem ({ handleClose, className }) {
 
 function SwitchAccountButton ({ handleClose }) {
   const showModal = useShowModal()
-  const accounts = useAccounts()
-
-  if (accounts.length === 0) return null
 
   return (
     <Button
@@ -349,6 +346,8 @@ function SwitchAccountButton ({ handleClose }) {
 }
 
 export function LoginButtons ({ handleClose, className }) {
+  const accounts = useAccounts()
+
   return (
     <>
       <MenuItem className={cn('py-1', className)}>
@@ -357,9 +356,11 @@ export function LoginButtons ({ handleClose, className }) {
       <MenuItem className={cn('py-1', className)}>
         <SignUpButton className='py-1' />
       </MenuItem>
-      <MenuItem className={cn('py-1', className)}>
-        <SwitchAccountButton handleClose={handleClose} />
-      </MenuItem>
+      {accounts.length > 0 && (
+        <MenuItem className={cn('py-1', className)}>
+          <SwitchAccountButton handleClose={handleClose} />
+        </MenuItem>
+      )}
     </>
   )
 }

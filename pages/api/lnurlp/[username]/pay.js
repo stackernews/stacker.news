@@ -54,7 +54,9 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       const hasETag = note.tags?.filter(t => t[0] === 'e').length <= 1
       // If there is an amount tag, it MUST be equal to the amount query parameter
       const eventAmount = note.tags?.find(t => t[0] === 'amount')?.[1]
-      if (schnorr.verify(note.sig, note.id, note.pubkey) && hasPTag && hasETag && (!eventAmount || Number(eventAmount) === Number(amount))) {
+      // p tag belongs to the payee, otherwise we'd sign a receipt crediting someone who never got the sats
+      const pTagMatchesPayee = user.pubkey && note.tags?.find(t => t[0] === 'p')?.[1] === user.pubkey
+      if (schnorr.verify(note.sig, note.id, note.pubkey) && hasPTag && hasETag && pTagMatchesPayee && (!eventAmount || Number(eventAmount) === Number(amount))) {
         // override description hash
         descriptionHash = createHash('sha256').update(descriptionHashPreimage).digest('hex')
       } else {

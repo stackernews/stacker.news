@@ -1,5 +1,5 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { useCallback, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useFieldDraft } from '@/components/form/use-field-draft'
 import { $setText } from '@/lib/lexical/utils'
 import { $markdownToLexical } from '@/lib/lexical/utils/mdast'
@@ -16,53 +16,34 @@ export default function LocalDraftPlugin ({ name }) {
   const [text] = useField({ name })
   const prevText = useRef(text.value)
 
-  // local storage keys, e.g. 'reply-123456-text'
-  const { storageKey } = useFieldDraft(name)
+  const { getDraft, setDraft } = useFieldDraft(name)
 
-  /**
-   * saves or removes draft from local storage based on editor emptiness
-   * @param {string} text - markdown text content
-   */
-  const upsertDraft = useCallback((value) => {
-    if (!storageKey) return
-
-    // remove the draft if text is empty
-    if (!value || value.trim() === '') {
-      window.localStorage.removeItem(storageKey)
-    } else {
-      window.localStorage.setItem(storageKey, value)
-    }
-  }, [storageKey])
-
-  // load the draft from local storage
+  // load the draft
   useEffect(() => {
     // prefer Formik value over local storage
     if (text?.value) return
-    if (storageKey) {
-      const value = window.localStorage.getItem(storageKey)
-      if (value) {
-        editor.update(() => {
-          const isMarkdown = isMarkdownMode(editor)
-          if (isMarkdown) {
-            $setText(value)
-          } else {
-            $markdownToLexical(value)
-          }
-        })
-      }
+    const value = getDraft()
+    if (value) {
+      editor.update(() => {
+        const isMarkdown = isMarkdownMode(editor)
+        if (isMarkdown) {
+          $setText(value)
+        } else {
+          $markdownToLexical(value)
+        }
+      })
     }
-  // we're not depending on text.value here because we need to load the draft on mount, not on change
-  }, [editor, storageKey])
+  // omit text.value so typing doesn't reload the draft
+  }, [editor, getDraft])
 
-  // save the draft to local storage
+  // save the draft
   useEffect(() => {
-    // avoid saving the draft if the text hasn't changed
-    // this also keeps the saving from depending on components lifecycle
+    // don't overwrite the stored draft on mount or editor mode changes
     if (prevText.current === text.value) return
     prevText.current = text.value
 
-    upsertDraft(text.value)
-  }, [upsertDraft, text.value])
+    setDraft(text.value)
+  }, [setDraft, text.value])
 
   return null
 }

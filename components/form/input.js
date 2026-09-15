@@ -18,7 +18,7 @@ export function InputInner ({
   AppendColumn, size, className, ...props
 }) {
   const { field, meta, helpers, formik, invalid } = useFormikField(props, { noForm })
-  const { storageKey } = useFieldDraft(props.name)
+  const { getDraft, setDraft, clearDraft } = useFieldDraft(props.name)
   const isClient = useIsClient()
 
   const onKeyDownInner = useCallback((e) => {
@@ -33,14 +33,12 @@ export function InputInner ({
   const onChangeInner = useCallback((e) => {
     field?.onChange(e)
 
-    if (storageKey) {
-      window.localStorage.setItem(storageKey, e.target.value)
-    }
+    setDraft(e.target.value)
 
     if (onChange) {
       onChange(formik, e)
     }
-  }, [field?.onChange, storageKey, onChange])
+  }, [field?.onChange, setDraft, onChange])
 
   const onBlurInner = useCallback((e) => {
     field?.onBlur?.(e)
@@ -50,12 +48,10 @@ export function InputInner ({
   useEffect(() => {
     if (overrideValue) {
       helpers.setValue(overrideValue)
-      if (storageKey) {
-        window.localStorage.setItem(storageKey, overrideValue)
-      }
+      setDraft(overrideValue)
       onChange && onChange(formik, { target: { value: overrideValue } })
-    } else if (storageKey) {
-      const draft = window.localStorage.getItem(storageKey)
+    } else {
+      const draft = getDraft()
       if (draft) {
         // for some reason we have to turn off validation to get formik to
         // not assume this is invalid
@@ -71,9 +67,7 @@ export function InputInner ({
     if (appendValue) {
       const updatedValue = meta.value ? `${meta.value}\n${appendValue}` : appendValue
       helpers.setValue(updatedValue)
-      if (storageKey) {
-        window.localStorage.setItem(storageKey, updatedValue)
-      }
+      setDraft(updatedValue)
       innerRef?.current?.focus()
     }
   }, [appendValue])
@@ -120,9 +114,7 @@ export function InputInner ({
                   aria-label='clear'
                   onClick={(e) => {
                     helpers.setValue('')
-                    if (storageKey) {
-                      window.localStorage.removeItem(storageKey)
-                    }
+                    clearDraft()
                     if (onChange) {
                       onChange(formik, { target: { value: '' } })
                     }

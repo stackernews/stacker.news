@@ -1,10 +1,30 @@
-import { useContext } from 'react'
+import { useCallback, useContext } from 'react'
 import { StorageKeyPrefixContext } from './form'
 import { fieldDraftKey } from '@/lib/form-draft'
 
-// localStorage key for a field's draft; input.js saves and restores it, Form clears it on submit
+// draft storage is disabled without a prefix; Form clears drafts after submission
 export function useFieldDraft (name) {
   const storageKeyPrefix = useContext(StorageKeyPrefixContext)
   const storageKey = fieldDraftKey(storageKeyPrefix, name)
-  return { storageKey }
+
+  const getDraft = useCallback(() => {
+    return storageKey ? window.localStorage.getItem(storageKey) : null
+  }, [storageKey])
+
+  const clearDraft = useCallback(() => {
+    if (storageKey) window.localStorage.removeItem(storageKey)
+  }, [storageKey])
+
+  const setDraft = useCallback((value) => {
+    if (!storageKey) return
+
+    // discard empty drafts but preserve whitespace in nonempty values
+    if (value == null || value.trim?.() === '') {
+      clearDraft()
+    } else {
+      window.localStorage.setItem(storageKey, value)
+    }
+  }, [storageKey, clearDraft])
+
+  return { getDraft, setDraft, clearDraft }
 }

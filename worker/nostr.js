@@ -15,7 +15,8 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
       }
     },
     include: {
-      nostrNote: true
+      nostrNote: true,
+      User: true
     }
   })
 
@@ -28,7 +29,7 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
         outcome: 'SETTLED',
         preimage: { not: null }
       },
-      include: { nostrNote: true }
+      include: { nostrNote: true, user: true }
     })
   const directNostrNote = externalTransaction?.nostrNote
 
@@ -43,9 +44,17 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
     ? payInBolt11.confirmedAt
     : externalTransaction.settledAt ?? externalTransaction.updatedAt
 
+  // credit whoever actually received the payment, not what the zap request says
+  const recipientPubkey = payInBolt11
+    ? payInBolt11.User?.pubkey
+    : externalTransaction.user?.pubkey
+
   try {
     if (!preimage) throw new Error('cannot publish NIP-57 receipt without a preimage')
     if (typeof rawRequest !== 'string') throw new Error('cannot publish NIP-57 receipt without its raw request')
+    if (!recipientPubkey) {
+      throw new Error('cannot publish NIP-57 receipt without a recipient pubkey')
+    }
 
     const invoice = parsePaymentRequest({ request: bolt11 })
     const requestHash = createHash('sha256').update(rawRequest).digest('hex')
@@ -53,7 +62,7 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
       throw new Error('NIP-57 request does not match the invoice description hash')
     }
 
-    const recipientTag = note.tags.filter(t => t?.length >= 2 && t[0] === 'p')[0]
+    const recipientTag = ['p', recipientPubkey]
     const eventTag = note.tags.filter(t => t?.length >= 2 && t[0] === 'e')[0]
     const addressTag = note.tags.filter(t => t?.length >= 2 && t[0] === 'a')[0]
     const senderTag = typeof note.pubkey === 'string' ? ['P', note.pubkey] : null

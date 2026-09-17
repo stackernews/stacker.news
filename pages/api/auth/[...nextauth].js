@@ -13,6 +13,7 @@ import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
 import { multiAuthMiddleware, setMultiAuthCookies, cookieOptions } from '@/lib/auth'
 import { getDomainMapping } from '@/lib/domains'
+import { safeEqual } from '@/lib/domains/auth'
 import { isSafeRedirectPath, parseSafeHost } from '@/lib/safe-url'
 import { BECH32_CHARSET } from '@/lib/constants'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
@@ -414,7 +415,7 @@ export const getAuthOptions = (req, res) => ({
         `
         if (!verificationRequest) throw new Error('No verification request found')
 
-        if (verificationRequest.token === token) {
+        if (safeEqual(verificationRequest.token, token)) {
           // correct token was entered, delete the verification request because we no longer need it
           await tx.verificationToken.delete({
             where: { id: verificationRequest.id }

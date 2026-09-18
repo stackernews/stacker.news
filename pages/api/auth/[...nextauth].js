@@ -415,7 +415,7 @@ export const getAuthOptions = (req, res) => ({
         `
         if (!verificationRequest) throw new Error('No verification request found')
 
-        if (safeEqual(verificationRequest.token, token)) {
+        if (safeEqual(token, verificationRequest.token)) {
           // correct token was entered, delete the verification request because we no longer need it
           await tx.verificationToken.delete({
             where: { id: verificationRequest.id }

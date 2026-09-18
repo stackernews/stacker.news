@@ -510,6 +510,26 @@ html, body {
   min-height: 100svh;
 }
 
+/* blocks iOS 27 PWA top-edge blur with an opaque fixed element */
+.ios-pwa-status-bar {
+  display: none;
+}
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) and (orientation: portrait) {
+    .ios-pwa-status-bar {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 8px;
+      background-color: var(--bs-body-bg);
+      pointer-events: none;
+      z-index: $zindex-sticky;
+    }
+  }
+}
+
 a {
   color: var(--theme-link);
 }

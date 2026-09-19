@@ -15,7 +15,7 @@ import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem, CrosspostDropdownItem } from './share'
 import Badges from './badge'
-import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER } from '@/lib/constants'
+import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER, USER_ID } from '@/lib/constants'
 import ActionDropdown from './action-dropdown'
 import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
@@ -106,6 +106,7 @@ export default function ItemInfo ({
   const rootReply = item.path.split('.').length === 2
   const canPin = (isPost && mySub) || (myPost && rootReply)
   const isPinnedPost = isPost && item.position && (pinnable || !item.subNames)
+  const isPinnedSaloonPost = isPinnedPost && Number(item.user.id) === USER_ID.saloon
   const isPinnedSubReply = !isPost && item.position && !item.subNames
   const meSats = (me ? item.meSats : item.meAnonSats) || 0
   const satsFilter = me
@@ -216,7 +217,7 @@ export default function ItemInfo ({
               )}
               {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
                 <CrosspostDropdownItem item={item} />}
-              {me && !item.mine && !item.deletedAt &&
+              {me && !item.mine && !item.deletedAt && !isPinnedSaloonPost &&
             (item.meDontLikeSats > meSats
               ? <DropdownItemUpVote item={item} />
               : <DontLikeThisDropdownItem item={item} />)}

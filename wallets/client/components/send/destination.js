@@ -1,4 +1,4 @@
-import { bolt11Msats, isBolt11PaymentRequest, normalizeBolt11PaymentRequest } from '@/lib/bolt11'
+import { bolt11Msats, couldBeBolt11PaymentRequest, normalizeBolt11PaymentRequest } from '@/lib/bolt11'
 import { bolt11SyntaxError } from '@/lib/bolt11-validator'
 import { isLightningAddress } from '@/lib/validate'
 
@@ -24,7 +24,11 @@ export function parseDestination (value) {
   const destination = normalizeBolt11PaymentRequest(value)
   if (!destination) return { value: '', type: null, invoiceMsats: null, error: null }
 
-  if (isBolt11PaymentRequest(destination)) {
+  if (isLightningAddress(destination)) {
+    return { value: destination, type: DestinationType.LN_ADDR, invoiceMsats: null, error: null }
+  }
+
+  if (couldBeBolt11PaymentRequest(destination)) {
     const error = bolt11SyntaxError(destination) // validate before case manipulation
     const invoice = destination.toLowerCase()
     return {
@@ -33,10 +37,6 @@ export function parseDestination (value) {
       invoiceMsats: error ? null : bolt11Msats(invoice),
       error
     }
-  }
-
-  if (isLightningAddress(destination)) {
-    return { value: destination, type: DestinationType.LN_ADDR, invoiceMsats: null, error: null }
   }
 
   return { value: destination, type: null, invoiceMsats: null, error: null }

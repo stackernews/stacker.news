@@ -46,7 +46,7 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
 
   // we refuse to publish zap receipts for invalid invoices
   try {
-    assertValidBolt11(payInBolt11.bolt11)
+    assertValidBolt11(bolt11)
   } catch (err) {
     logInvalidBolt11(`refusing to publish zap receipt for payInBolt11 ${hash}`, err)
     return

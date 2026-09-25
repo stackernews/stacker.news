@@ -29,14 +29,6 @@ export default function useModal () {
   const modalStack = useRef([])
   const [render, forceUpdate] = useReducer(x => x + 1, 0)
   const popupRef = useRef(null)
-  const canPointerDismissRef = useRef(false)
-
-  // the zap long press opens a modal before release; require a new press to dismiss it
-  useEffect(() => {
-    const allowPointerDismiss = () => { canPointerDismissRef.current = true }
-    document.addEventListener('pointerdown', allowPointerDismiss, true)
-    return () => document.removeEventListener('pointerdown', allowPointerDismiss, true)
-  }, [])
 
   const getCurrentContent = useCallback(() => {
     return modalStack.current[modalStack.current.length - 1]
@@ -105,12 +97,8 @@ export default function useModal () {
         open
         onOpenChange={(open, details) => {
           if (open) return
-          // the X always closes, keepOpen only disables light dismiss
+          // the X always closes, keepOpen only disables light dismiss.
           if (details.reason === 'close-press') return onClose()
-          if (details.reason === 'outside-press' && !canPointerDismissRef.current) {
-            details.cancel()
-            return
-          }
           if (!keepOpen) onClose()
         }}
       >
@@ -156,7 +144,6 @@ export default function useModal () {
   const showModal = useCallback(
     (getContent, options) => {
       document.activeElement?.blur()
-      canPointerDismissRef.current = false
       const ref = { node: getContent(onClose, setOptions), options }
       if (options?.replaceModal) {
         modalStack.current = [ref]

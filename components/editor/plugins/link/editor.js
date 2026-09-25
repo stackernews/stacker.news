@@ -125,7 +125,7 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
       onOpenChange={(open, details) => {
         if (open) return
         if (details.reason === 'outside-press') {
-          // presses inside the editor only move the caret and may have just opened us
+          // presses inside the editor only move the caret
           const target = details.event.target
           if (editor.getRootElement().contains(target)) return
           handleCancel()

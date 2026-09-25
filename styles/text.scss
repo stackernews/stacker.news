@@ -1,5 +1,10 @@
 @import 'katex/dist/katex.min.css';
 
+:root {
+  // text shown before `show more`, comments and topLevel override it
+  --sn-text-max-height: 200vh;
+}
+
 .sn-text {
   font-family: inherit;
   word-break: break-word;
@@ -7,7 +12,7 @@
   overflow-x: hidden;
   position: relative;
   // how much text shows before `show more`, plus 2 lines for the button
-  max-height: calc(var(--sn-text-max-height, 200vh) + 2lh);
+  max-height: calc(var(--sn-text-max-height) + 2lh);
   --grid-gap: 0.5rem;
   line-height: 140%;
 
@@ -76,10 +81,9 @@
   overflow: hidden !important;
 }
 
-// fade the last lines out and hide the button's lines, instead of painting a background over them,
-// so it works on any background, e.g. nested comments
+// fade the last 2 lines and hide the rest
 .sn-text--contained > [data-sn-reader='true'] {
-  mask-image: linear-gradient(to bottom, #000 calc(var(--sn-text-max-height, 200vh) - 2lh), transparent var(--sn-text-max-height, 200vh));
+  mask-image: linear-gradient(#000 calc(var(--sn-text-max-height) - 2lh), transparent var(--sn-text-max-height));
 }
 
 .sn-text__show-full {

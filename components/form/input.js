@@ -27,6 +27,9 @@ export function InputInner ({
       if (e.key === 'Enter') formik?.submitForm()
     }
 
+    // formik owns validation: skip base ui's validation commit on enter
+    if (e.key === 'Enter') e.preventBaseUIHandler?.()
+
     if (onKeyDown) onKeyDown(e)
   }, [formik?.submitForm, onKeyDown])
 

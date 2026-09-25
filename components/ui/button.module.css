@@ -28,7 +28,8 @@
   background-color: var(--sn-btn-active-bg, color-mix(in srgb, var(--sn-btn-bg) 80%, var(--sn-btn-mix, #000)));
 }
 
-.btn[data-disabled] {
+.btn[data-disabled],
+.btn:disabled {
   color: var(--sn-btn-disabled-color, var(--sn-btn-color));
   background-color: var(--sn-btn-disabled-bg, var(--sn-btn-bg));
   opacity: .65;

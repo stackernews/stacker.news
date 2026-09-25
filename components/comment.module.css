@@ -35,6 +35,12 @@
     --sn-text-max-height: 10lh;
 }
 
+/* allow a single row of media before the `show more` button,
+   25vh mirrors --sn-media-max-h on .sn-media */
+.text:has(:global(.sn-media), :global(.sn-embed-wrapper)) {
+    --sn-text-max-height: calc(25vh + 10lh);
+}
+
 .edit {
     display: inline-block;
     cursor: pointer;

@@ -40,7 +40,7 @@ export function MultiSelect ({ label, items, size = 'md', info, groupClassName, 
     <FormGroup label={label} htmlFor={id} className={groupClassName}>
       <span className='flex items-center'>
         <Combobox.Root
-          multiple name={field.name} items={options} value={currentValue}
+          multiple autoHighlight name={field.name} items={options} value={currentValue}
           open={open} onOpenChange={setOpen}
           onValueChange={vals => { setOpen(false); helpers.setValue?.(vals); onChange?.(formik, vals) }}
         >

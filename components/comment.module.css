@@ -31,6 +31,8 @@
 .text {
     margin-top: .1rem;
     padding-right: 15px;
+    /* long comments get clipped under a `show more` button after a couple of paragraphs */
+    --sn-text-max-height: 10lh;
 }
 
 .edit {

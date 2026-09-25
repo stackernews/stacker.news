@@ -19,9 +19,9 @@ export function SearchText ({ text }) {
   )
 }
 
-export function useOverflow ({ containerRef, truncated = false }) {
+export function useOverflow ({ containerRef }) {
   const router = useRouter()
-  // would the text overflow on the current screen size?
+  // is the text clipped by its max-height on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
   // should we show the full text?
   const [show, setShow] = useState(false)
@@ -41,19 +41,15 @@ export function useOverflow ({ containerRef, truncated = false }) {
     }
   }, [router.asPath, router.events])
 
-  // clip item and give it a`show full text` button if we are overflowing
+  // give the text a `show more` button if its max-height is clipping it
   useEffect(() => {
-    if (!containerRef.current) return
-
     const node = containerRef.current
     if (!node) return
 
+    // governed by --sn-text-max-height, so we only ask if it's clipping
+    // 1px added for sub-pixel rounding
     function checkOverflow () {
-      setOverflowing(
-        truncated
-          ? node.scrollHeight > window.innerHeight * 0.5
-          : node.scrollHeight > window.innerHeight * 2
-      )
+      setOverflowing(node.scrollHeight > node.clientHeight + 1)
     }
 
     let resizeObserver
@@ -79,18 +75,18 @@ export function useOverflow ({ containerRef, truncated = false }) {
       node.removeEventListener('load', handleMediaLoad, true)
       resizeObserver?.disconnect()
     }
-  }, [containerRef, setOverflowing, truncated])
+  }, [containerRef, setOverflowing])
 
   const Overflow = useMemo(() => {
     if (overflowing && !show) {
       return (
         <Button
-          size='lg'
-          variant='info'
-          className='sn-text__show-full'
+          variant='link'
+          className='sn-text__show-full p-0 fw-bold text-muted'
+          aria-expanded='false'
           onClick={showOverflow}
         >
-          show full text
+          show more
         </Button>
       )
     }
@@ -123,7 +119,7 @@ export default function Text (props) {
 
 export function TextBody ({ topLevel, children, className, innerClassName, state, html, imgproxyUrls, rel, name, readerRef }) {
   const containerRef = useRef(null)
-  const { overflowing, show, Overflow } = useOverflow({ containerRef, truncated: !!children })
+  const { overflowing, show, Overflow } = useOverflow({ containerRef })
   const carousel = useCarousel()
 
   const textClassNames = useMemo(() => {

@@ -6,7 +6,8 @@
   overflow-y: hidden;
   overflow-x: hidden;
   position: relative;
-  max-height: 200vh;
+  // how much text shows before `show more`, plus 2 lines for the button
+  max-height: calc(var(--sn-text-max-height, 200vh) + 2lh);
   --grid-gap: 0.5rem;
   line-height: 140%;
 
@@ -58,16 +59,12 @@
   padding-bottom: 0;
 }
 
-.sn-text--truncated {
-  max-height: 50vh;
-}
-
 .sn-text[contenteditable="false"] {
   background-color: var(--theme-body) !important;
 }
 
 .sn-text.topLevel {
-  max-height: 200vh;
+  --sn-text-max-height: 200vh;
   --grid-gap: 0.75rem;
 }
 
@@ -79,23 +76,16 @@
   overflow: hidden !important;
 }
 
-.sn-text--contained::before {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 50vh;
-  pointer-events: none;
-  z-index: 1;
-  background: linear-gradient(rgba(255, 255, 255, 0), var(--bs-body-bg) 200%);
+// fade the last lines out and hide the button's lines, instead of painting a background over them,
+// so it works on any background, e.g. nested comments
+.sn-text--contained > [data-sn-reader='true'] {
+  mask-image: linear-gradient(to bottom, #000 calc(var(--sn-text-max-height, 200vh) - 2lh), transparent var(--sn-text-max-height, 200vh));
 }
 
 .sn-text__show-full {
   position: absolute;
   bottom: 0;
-  z-index: 2;
-  border-radius: 0;
+  left: 0;
 }
 
 .sn-paragraph {

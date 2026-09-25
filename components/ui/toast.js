@@ -90,7 +90,7 @@ export function useToast () {
 
 export function ToastProvider ({ children }) {
   return (
-    <Toast.Provider toastManager={toastManager}>
+    <Toast.Provider toastManager={toastManager} limit={Infinity}>
       <StackedToasts />
       {children}
     </Toast.Provider>

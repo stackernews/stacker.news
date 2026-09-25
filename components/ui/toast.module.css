@@ -62,10 +62,6 @@
     translateY(var(--sn-toast-offset-y));
 }
 
-.root[data-limited] {
-  opacity: 0;
-}
-
 /* bridge the expanded gaps so cursor travel between toasts keeps the stack open */
 .root::after {
   content: '';

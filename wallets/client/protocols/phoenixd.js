@@ -70,10 +70,11 @@ export async function getBalance ({ url, apiKey }, { signal } = {}) {
   return walletBalance(balance.balanceSat)
 }
 
-export async function testSendPayment (config, { signal }) {
-  // TODO:
-  //   Not sure which endpoint to call to test primary password
-  //   see https://phoenix.acinq.co/server/api
-  //   Maybe just wait until test payments with HODL invoices?
-  //   https://github.com/stackernews/stacker.news/issues/1287
+export async function testSendPayment ({ url, apiKey }, { signal }) {
+  // phoenixd has no endpoint that proves the wallet can pay without actually
+  // paying (see https://github.com/stackernews/stacker.news/issues/1287), but
+  // /getinfo is informational, authenticated and cheap: it validates the url,
+  // the api key and the browser's access (CORS) during configuration instead
+  // of at the first payment (see #3252)
+  await phoenixdRequest({ url, apiKey, path: '/getinfo', signal })
 }

@@ -101,6 +101,33 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
     }
   }, [data?.pageTitleAndUnshorted?.unshorted, getDupesDebounce])
 
+  // when the form opens with a url already filled in (the Web Share Target API
+  // or a prefilled /post?url= link), run the same lookups typing would.
+  // Without this, no dupes are shown until the user edits the field (#3259).
+  // A restored draft is replayed through the url input's onChange on mount, so
+  // it doesn't need this.
+  useEffect(() => {
+    if (isEditing || !initial.url || window.localStorage.getItem(storageKeyPrefix + '-url')) {
+      return
+    }
+
+    const meaningfulUrl = getMeaningfulUrl(initial.url)
+
+    if (!meaningfulUrl) {
+      return
+    }
+
+    if (!initial.title?.trim().length) {
+      getPageTitleAndUnshortedDebounce({
+        variables: { url: meaningfulUrl }
+      })
+    }
+
+    getDupesDebounce({
+      variables: { url: meaningfulUrl }
+    })
+  }, [isEditing, initial.url, initial.title, storageKeyPrefix, getDupesDebounce, getPageTitleAndUnshortedDebounce])
+
   const postDisabled = !item && (pageTitleLoading || dupesLoading)
 
   return (

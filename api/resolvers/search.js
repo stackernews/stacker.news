@@ -801,6 +801,13 @@ export default {
 
       const mustNot = [{ exists: { field: 'parentId' } }]
       if (id) mustNot.push({ term: { id } })
+      if (me) {
+        const mutes = await models.mute.findMany({
+          where: { muterId: me.id },
+          select: { mutedId: true }
+        })
+        if (mutes.length) mustNot.push({ terms: { userId: mutes.map(mute => mute.mutedId) } })
+      }
 
       const filters = [statusFilter(mustNot)]
       if (postsSatsFilter != null) {

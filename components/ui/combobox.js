@@ -28,6 +28,8 @@ export const optionClasses = ({ className } = {}) =>
   cn(styles.option, 'block w-full py-2 px-3 whitespace-nowrap max-md:min-h-11', className)
 
 export function ComboboxItem ({ variant = 'menu', active, className, ...props }) {
-  const classes = variant === 'option' ? optionClasses({ className }) : itemClasses({ active, className })
+  const classes = variant === 'option'
+    ? optionClasses({ className })
+    : itemClasses({ active, className: cn('whitespace-normal wrap-break-word', className) })
   return <BaseCombobox.Item className={classes} {...props} />
 }

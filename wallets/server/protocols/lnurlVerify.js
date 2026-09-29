@@ -1,4 +1,5 @@
 import { fetchLnAddrVerify } from '@/lib/lnurl'
+import { bolt11SyntaxError } from '@/lib/bolt11-validator'
 import { verifyPreimage } from '@/wallets/lib/preimage'
 
 export async function checkLnurlVerifyInvoice (transaction, _config, { signal } = {}) {
@@ -19,6 +20,14 @@ export async function checkLnurlVerifyInvoice (transaction, _config, { signal } 
       status: 'UNKNOWN',
       detail: 'lightning address verify did not bind the stored invoice'
     }
+  }
+
+  // both sides of the binding are invoices we take as input, so both get validated
+  // neither can be invalid.
+  const syntaxError = bolt11SyntaxError(body.pr) ?? bolt11SyntaxError(transaction.bolt11)
+  if (syntaxError) {
+    console.error(`lnurl verify rejected: ${syntaxError}`, { bolt11: body.pr, stored: transaction.bolt11 })
+    return { status: 'UNKNOWN', detail: syntaxError }
   }
 
   if (body.settled === true) {

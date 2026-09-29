@@ -5,6 +5,7 @@ import {
   WalletPaymentError, WalletError, WalletReceiverError, WalletSendStateNotReadyError,
   WalletPaymentRejectedError, WalletValidationError, WalletConfigurationError
 } from '@/wallets/client/errors'
+import { assertValidBolt11 } from '@/lib/bolt11-validator'
 import { abortableSleep, TimeoutError, withTimeoutSignal } from '@/lib/time'
 import { errorMessage } from '@/lib/error'
 import { isInvoiceSetupPending } from '@/lib/pay-in'
@@ -142,6 +143,16 @@ export async function sendWalletPayment (protocol, payment, logger, {
   parentSignal
 } = {}) {
   if (!payment.hash) throw new Error('sendWalletPayment requires payment.hash')
+  // Final syntactic gate before a bolt11 invoice reaches a wallet provider
+  // It does not get paid no matter where it came from if it is not syntactically
+  // valid. This is not a WalletError because it should NOT be retried with this
+  // invoice on any other wallet provider. It dies here.
+  try {
+    assertValidBolt11(payment.bolt11)
+  } catch (err) {
+    logger.error(err.message)
+    throw err
+  }
 
   const label = amountText ?? formatSats(msatsToSats(payment.msatsRequested))
   try {

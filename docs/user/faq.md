@@ -307,7 +307,11 @@ Sending someone a like or an upvote incurs no cost to you, and therefore these m
 
 4. To earn sats from the daily rewards pool
 
-You can earn sats from the daily rewards pool by zapping content that ends up performing well. The amount you receive is proportional to the amount of sats you zapped, how early you zapped the day's best content, and your trust level.
+You can earn sats from the daily rewards pool by zapping content that ends up performing well. Your reward depends on how much you zap, how early you zap, how well the content performs, and your selection accuracy.
+
+Qualifying content is the top half of eligible posts and the top half of eligible comments, ranked by weighted votes minus weighted downvotes.
+
+Currently, a zap of at least 21 sats is required to qualify as a zap eligible for rewards (but zaps that small are unlikely to result in significant rewards).
 
 ### Can I donate sats to Stacker News?
 

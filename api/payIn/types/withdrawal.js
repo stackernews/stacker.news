@@ -1,6 +1,7 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { satsToMsats, numWithUnits, msatsToSats } from '@/lib/format'
 import { decodePaymentRequest } from '@/api/lnd'
+import { assertValidBolt11, logInvalidBolt11 } from '@/lib/bolt11-validator'
 
 export const anonable = false
 
@@ -9,6 +10,14 @@ export const paymentMethods = [
 ]
 
 export async function getInitial (models, { bolt11, maxFee, protocolId }, { me }) {
+  // the withdrawal payout row is built from this invoice. validate syntax
+  // before everything else and kill it if it doesn't pass
+  try {
+    assertValidBolt11(bolt11)
+  } catch (err) {
+    logInvalidBolt11('refusing to initiate withdrawal', err)
+    throw err
+  }
   const decodedBolt11 = await decodePaymentRequest({ request: bolt11 })
   return {
     payInType: 'WITHDRAWAL',

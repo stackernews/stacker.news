@@ -99,30 +99,14 @@ export async function getInitial (models, { totalMsats, rewardProspects }) {
 }
 
 export async function onPaidSideEffects (models, payInId) {
-  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { payOutCustodialTokens: { include: { earns: true } } } })
+  const payIn = await models.payIn.findUnique({ where: { id: payInId }, select: { payOutCustodialTokens: { select: { userId: true, mtokens: true } } } })
 
   const notifications = {}
-  for (const payOutCustodialToken of payIn.payOutCustodialTokens) {
-    const userN = notifications[payOutCustodialToken.userId] || {}
-    const msats = payOutCustodialToken.mtokens + (userN.msats || 0n)
-    for (const earn of payOutCustodialToken.earns) {
-      const earnTypeMsats = earn.msats + (userN[earn.type]?.msats || 0n)
-      const prevEarnTypeBestRank = userN[earn.type]?.bestRank
-      const earnTypeBestRank = prevEarnTypeBestRank
-        ? Math.min(prevEarnTypeBestRank, Number(earn.rank))
-        : Number(earn.rank)
-      notifications[payOutCustodialToken.userId] = {
-        ...userN,
-        msats,
-        [earn.type]: {
-          msats: earnTypeMsats,
-          bestRank: earnTypeBestRank
-        }
-      }
-    }
+  for (const { userId, mtokens } of payIn.payOutCustodialTokens) {
+    notifications[userId] = mtokens + (notifications[userId] || 0n)
   }
 
   Promise.allSettled(
-    Object.entries(notifications).map(([userId, earnings]) => notifyEarner(parseInt(userId, 10), earnings))
+    Object.entries(notifications).map(([userId, msats]) => notifyEarner(parseInt(userId, 10), msats))
   ).catch(console.error)
 }

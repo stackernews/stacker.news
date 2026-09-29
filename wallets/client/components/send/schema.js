@@ -41,6 +41,7 @@ function destinationField (lnAddrLookup, spendableSats, enforcesMaxFee) {
       const dest = parseDestination(value)
 
       if (dest.type === DestinationType.BOLT11) {
+        if (dest.error) return this.createError({ message: dest.error }) // syntax validation errors pop up here
         if (dest.invoiceMsats == null) return this.createError({ message: 'invoice must specify an amount' })
         if (dest.invoiceMsats % 1000n !== 0n) return this.createError({ message: 'invoice amount must be a whole number of sats' })
         if (spendableSats == null) return true

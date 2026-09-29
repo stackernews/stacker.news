@@ -515,6 +515,13 @@ async function sendVerificationRequest ({
   token,
   provider
 }, req) {
+  // do not process invalid email addresses
+  if (/[,;<>"\s]/.test(email) || email.length > 254) {
+    return new Promise((resolve, reject) => {
+      reject(new Error('SEND_VERIFICATION_EMAIL_ERROR', new Error('invalid email')))
+    })
+  }
+
   let user = await prisma.user.findUnique({
     where: {
       // Look for the user by hashed email

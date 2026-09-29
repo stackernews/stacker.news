@@ -3,11 +3,20 @@ import { createHodlInvoice, createInvoice, parsePaymentRequest } from 'ln-servic
 import lnd from '@/api/lnd'
 import { wrapBolt11 } from '@/wallets/server'
 import { PayInFailureReasonError } from '../errors'
+import { assertValidBolt11, logInvalidBolt11 } from '@/lib/bolt11-validator'
 import { assertLndAvailable } from '@/api/lnd/maintenance'
 
 const INVOICE_EXPIRE_SECS = 600
 
 function payInBolt11FromBolt11 (bolt11, preimage, userId) {
+  // also check semantic validity of our own invoices
+  try {
+    assertValidBolt11(bolt11)
+  } catch (err) {
+    logInvalidBolt11('refusing to record pay-in invoice', err)
+    throw err
+  }
+
   const decodedBolt11 = parsePaymentRequest({ request: bolt11 })
   const expiresAt = new Date(decodedBolt11.expires_at)
   const msatsRequested = BigInt(decodedBolt11.mtokens)

@@ -12,6 +12,8 @@ import {
 } from '@/api/payIn/transitions'
 import { isWithdrawal } from '@/api/payIn/lib/is'
 import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
+import { assertValidBolt11, Bolt11SyntaxError, logInvalidBolt11 } from '@/lib/bolt11-validator'
+import { PayInFailureReasonError } from '@/api/payIn/errors'
 
 export async function subscribeToBolt11s (args) {
   await subscribeToPayInBolt11s(args)
@@ -105,6 +107,13 @@ function subscribeToHodlInvoice (args) {
         }
       } catch (error) {
         logEventError('hodl_invoice_updated', error)
+
+        // do not retry if the error comes from a payment error
+        // rather than a transport error on the subscription
+        if (error instanceof PayInFailureReasonError) {
+          console.error(`  ... not retrying ${inv.id} due to above error`)
+          return
+        }
         reject(error)
       }
     })
@@ -217,11 +226,22 @@ export async function checkPayOutBolt11 ({ data: { hash, withdrawal, invoice }, 
   // nothing to do if the withdrawl is already recorded and it isn't an invoiceForward
   if (!payIn) return
 
-  const decoded = await decodePaymentRequest({ request: payIn.payOutBolt11.bolt11 })
-  const isHashMismatch = decoded.id !== payIn.payOutBolt11.hash
+  // re-validate the stored invoice. A syntactically invalid invoice will not
+  // be decoded, but it will always fail, so we log it, then let it reach terminal
+  // state.
+  let decoded
+  try {
+    assertValidBolt11(payIn.payOutBolt11.bolt11)
+    decoded = await decodePaymentRequest({ request: payIn.payOutBolt11.bolt11 })
+  } catch (err) {
+    if (!(err instanceof Bolt11SyntaxError)) throw err
+    logInvalidBolt11(`refusing to process payOut invoice of payIn ${payIn.id}`, err)
+  }
+
+  const isHashMismatch = !!decoded && decoded.id !== payIn.payOutBolt11.hash
   const wdrwl = !isHashMismatch && withdrawal
     ? withdrawal
-    : await getPaymentOrNotSent({ id: decoded.id, lnd })
+    : await getPaymentOrNotSent({ id: decoded?.id ?? payIn.payOutBolt11.hash, lnd })
 
   console.log('wdrwl', hash, 'is_confirmed', wdrwl?.is_confirmed, 'is_failed', wdrwl?.is_failed, 'notSent', wdrwl?.notSent)
 

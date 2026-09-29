@@ -2,6 +2,7 @@ import { createHodlInvoice } from 'ln-service'
 import lnd, { decodePaymentRequest, estimateRouteFee, getBlockHeight, getOurPubkey } from '@/api/lnd'
 import { toPositiveBigInt, toPositiveNumber } from '@/lib/format'
 import { PayInFailureReasonError } from '@/api/payIn/errors'
+import { assertValidBolt11, logInvalidBolt11 } from '@/lib/bolt11-validator'
 import { MAX_OUTGOING_MSATS } from '@/lib/constants'
 import { assertLndAvailable } from '@/api/lnd/maintenance'
 
@@ -49,6 +50,14 @@ async function wrapBolt11Params ({ msats, bolt11, maxRoutingFeeMsats, hideInvoic
     // create a new object to hold the wrapped invoice values
     const wrapped = {}
     let outgoingMsat
+
+    // syntax validation before anything else happens. hard reject if it fails.
+    try {
+      assertValidBolt11(bolt11)
+    } catch (err) {
+      logInvalidBolt11('refusing to wrap invoice', err)
+      throw err
+    }
 
     // LND is authoritative because it will also parse the invoice when paying.
     const inv = await decodePaymentRequest({ request: bolt11 })

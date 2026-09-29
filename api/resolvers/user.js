@@ -116,7 +116,7 @@ export async function topUsers (parent, { cursor, when, by = 'stacked', from, to
     )
     SELECT * FROM user_stats
     JOIN users ON user_stats."userId" = users.id
-    WHERE users.id NOT IN (${Prisma.join([...SN_SYSTEM_ONLY_IDS, USER_ID.anon])})
+    WHERE users.id NOT IN (${Prisma.join([...SN_SYSTEM_ONLY_IDS, USER_ID.anon].filter(id => id !== USER_ID.sn))})
     ORDER BY ${column} DESC NULLS LAST, users.created_at ASC
     OFFSET ${decodedCursor.offset}
     LIMIT ${limit}`

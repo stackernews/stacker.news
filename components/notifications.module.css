@@ -61,6 +61,9 @@
     background-color: transparent;
     border: 0 solid transparent;
     font-size: 0.9rem;
+    /* browser button defaults that the css reset removes */
+    color: buttontext;
+    padding: 1px 6px;
 }
 
 .subFormGroup > div {

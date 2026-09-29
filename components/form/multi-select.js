@@ -96,7 +96,8 @@ export function MultiSelect ({ label, items, size = 'md', info, groupClassName, 
                   <Combobox.Collection>
                     {sub => (
                       <ComboboxItem key={sub} value={sub} variant='option' className='flex items-center gap-2'>
-                        <Combobox.ItemIndicator render={<CheckIcon width={16} height={16} className='shrink-0' />} /> {sub}
+                        <Combobox.ItemIndicator render={<CheckIcon width={16} height={16} className='shrink-0' />} />
+                        <span className='truncate' title={sub}>{sub}</span>
                       </ComboboxItem>
                     )}
                   </Combobox.Collection>

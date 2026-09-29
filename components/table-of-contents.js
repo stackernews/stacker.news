@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useRouter } from 'next/router'
 import { Combobox, ComboboxPopup, ComboboxList, ComboboxItem } from '@/components/ui/combobox'
 import { inputClasses } from '@/components/form'
+import { cn } from '@/lib/cn'
 import TocIcon from '@/svgs/list-unordered.svg'
 import { $extractHeadingsFromRoot } from '@/lib/lexical/utils/toc'
 
@@ -29,7 +30,7 @@ export default function Toc ({ text, readerRef }) {
           {h => (
             <ComboboxItem
               key={h.slug} value={h} render={<a href={`#${h.slug}`} />}
-              className={h.depth === 1 && 'font-bold'}
+              className={cn('w-auto', h.depth === 1 && 'font-bold')}
               style={{ marginLeft: `${(h.depth - 1) * 5}px` }}
               // nextjs router doesn't emit hashChangeStart events;
               // this fires for pointer and keyboard since Enter is a native

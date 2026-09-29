@@ -170,15 +170,15 @@ export default function Footer ({ links = true }) {
       <Container className='mb-4'>
         {links &&
           <>
-            <div className='mb-1'>
+            <div className='mb-1 flex items-center gap-2 justify-center'>
               <ActionTooltip notForm overlayText={`${darkMode ? 'disable' : 'enable'} dark mode`}>
                 <DarkModeIcon onClick={darkModeToggle} width={20} height={20} className='theme' suppressHydrationWarning />
               </ActionTooltip>
               <ActionTooltip notForm overlayText={`${animationEnabled ? 'disable' : 'enable'} lightning animations`}>
-                <LnIcon onClick={toggleAnimation} width={20} height={20} className='ms-2 theme' suppressHydrationWarning />
+                <LnIcon onClick={toggleAnimation} width={20} height={20} className='theme' suppressHydrationWarning />
               </ActionTooltip>
               <ActionTooltip notForm overlayText={`${disableLiveComments ? 'enable' : 'disable'} live comments`}>
-                <LiveIcon onClick={toggleLiveComments} width={20} height={20} className='ms-2 theme' suppressHydrationWarning />
+                <LiveIcon onClick={toggleLiveComments} width={20} height={20} className='theme' suppressHydrationWarning />
               </ActionTooltip>
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>

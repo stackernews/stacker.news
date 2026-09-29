@@ -43,7 +43,7 @@ export function NavigateFooter ({ cursor, count, fetchMore, href, text, invisibl
   let Footer
   if (cursor) {
     Footer = () => (
-      <Link href={href} className='text-reset text-muted font-bold'>{text}</Link>
+      <Link href={href} className='text-muted font-bold'>{text}</Link>
     )
   } else {
     Footer = () => (

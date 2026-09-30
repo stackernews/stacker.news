@@ -171,7 +171,7 @@ export async function onPaid (tx, payInId) {
   // Item counters describe gross zap allocations, not after-fee receipts.
   // Keep the Lightning allocation unchanged, then split the remainder into
   // disjoint CC/rewards categories. Ordinary fees are not donations.
-  const nonLightningMsats = recipientMsats > 0n ? msats - msats * p2pMsats / recipientMsats : 0n
+  const nonLightningMsats = recipientMsats > 0n ? msats - msats * p2pMsats / recipientMsats : msats
   const donatedMsats = credits + donations > 0n
     ? nonLightningMsats * donations / (credits + donations)
     : 0n

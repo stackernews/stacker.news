@@ -101,6 +101,19 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
     }
   }, [data?.pageTitleAndUnshorted?.unshorted, getDupesDebounce])
 
+  useEffect(() => {
+    if (isEditing) return
+
+    const meaningfulUrl = getMeaningfulUrl(shareUrl || initial.url)
+    if (!meaningfulUrl) return
+
+    if (!shareUrl && window.localStorage.getItem(storageKeyPrefix + '-url')) return
+
+    getDupesDebounce({
+      variables: { url: meaningfulUrl }
+    })
+  }, [isEditing, shareUrl, initial.url, storageKeyPrefix, getDupesDebounce])
+
   const postDisabled = !item && (pageTitleLoading || dupesLoading)
 
   return (

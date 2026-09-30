@@ -1,4 +1,4 @@
-import { Input } from '@/components/form'
+import { Input, errorClasses } from '@/components/form'
 import { MiddleEllipsis } from '@/components/copy-chip'
 import { bolt11Description } from '@/lib/bolt11'
 import sharedStyles from '@/wallets/client/components/wallet.module.css'
@@ -74,7 +74,7 @@ function DestinationTextInput ({ onDestinationChange, checkDestination, destinat
       under={
         <>
           <DestinationActions onValue={checkDestination} />
-          <div className={classNames(styles.lnAddrPending, 'text-muted small line-height-sm')} aria-live='polite'>
+          <div className={classNames(styles.lnAddrPending, 'text-muted small leading-tight')} aria-live='polite'>
             {lnAddrStatusText(destination, lnAddrLookup)}
           </div>
         </>
@@ -87,12 +87,12 @@ function DetectedDestinationRow ({ value, error, onReplace }) {
   const description = bolt11Description(value)
   return (
     <>
-      <div className={classNames(styles.surfaceRow, styles.detectedRow, error && 'is-invalid')}>
+      <div className={classNames(styles.surfaceRow, styles.detectedRow)}>
         <div className={styles.detectedIdentity}>
-          <div className={classNames(styles.detectedValue, 'font-monospace')} title={value}>
+          <div className={classNames(styles.detectedValue, 'font-mono')} title={value}>
             <MiddleEllipsis value={description || value} />
           </div>
-          <div className={classNames(styles.walletRowMeta, 'd-flex flex-wrap align-items-center text-muted')}>
+          <div className={classNames(styles.walletRowMeta, 'flex flex-wrap items-center text-muted')}>
             <span>bolt11 invoice</span>
           </div>
         </div>
@@ -100,7 +100,7 @@ function DetectedDestinationRow ({ value, error, onReplace }) {
           replace
         </button>
       </div>
-      {error && <div className='invalid-feedback d-block'>{error}</div>}
+      {error && <div className={errorClasses()}>{error}</div>}
     </>
   )
 }

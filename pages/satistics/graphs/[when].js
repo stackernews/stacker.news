@@ -2,8 +2,6 @@ import { gql } from '@apollo/client'
 import { useQuery } from '@apollo/client/react'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import Layout from '@/components/layout'
-import Col from 'react-bootstrap/Col'
-import Row from 'react-bootstrap/Row'
 import { SatisticsHeader } from '@/pages/satistics'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
@@ -59,20 +57,20 @@ function UserGrowthTotals ({ totals }) {
   if (!totals) return null
 
   return (
-    <Row className='my-4'>
-      <Col xs={6} md={4} className='text-center mb-3'>
+    <div className='grid grid-cols-2 md:grid-cols-3 gap-x-6 my-6'>
+      <div className='text-center mb-4'>
         <div className='text-muted small'>total stacked</div>
-        <div className='fw-bold fs-5'>{numWithUnits(Math.floor(totals.stacking))}</div>
-      </Col>
-      <Col xs={6} md={4} className='text-center mb-3'>
+        <div className='font-bold text-lg'>{numWithUnits(Math.floor(totals.stacking))}</div>
+      </div>
+      <div className='text-center mb-4'>
         <div className='text-muted small'>total spent</div>
-        <div className='fw-bold fs-5'>{numWithUnits(Math.floor(totals.spending))}</div>
-      </Col>
-      <Col xs={6} md={4} className='text-center mb-3'>
+        <div className='font-bold text-lg'>{numWithUnits(Math.floor(totals.spending))}</div>
+      </div>
+      <div className='text-center mb-4'>
         <div className='text-muted small'>spend actions</div>
-        <div className='fw-bold fs-5'>{new Intl.NumberFormat().format(totals.items)}</div>
-      </Col>
-    </Row>
+        <div className='font-bold text-lg'>{new Intl.NumberFormat().format(totals.items)}</div>
+      </div>
+    </div>
   )
 }
 
@@ -95,23 +93,20 @@ export default function Growth ({ ssrData }) {
       <SatisticsHeader />
       <UserAnalyticsHeader pathname='satistics/graphs' />
       <UserGrowthTotals totals={growthTotals} />
-      <Row>
-        <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>sats stacked</div>
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mt-4'>
+        <div>
+          <div className='text-center text-muted font-bold'>sats stacked</div>
           <WhenAreaChart data={stackingGrowth} />
-        </Col>
-        <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>sats spent</div>
+        </div>
+        <div>
+          <div className='text-center text-muted font-bold'>sats spent</div>
           <WhenAreaChart data={spendingGrowth} />
-        </Col>
-      </Row>
-      <Row>
-        <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>spend counts</div>
+        </div>
+        <div className='md:col-span-2'>
+          <div className='text-center text-muted font-bold'>spend counts</div>
           <WhenLineChart data={itemGrowth} />
-        </Col>
-        <Col className='mt-3' />
-      </Row>
+        </div>
+      </div>
     </Layout>
   )
 }

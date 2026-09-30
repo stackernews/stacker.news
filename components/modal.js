@@ -1,14 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react'
-import Modal from 'react-bootstrap/Modal'
+import { Dialog } from '@base-ui/react/dialog'
 import BackArrow from '@/svgs/arrow-left-line.svg'
 import { useRouter } from 'next/router'
 import ActionDropdown from './action-dropdown'
-
-export class ModalClosedError extends Error {
-  constructor () {
-    super('modal closed')
-  }
-}
+import { cn } from '@/lib/cn'
+import { closeClasses } from '@/components/ui/close'
+import styles from './modal.module.css'
 
 export const ShowModalContext = createContext(() => null)
 
@@ -31,6 +28,7 @@ export function useShowModal () {
 export default function useModal () {
   const modalStack = useRef([])
   const [render, forceUpdate] = useReducer(x => x + 1, 0)
+  const popupRef = useRef(null)
 
   const getCurrentContent = useCallback(() => {
     return modalStack.current[modalStack.current.length - 1]
@@ -92,29 +90,54 @@ export default function useModal () {
 
     const content = getCurrentContent()
     const { overflow, keepOpen, fullScreen } = content.options || {}
-    const className = fullScreen ? 'fullscreen' : ''
+    const btn = 'flex items-center pt-4'
 
     return (
-      <Modal
-        onHide={keepOpen ? undefined : onClose} show={!!content}
-        className={className}
-        dialogClassName={className}
-        contentClassName={className}
+      <Dialog.Root
+        open
+        onOpenChange={(open, details) => {
+          if (open) return
+          // the X always closes, keepOpen only disables light dismiss.
+          if (details.reason === 'close-press') return onClose()
+          if (!keepOpen) onClose()
+        }}
       >
-        <div className='d-flex flex-row'>
-          {overflow &&
-            <div className={'modal-btn modal-overflow ' + className}>
-              <ActionDropdown>
-                {overflow}
-              </ActionDropdown>
-            </div>}
-          {modalStack.current.length > 1 ? <div className='modal-btn modal-back' onClick={onBack}><BackArrow width={18} height={18} /></div> : null}
-          <div className={'modal-btn modal-close ' + className} onClick={onClose}>X</div>
-        </div>
-        <Modal.Body className={className}>
-          {content.node}
-        </Modal.Body>
-      </Modal>
+        <Dialog.Portal>
+          <Dialog.Backdrop className={styles.backdrop} />
+          <Dialog.Viewport className={cn(styles.viewport, fullScreen && styles.fullScreen)}>
+            <Dialog.Popup
+              ref={popupRef}
+              // focus the popup itself so we don't open a mobile keyboard or show a focus ring on open
+              initialFocus={popupRef}
+              className={cn(
+                styles.popup,
+                fullScreen && styles.fullScreen,
+                fullScreen ? 'm-0 max-w-screen max-h-svh' : 'm-2 sm:mx-auto sm:my-7 sm:max-w-lg rounded-lg'
+              )}
+            >
+              <div className='flex'>
+                {overflow &&
+                  <div className={cn(btn, 'cursor-pointer', fullScreen && 'p-5 -mt-2.5')}>
+                    <ActionDropdown>
+                      {overflow}
+                    </ActionDropdown>
+                  </div>}
+                {modalStack.current.length > 1
+                  ? <button type='button' aria-label='back' className={cn(btn, 'me-auto ps-6')} onClick={onBack}><BackArrow width={18} height={18} /></button>
+                  : null}
+                <Dialog.Close
+                  aria-label='close'
+                  className={closeClasses({ className: cn(btn, 'ms-auto pe-6 text-2xl leading-4', fullScreen && 'p-5') })}
+                >X
+                </Dialog.Close>
+              </div>
+              <div className={cn(styles.body, fullScreen && styles.fullScreen, fullScreen ? 'w-screen' : 'p-8')}>
+                {content.node}
+              </div>
+            </Dialog.Popup>
+          </Dialog.Viewport>
+        </Dialog.Portal>
+      </Dialog.Root>
     )
   }, [render])
 

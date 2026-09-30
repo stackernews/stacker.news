@@ -1,7 +1,7 @@
 import Navigation from './nav'
 import NavFooter from './nav/mobile/footer'
 import NavStatic from './nav/static'
-import Container from 'react-bootstrap/Container'
+import Container from '@/components/ui/container'
 import Footer from './footer'
 import Seo, { SeoSearch } from './seo'
 import Search from './search'
@@ -18,7 +18,7 @@ export default function Layout ({
       <Navigation sub={sub} hideMobileNav={hideMobileNav} />
       {contain
         ? (
-          <Container as={PullToRefresh} className={`px-sm-0 ${styles.contain} ${containClassName}`}>
+          <Container as={PullToRefresh} className={`${styles.contain} ${containClassName}`}>
             {children}
           </Container>
           )
@@ -44,7 +44,7 @@ export function StaticLayout ({ children, footer = true, footerLinks = false, ..
     <>
       <NavStatic />
       <div className={styles.page}>
-        <main className={`${styles.content} ${styles.contain} py-3`}>
+        <main className={`${styles.content} ${styles.contain} py-4`}>
           {children}
         </main>
       </div>

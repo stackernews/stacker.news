@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
-import { InputGroup } from 'react-bootstrap'
 import classNames from 'classnames'
-import { Input, PasswordInput } from '@/components/form'
+import { Input, InputAddon, PasswordInput } from '@/components/form'
 import Text from '@/components/text'
 import Info from '@/components/info'
 import { parseNwcUrl } from '@/wallets/lib/validate'
@@ -26,7 +25,7 @@ export function WalletProtocolFormField ({ protocol, type, onNwcLud16, ...props 
     () => makeFieldValidator(fieldSchema({ name: fieldProps.name, required: fieldProps.required, validate: fieldValidate })),
     [fieldProps.name, fieldProps.required, fieldValidate])
   const label = (
-    <div className='d-flex align-items-center'>
+    <div className='flex items-center'>
       {fieldProps.label}
       {parsedHelp && (
         <Info label={parsedHelp.label}>
@@ -49,7 +48,7 @@ export function WalletProtocolFormField ({ protocol, type, onNwcLud16, ...props 
     ? walletLud16Domain(wallet?.name)
     : undefined
   if (lnAddrDomain) {
-    append = <InputGroup.Text className='text-monospace'>@{lnAddrDomain}</InputGroup.Text>
+    append = <InputAddon className='font-mono'>@{lnAddrDomain}</InputAddon>
     value = stripLightningAddressDomain(formik.values[key]?.[fieldProps.name] ?? '', lnAddrDomain)
     onChange = (_formik, e) => formik.setFieldValue(name, appendLightningAddressDomain(e.target.value, lnAddrDomain))
   }

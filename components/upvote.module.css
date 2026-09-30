@@ -1,3 +1,5 @@
+@layer components {
+
 .upvote {
     fill: #a5a5a5;
     user-select: none;
@@ -6,7 +8,7 @@
 }
 
 .boost {
-    fill: var(--theme-clickToContextColor);
+    fill: var(--sn-click-to-context-color);
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
@@ -49,16 +51,6 @@
     filter: var(--filter);
 }
 
-.cover {
-    background: var(--bs-body-bg);
-    width: 100%;
-    overflow: hidden;
-    mix-blend-mode: color;
-    position: absolute;
-    left: 4px;
-    width: 17px;
-}
-
 .pending {
     fill: var(--hover-fill);
     animation-name: pulse;
@@ -72,4 +64,6 @@
 	0% {
 		fill: #a5a5a5;
 	}
+}
+
 }

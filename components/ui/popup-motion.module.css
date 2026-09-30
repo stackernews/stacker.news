@@ -1,0 +1,20 @@
+@layer components {
+
+.motion {
+  transform-origin: var(--transform-origin);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+
+.motion[data-starting-style],
+.motion[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion {
+    transition: none;
+  }
+}
+
+}

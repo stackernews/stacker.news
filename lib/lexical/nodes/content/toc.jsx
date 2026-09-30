@@ -59,7 +59,7 @@ export class TableOfContentsNode extends DecoratorBlockNode {
 
       if (structure.length === 0) {
         const emptyDiv = document.createElement('div')
-        emptyDiv.setAttribute('class', 'text-muted fst-italic')
+        emptyDiv.setAttribute('class', 'text-muted italic')
         emptyDiv.textContent = 'no headings'
         details.appendChild(emptyDiv)
       } else {

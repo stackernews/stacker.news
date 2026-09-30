@@ -1,6 +1,5 @@
-import { Form, Input, SNInput } from '@/components/form'
+import { Form, Input, InputAddon, SNInput } from '@/components/form'
 import AdvPostForm from './adv-post-form'
-import InputGroup from 'react-bootstrap/InputGroup'
 import { bountySchema } from '@/lib/validate'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
 import { ItemButtonBar } from './post'
@@ -48,7 +47,7 @@ export function BountyForm ({
       />
       <Input
         label={bountyLabel} name='bounty' required
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        append={<InputAddon className='font-mono'>sats</InputAddon>}
       />
       <SNInput
         topLevel

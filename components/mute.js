@@ -1,8 +1,8 @@
 import { createContext, useContext } from 'react'
 import { useMutation } from '@apollo/client/react'
 import { gql } from 'graphql-tag'
-import Dropdown from 'react-bootstrap/Dropdown'
-import { useToast } from './toast'
+import { MenuItem } from '@/components/ui/menu'
+import { useToast } from '@/components/ui/toast'
 
 const MuteUserContext = createContext(() => ({
   refetchQueries: []
@@ -40,7 +40,7 @@ export default function MuteDropdownItem ({ user: { name, id, meMute } }) {
     }
   )
   return (
-    <Dropdown.Item
+    <MenuItem
       onClick={async () => {
         try {
           await toggleMute({ variables: { id } })
@@ -52,6 +52,6 @@ export default function MuteDropdownItem ({ user: { name, id, meMute } }) {
       }}
     >
       {`${meMute ? 'un' : ''}mute ${name}`}
-    </Dropdown.Item>
+    </MenuItem>
   )
 }

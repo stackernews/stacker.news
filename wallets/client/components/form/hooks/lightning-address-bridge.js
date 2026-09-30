@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { protocolKey, walletLud16Domain } from '@/wallets/lib/util'
 import { useFormikContext } from 'formik'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 import { useWallet } from './context'
 import { isMeaningfulDraft } from './draft'
 

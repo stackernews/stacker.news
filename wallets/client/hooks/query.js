@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { withTimeoutSignal } from '@/lib/time'
 import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 import { useMe } from '@/components/me'
 import {
   WALLETS,

@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import classNames from 'classnames'
 import useDarkMode from './dark-mode'
-import { Button } from 'react-bootstrap'
+import Button from '@/components/ui/button'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import LiteYouTubeEmbed from 'react-lite-youtube-embed'
 import 'react-lite-youtube-embed/dist/LiteYouTubeEmbed.css'
@@ -68,7 +68,7 @@ export const NostrEmbed = memo(function NostrEmbed ({ className, darkMode, id })
       {!show &&
         <Button size='md' variant='info' className='sn-embed-show-full' onClick={() => setShow(true)}>
           <div>show full note</div>
-          <small className='fw-normal fst-italic'>or other stuff</small>
+          <small className='font-normal italic'>or other stuff</small>
         </Button>}
     </div>
   )

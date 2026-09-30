@@ -9,7 +9,7 @@ export default function PayInError ({ error }) {
   }
 
   return (
-    <div className='text-center fw-bold text-info mb-3' style={{ lineHeight: 1.25 }}>
+    <div className='text-center font-bold text-info mb-4' style={{ lineHeight: 1.25 }}>
       <div className='text-info mb-2'>Paying from attached wallets failed:</div>
       {error.errors.map((e, i) => (
         <div key={i}>

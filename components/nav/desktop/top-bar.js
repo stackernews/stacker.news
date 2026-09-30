@@ -1,22 +1,31 @@
-import { Nav, Navbar } from 'react-bootstrap'
+import { Nav, Navbar } from '@/components/ui/nav'
 import styles from '../../header.module.css'
 import { Back, Brand, NavPrice, RightCorner, SearchItem } from '../common'
 import { useCommentsNavigatorContext, CommentsNavigator } from '@/components/use-comments-navigator'
 
-export default function TopBar ({ prefix, sub, path, topNavKey, dropNavKey }) {
+// the header and sticky bar wrap this in hidden md:block, so items need no breakpoints
+export function DesktopRow ({ dropNavKey }) {
   const { navigator, commentCount } = useCommentsNavigatorContext()
   return (
-    <Navbar>
+    <>
+      <Back />
+      <Brand className='me-1' />
+      <SearchItem className='me-0 ms-2 flex' />
+      <NavPrice />
+      <CommentsNavigator navigator={navigator} commentCount={commentCount} />
+      <RightCorner dropNavKey={dropNavKey} />
+    </>
+  )
+}
+
+export default function TopBar ({ topNavKey, dropNavKey }) {
+  return (
+    <Navbar className='not-last:pb-0'>
       <Nav
         className={styles.navbarNav}
         activeKey={topNavKey}
       >
-        <Back />
-        <Brand className='me-1' />
-        <SearchItem prefix={prefix} className='me-0 ms-2 d-none d-md-flex' />
-        <NavPrice className='ms-auto me-0 mx-md-auto d-none d-md-flex' />
-        <CommentsNavigator navigator={navigator} commentCount={commentCount} />
-        <RightCorner dropNavKey={dropNavKey} path={path} className='d-none d-md-flex' />
+        <DesktopRow dropNavKey={dropNavKey} />
       </Nav>
     </Navbar>
   )

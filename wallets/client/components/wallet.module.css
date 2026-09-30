@@ -1,3 +1,5 @@
+@layer components {
+
 /* Shared wallet primitives: small building blocks used across wallet UI. */
 
 .textButton {
@@ -7,18 +9,18 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--text-button-color, var(--theme-grey));
+  color: var(--text-button-color, var(--sn-grey));
   font-weight: 700;
   line-height: var(--text-button-line-height, normal);
   text-decoration: none;
   --focus-ring-offset: 4px;
 }
 .textButton:hover {
-  color: var(--text-button-hover-color, var(--bs-body-color));
+  color: var(--text-button-hover-color, var(--sn-body-color));
   text-decoration: none;
 }
 .textButton:focus-visible {
-  outline: 2px solid var(--theme-borderColor);
+  outline: 2px solid var(--sn-border-color);
   outline-offset: var(--focus-ring-offset, 4px);
 }
 .textButton:disabled {
@@ -26,11 +28,11 @@
   cursor: default;
 }
 .dangerTextButton {
-  --text-button-color: var(--bs-danger);
-  --text-button-hover-color: var(--bs-danger);
+  --text-button-color: var(--sn-danger);
+  --text-button-hover-color: var(--sn-danger);
 }
 .infoTextButton {
-  --text-button-color: var(--bs-info);
+  --text-button-color: var(--sn-info);
 }
 .walletFooterBackButton {
   width: fit-content;
@@ -44,18 +46,18 @@
   align-items: center;
   gap: var(--chip-gap, 0.35rem);
   padding: var(--chip-padding, 0.35rem 1rem);
-  border: 1px solid var(--theme-borderColor);
+  border: 1px solid var(--sn-border-color);
   border-radius: var(--chip-radius, var(--wt-radius-pill));
-  background: var(--chip-bg, var(--bs-body-bg));
-  color: var(--chip-color, var(--theme-grey));
+  background: var(--chip-bg, var(--sn-body-bg));
+  color: var(--chip-color, var(--sn-grey));
   font-weight: 700;
   line-height: 1;
 }
 .chip:hover,
 .chip:focus-visible,
 .chipActive {
-  border-color: var(--bs-body-color);
-  color: var(--bs-body-color);
+  border-color: var(--sn-body-color);
+  color: var(--sn-body-color);
 }
 
 .surfaceRow {
@@ -65,17 +67,17 @@
   border: var(--surface-row-border, 1px solid transparent);
   border-radius: var(--surface-row-radius, var(--wt-radius-sm));
   background: var(--surface-row-bg, var(--wt-surface-bg));
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
   text-decoration: none;
 }
 .surfaceRow:hover {
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
   text-decoration: none;
 }
 .surfaceRowHover:hover,
 .surfaceRowRing {
-  border-color: var(--surface-row-ring-color, var(--bs-primary));
-  box-shadow: inset 0 0 0 1px var(--surface-row-ring-color, var(--bs-primary));
+  border-color: var(--surface-row-ring-color, var(--sn-primary));
+  box-shadow: inset 0 0 0 1px var(--surface-row-ring-color, var(--sn-primary));
 }
 
 .stackSection,
@@ -104,22 +106,15 @@
   justify-content: space-between;
   width: 100%;
   padding: var(--wallet-bottom-bar-padding, 1rem 0 0);
-  border-top: 1px solid var(--theme-borderColor);
-  background: var(--bs-body-bg);
+  border-top: 1px solid var(--sn-border-color);
+  background: var(--sn-body-bg);
 }
 
 @media (max-width: 767px) {
-  .formResponsiveReset :global(.col),
-  .formResponsiveReset :global(.input-group),
-  .formResponsiveReset :global(.form-control),
-  .formResponsiveReset :global(.input-group-text) {
+  .formResponsiveReset :global(input),
+  .formResponsiveReset :global(textarea),
+  .formResponsiveReset :global(select) {
     min-width: 0;
-  }
-  .formResponsiveReset :global(.row) {
-    --bs-gutter-x: 0;
-    width: 100%;
-    margin-right: 0;
-    margin-left: 0;
   }
   .walletBottomBar {
     position: sticky;
@@ -129,4 +124,6 @@
     width: 100%;
     padding: 1.25rem 0 calc(env(safe-area-inset-bottom) + 1rem);
   }
+}
+
 }

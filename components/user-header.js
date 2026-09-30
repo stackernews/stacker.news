@@ -1,11 +1,9 @@
-import Button from 'react-bootstrap/Button'
-import InputGroup from 'react-bootstrap/InputGroup'
-import Image from 'react-bootstrap/Image'
+import Button from '@/components/ui/button'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import Nav from 'react-bootstrap/Nav'
+import { Nav, NavLink, NavItem } from '@/components/ui/nav'
 import { useState, useEffect } from 'react'
-import { Form, Input, SubmitButton } from './form'
+import { Form, Input, InputAddon, SubmitButton } from './form'
 import { gql } from '@apollo/client'
 import { useApolloClient, useMutation } from '@apollo/client/react'
 import styles from './user-header.module.css'
@@ -25,13 +23,13 @@ import ActionDropdown from './action-dropdown'
 import CodeIcon from '@/svgs/terminal-box-fill.svg'
 import MuteDropdownItem from './mute'
 import copy from 'clipboard-copy'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 import { hexToBech32 } from '@/lib/nostr'
 import NostrIcon from '@/svgs/nostr.svg'
 import GithubIcon from '@/svgs/github-fill.svg'
 import TwitterIcon from '@/svgs/twitter-fill.svg'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
-import ItemPopover from './item-popover'
+import ItemPreviewCard from './item-preview-card'
 
 const MEDIA_URL = process.env.NEXT_PUBLIC_MEDIA_URL || `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}`
 
@@ -49,28 +47,28 @@ export default function UserHeader ({ user }) {
         className={navStyles.nav}
         activeKey={activeKey}
       >
-        <Nav.Item>
-          <Nav.Link as={Link} href={'/' + user.name} eventKey='bio'>bio</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link as={Link} href={'/' + user.name + '/all'} eventKey='items'>
+        <NavItem>
+          <NavLink href={'/' + user.name} eventKey='bio'>bio</NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink href={'/' + user.name + '/all'} eventKey='items'>
             {numWithUnits(user.nitems, {
               abbreviate: false,
               unitSingular: 'item',
               unitPlural: 'items'
             })}
-          </Nav.Link>
-        </Nav.Item>
+          </NavLink>
+        </NavItem>
         {showTerritoriesTab && (
-          <Nav.Item>
-            <Nav.Link as={Link} href={'/' + user.name + '/territories'} eventKey='territories'>
+          <NavItem>
+            <NavLink href={'/' + user.name + '/territories'} eventKey='territories'>
               {numWithUnits(user.nterritories, {
                 abbreviate: false,
                 unitSingular: 'territory',
                 unitPlural: 'territories'
               })}
-            </Nav.Link>
-          </Nav.Item>
+            </NavLink>
+          </NavItem>
         )}
       </Nav>
     </>
@@ -98,8 +96,8 @@ function HeaderPhoto ({ user, isMe }) {
   const src = user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'
 
   return (
-    <div className='position-relative align-self-start' style={{ width: 'fit-content' }}>
-      <Image
+    <div className='relative self-start w-fit'>
+      <img
         src={src} width='135' height='135'
         className={styles.userimg}
       />
@@ -157,9 +155,9 @@ function NymEdit ({ user, setEditting }) {
         }, undefined, { shallow: true })
       }}
     >
-      <div className='d-flex align-items-center mb-2'>
+      <div className='flex items-center mb-2'>
         <Input
-          prepend=<InputGroup.Text>@</InputGroup.Text>
+          prepend=<InputAddon>@</InputAddon>
           name='name'
           autoFocus
           groupClassName={styles.usernameForm}
@@ -175,8 +173,8 @@ function NymEdit ({ user, setEditting }) {
 function NymView ({ user, isMe, setEditting }) {
   const { me } = useMe()
   return (
-    <div className='d-flex align-items-center mb-2'>
-      <div className={styles.username}>@{user.name}<Badges showWalletBadges className='ms-2' user={user} badgeClassName='fill-grey' /></div>
+    <div className='flex items-center mb-2'>
+      <div className={styles.username}>@{user.name}<Badges interactive showWalletBadges className='ms-2' user={user} badgeClassName='fill-muted' /></div>
       {isMe &&
         <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
       {!isMe && me && <NymActionDropdown user={user} />}
@@ -248,32 +246,32 @@ function HeaderHeader ({ user }) {
   const isMe = me?.name === user.name
   const Satistics = () => (
     user.optional.stacked !== null &&
-      <div className={`mb-2 ms-0 ms-sm-1 ${styles.username} text-success`}>
+      <div className={`mb-2 ms-0 sm:ms-1 ${styles.username} text-success`}>
         {numWithUnits(user.optional.stacked, { abbreviate: false, format: true })} stacked
       </div>
   )
 
   const lnurlp = encodeLnurl(lnurlpUrl(user.name))
   return (
-    <div className='d-flex mt-2 flex-wrap flex-column flex-sm-row'>
+    <div className='flex mt-2 flex-wrap flex-col sm:flex-row'>
       <HeaderPhoto user={user} isMe={isMe} />
-      <div className='ms-0 ms-sm-3 mt-3 mt-sm-0 justify-content-center align-self-sm-center'>
+      <div className='ms-0 sm:ms-4 mt-4 sm:mt-0 justify-center sm:self-center'>
         <HeaderNym user={user} isMe={isMe} />
         <Satistics user={user} />
         <Button
-          className='fw-bold ms-0' onClick={() => {
+          className='font-bold ms-0' onClick={() => {
             copy(`${user.name}@stacker.news`)
               .then(() => {
                 toaster.success(`copied ${user.name}@stacker.news to clipboard`)
               }).catch(() => {
-                toaster.error(`failed to copy ${user.name}@stacker.news to clipboard`)
+                toaster.danger(`failed to copy ${user.name}@stacker.news to clipboard`)
               })
             showModal(({ onClose }) => (
               <>
-                <a className='d-flex m-auto p-3' style={{ background: 'white', maxWidth: 'fit-content' }} href={`lightning:${lnurlp}`}>
-                  <QRCodeSVG className='d-flex m-auto' value={lnurlp} size={300} />
+                <a className='flex m-auto p-4' style={{ background: 'white', maxWidth: 'fit-content' }} href={`lightning:${lnurlp}`}>
+                  <QRCodeSVG className='flex m-auto' value={lnurlp} size={300} />
                 </a>
-                <div className='text-center fw-bold text-muted mt-3'>click or scan</div>
+                <div className='text-center font-bold text-muted mt-4'>click or scan</div>
               </>
             ))
           }}
@@ -284,31 +282,31 @@ function HeaderHeader ({ user }) {
             className='me-1'
           />{user.name}@stacker.news
         </Button>
-        <div className='d-flex flex-column mt-1 ms-0'>
-          <small className='text-muted d-flex-inline'>stacking since: {user.since
+        <div className='flex flex-col mt-1 ms-0'>
+          <small className='text-muted'>stacking since: {user.since
             ? (
-              <ItemPopover id={user.since}>
+              <ItemPreviewCard id={user.since}>
                 <Link href={`/items/${user.since}`} className='ms-1'>#{user.since}</Link>
-              </ItemPopover>
+              </ItemPreviewCard>
               )
             : <span>never</span>}
           </small>
           {user.optional.maxStreak !== null &&
-            <small className='text-muted d-flex-inline'>longest cowboy streak: {user.optional.maxStreak}</small>}
+            <small className='text-muted'>longest cowboy streak: {user.optional.maxStreak}</small>}
           {user.optional.isContributor &&
-            <small className='text-muted d-flex align-items-center'>
+            <small className='text-muted flex items-center'>
               <CodeIcon className='me-1' height={16} width={16} /> verified stacker.news contributor
             </small>}
           {user.optional.nostrAuthPubkey &&
-            <small className='text-muted d-flex-inline'>
+            <small className='text-muted'>
               <SocialLink name='Nostr' id={user.optional.nostrAuthPubkey} />
             </small>}
           {user.optional.githubId &&
-            <small className='text-muted d-flex-inline'>
+            <small className='text-muted'>
               <SocialLink name='Github' id={user.optional.githubId} />
             </small>}
           {user.optional.twitterId &&
-            <small className='text-muted d-flex-inline'>
+            <small className='text-muted'>
               <SocialLink name='Twitter' id={user.optional.twitterId} />
             </small>}
         </div>

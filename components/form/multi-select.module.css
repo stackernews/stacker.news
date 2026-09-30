@@ -1,0 +1,33 @@
+@layer components {
+
+/* :focus never fires on the wrapper, so the ring rides :focus-within */
+.control:focus-within {
+  border-color: var(--sn-primary);
+  box-shadow: var(--sn-focus-ring);
+}
+
+.control[data-invalid] {
+  border-color: var(--sn-danger);
+}
+
+.control[data-invalid]:focus-within {
+  box-shadow: var(--sn-focus-ring-danger);
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  background-color: var(--sn-click-to-context-color);
+  border-radius: 2px;
+}
+
+.groupLabel {
+  color: var(--sn-grey);
+}
+
+/* react-select's maxMenuHeight */
+.list {
+  max-height: 432px;
+}
+
+}

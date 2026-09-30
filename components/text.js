@@ -1,7 +1,7 @@
 import styles from './text.module.css'
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import reactStringReplace from 'react-string-replace'
-import { Button } from 'react-bootstrap'
+import Button from '@/components/ui/button'
 import { useRouter } from 'next/router'
 import classNames from 'classnames'
 import { CarouselProvider, useCarousel } from './carousel'
@@ -82,7 +82,7 @@ export function useOverflow ({ containerRef }) {
       return (
         <Button
           variant='link'
-          className='sn-text__show-full p-0 fw-bold text-muted'
+          className='sn-text__show-full p-0 font-bold text-muted'
           aria-expanded='false'
           onClick={showOverflow}
         >

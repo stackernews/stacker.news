@@ -37,25 +37,25 @@ export function ExternalTransactionRow ({ transaction }) {
 function ExternalTransactionContext ({ transaction, diagnostic }) {
   if (transaction.bolt11 || transaction.hash) {
     return (
-      <div className='mw-100'>
+      <div className='max-w-full'>
         {transaction.sourceType === 'LN_ADDR' && transaction.sourceValue &&
-          <small className='d-block text-muted text-truncate' title={transaction.sourceValue}>to {transaction.sourceValue}</small>}
-        <div className='d-none d-sm-block'>
+          <small className='block text-muted truncate' title={transaction.sourceValue}>to {transaction.sourceValue}</small>}
+        <div className='hidden sm:block'>
           <Bolt11Info
             showAmount={false}
             {...toBolt11InfoProps(transaction)}
           />
         </div>
-        {diagnostic && <small className='d-block text-warning text-truncate' title={diagnostic}>{diagnostic}</small>}
+        {diagnostic && <small className='block text-warning truncate' title={diagnostic}>{diagnostic}</small>}
       </div>
     )
   }
 
   return (
-    <div className='text-truncate mw-100'>
+    <div className='truncate max-w-full'>
       <span>external transaction #{transaction.id}</span>
-      <small className='d-block text-muted text-monospace text-truncate'>hash deleted</small>
-      {diagnostic && <small className='d-block text-warning text-truncate' title={diagnostic}>{diagnostic}</small>}
+      <small className='block text-muted font-mono truncate'>hash deleted</small>
+      {diagnostic && <small className='block text-warning truncate' title={diagnostic}>{diagnostic}</small>}
     </div>
   )
 }

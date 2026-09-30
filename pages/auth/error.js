@@ -1,7 +1,7 @@
 import { StaticLayout } from '@/components/layout'
 import styles from '@/styles/error.module.css'
 import { useRouter } from 'next/router'
-import Button from 'react-bootstrap/Button'
+import Button from '@/components/ui/button'
 import LoopVideo from '@/components/loop-video'
 
 export function getServerSideProps ({ query }) {
@@ -26,9 +26,9 @@ export default function AuthError ({ error }) {
     return (
       <StaticLayout>
         <LoopVideo src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/blink-look.mp4`} width='640' height='288' />
-        <h2 className='pt-4'>Incorrect magic code</h2>
+        <h2 className='pt-6'>Incorrect magic code</h2>
         <Button
-          className='align-items-center my-3'
+          className='my-4'
           style={{ borderWidth: '2px' }}
           id='login'
           onClick={() => router.back()}

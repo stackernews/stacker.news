@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
-import { useToast } from './toast'
-import { Button } from 'react-bootstrap'
+import { useToast } from '@/components/ui/toast'
+import Button from '@/components/ui/button'
 import Nostr, { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import { gql } from '@apollo/client'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client/react'
@@ -127,7 +127,7 @@ export default function useCrossposter () {
         </>,
         {
           onClose: () => handleSkip(),
-          autohide: false
+          timeout: 0
         }
       )
     })

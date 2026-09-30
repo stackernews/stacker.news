@@ -77,17 +77,17 @@ function LoginFooter ({ callbackUrl, domain }) {
   const query = { ...(domain && { domain }), callbackUrl }
 
   return (
-    <small className='fw-bold text-muted pt-4'>New to town? <Link href={{ pathname: '/signup', query }}>sign up</Link></small>
+    <small className='font-bold text-muted pt-6'>New to town? <Link href={{ pathname: '/signup', query }}>sign up</Link></small>
   )
 }
 
 function LoginHeader ({ domainData }) {
   return (
     <>
-      <h3 className='w-100 pb-2'>
+      <h3 className='w-full pb-2'>
         Log in {domainData && ` to ${domainData.title}`}
       </h3>
-      <div className='fw-bold text-muted w-100 text-start pb-4 line-height-md'>Nothing wrestles up a smile like a familiar face.</div>
+      <div className='font-bold text-muted w-full text-start pb-6 leading-normal'>Nothing wrestles up a smile like a familiar face.</div>
     </>
   )
 }
@@ -95,10 +95,10 @@ function LoginHeader ({ domainData }) {
 function MultiAuthHeader () {
   return (
     <>
-      <h3 className='w-100 pb-2'>
+      <h3 className='w-full pb-2'>
         Switch to existing account
       </h3>
-      <div className='text-muted w-100 text-start pb-4 line-height-md'>Hint: go back and switch to @anon to sign up with a new account.</div>
+      <div className='text-muted w-full text-start pb-6 leading-normal'>Hint: go back and switch to @anon to sign up with a new account.</div>
     </>
   )
 }

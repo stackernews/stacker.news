@@ -1,4 +1,6 @@
 import { useRouter } from 'next/router'
+import { useState } from 'react'
+import { MenuProvider } from '@/components/ui/menu'
 import DesktopHeader from './desktop/header'
 import MobileHeader from './mobile/header'
 import StickyBar from './sticky-bar'
@@ -6,6 +8,7 @@ import { PriceCarouselProvider } from './price-carousel'
 import { usePrefix, useNavKeys } from '../territory-domains'
 
 export default function Navigation ({ sub, hideMobileNav = false }) {
+  const [stickyVisible, setStickyVisible] = useState(false)
   const router = useRouter()
   const path = router.asPath.split('?')[0]
   const prefix = usePrefix(sub)
@@ -21,9 +24,11 @@ export default function Navigation ({ sub, hideMobileNav = false }) {
 
   return (
     <PriceCarouselProvider>
-      <DesktopHeader {...props} />
-      {!hideMobileNav && <MobileHeader {...props} />}
-      <StickyBar {...props} hideMobileNav={hideMobileNav} />
+      <MenuProvider visible={!stickyVisible}>
+        <DesktopHeader {...props} />
+        {!hideMobileNav && <MobileHeader {...props} />}
+      </MenuProvider>
+      <StickyBar {...props} hideMobileNav={hideMobileNav} visible={stickyVisible} onVisibilityChange={setStickyVisible} />
     </PriceCarouselProvider>
   )
 }

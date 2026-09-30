@@ -1,7 +1,7 @@
 import classNames from 'classnames'
 import { useField } from 'formik'
 import { useMemo, useRef } from 'react'
-import BootstrapForm from 'react-bootstrap/Form'
+import { hintClasses } from '@/components/form'
 import { configExtension, defineExtension, $getRoot, $createParagraphNode } from 'lexical'
 import { ReactExtension } from '@lexical/react/ReactExtension'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
@@ -145,7 +145,8 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
 function EditorContent ({
   name, placeholder, lengthOptions,
   topLevel, isMarkdown, required = false,
-  minRows, hint, warn, editorRef, appendValue, appendedValueRef
+  minRows, hint, warn, editorRef, appendValue, appendedValueRef,
+  'aria-labelledby': ariaLabelledBy
 }) {
   const { ref: containerRef, onRef: onContainerRef } = useCallbackRef()
 
@@ -168,6 +169,7 @@ function EditorContent ({
           */
           style={{ minHeight: `${(minRows ?? 0) + 1}lh` }}
           placeholder={<div className={styles.editorPlaceholder}>{placeholder}</div>}
+          aria-labelledby={ariaLabelledBy}
           aria-required={required}
         />
       </div>
@@ -183,12 +185,12 @@ function EditorContent ({
       {!isMarkdown && (
         <>
           <CodeThemePlugin />
-          <LinkEditorPlugin anchorElem={containerRef} />
+          <LinkEditorPlugin />
         </>
       )}
       {isMarkdown && <TransformerBridgePlugin />}
-      {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
-      {warn && <BootstrapForm.Text className='text-warning'>{warn}</BootstrapForm.Text>}
+      {hint && <small className={hintClasses()}>{hint}</small>}
+      {warn && <small className={hintClasses({ className: 'text-warning' })}>{warn}</small>}
     </div>
   )
 }

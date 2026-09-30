@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import useCrossposter from './use-crossposter'
 import { useCallback } from 'react'

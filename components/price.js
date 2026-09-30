@@ -47,8 +47,8 @@ export function PriceProvider ({ price, children }) {
 function AccessibleButton ({ id, description, children, ...props }) {
   return (
     <div>
-      <button {...props} aria-describedby={id}>{children}</button>
-      <div id={id} className='visually-hidden'>{description}</div>
+      <button {...props} type='button' aria-describedby={id}>{children}</button>
+      <div id={id} className='sr-only'>{description}</div>
     </div>
   )
 }
@@ -60,7 +60,7 @@ export default function Price ({ className }) {
   const { height: blockHeight, halving } = useBlockHeight()
   const { fee: chainFee } = useChainFee()
 
-  const compClassName = (className || '') + ' text-reset pointer'
+  const compClassName = (className || '') + ' pointer'
 
   if (selection === 'yep') {
     if (!price || price < 0) return null

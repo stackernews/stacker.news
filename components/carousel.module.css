@@ -1,3 +1,5 @@
+@layer components {
+
 div.fullScreenNavContainer {
     height: 100%;
     width: 100%;
@@ -11,8 +13,8 @@ div.fullScreenNavContainer {
     align-items: center;
 }
 
-img.fullScreen {
-    cursor: zoom-out !important;
+.fullScreenContainer img.fullScreen {
+    cursor: zoom-out;
     max-height: 100%;
     max-width: 100vw;
     min-width: 0;
@@ -23,11 +25,10 @@ img.fullScreen {
 }
 
 .fullScreenContainer {
-    --bs-columns: 1;
-    --bs-rows: 1;
     display: grid;
     width: 100%;
     height: 100%;
+    outline: none; /* focused programmatically for arrow keys */
 }
 
 div.fullScreenNav:hover > svg {
@@ -60,4 +61,5 @@ div.fullScreenNav > svg {
     max-width: 34px;
     padding: 0.35rem;
     margin: .75rem;
+}
 }

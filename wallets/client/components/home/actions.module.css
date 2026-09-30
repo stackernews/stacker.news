@@ -1,3 +1,5 @@
+@layer components {
+
 /* Selected-wallet action bar (send/receive/buy pyramid buttons). */
 
 .bar {
@@ -30,4 +32,6 @@
   .button:disabled {
     opacity: 0.45;
   }
+}
+
 }

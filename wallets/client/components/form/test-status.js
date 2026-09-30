@@ -17,7 +17,7 @@ const TEST_STATUS_PRESENTATION = {
 export function CapabilityStatus ({ status }) {
   const presentation = TEST_STATUS_PRESENTATION[status] ?? TEST_STATUS_PRESENTATION[TestStatus.NOT_SET]
   return (
-    <span className={classNames(styles.status, 'd-inline-flex align-items-center gap-1 flex-shrink-0 fw-bold line-height-1', presentation.className)}>
+    <span className={classNames(styles.status, 'inline-flex items-center gap-1 shrink-0 font-bold leading-none', presentation.className)}>
       {presentation.icon && <CheckCircle width={14} height={14} />}
       {presentation.label}
     </span>

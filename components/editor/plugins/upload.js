@@ -242,7 +242,7 @@ export default function FileUploadPlugin ({ editorRef }) {
   }, [placeholderKey, setSubmitDisabled])
 
   return (
-    <div className='d-none'>
+    <div className='hidden'>
       <FileUpload
         multiple
         ref={fileInputRef}

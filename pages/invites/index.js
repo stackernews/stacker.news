@@ -1,10 +1,9 @@
 import Layout from '@/components/layout'
-import { Form, Input, SubmitButton } from '@/components/form'
-import InputGroup from 'react-bootstrap/InputGroup'
+import { Form, Input, InputAddon, SubmitButton } from '@/components/form'
 import { gql } from '@apollo/client'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { INVITE_FIELDS } from '@/fragments/invites'
-import AccordianItem from '@/components/accordian-item'
+import AccordionItem from '@/components/accordion-item'
 import styles from '@/styles/invites.module.css'
 import Invite from '@/components/invite'
 import { inviteSchema } from '@/lib/validate'
@@ -69,18 +68,18 @@ function InviteForm () {
       <Input
         label='gift'
         name='gift'
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        append={<InputAddon className='font-mono'>sats</InputAddon>}
         required
       />
       <Input
         label='invitee limit'
         name='limit'
       />
-      <AccordianItem
+      <AccordionItem
         headerColor='#6c757d' header='advanced' body={
           <>
             <Input
-              prepend={<InputGroup.Text className='text-muted'>{`${process.env.NEXT_PUBLIC_URL}/invites/`}</InputGroup.Text>}
+              prepend={<InputAddon className='text-muted'>{`${process.env.NEXT_PUBLIC_URL}/invites/`}</InputAddon>}
               label={<>invite code <small className='text-muted ms-2'>optional</small></>}
               hint='leave blank for a random code that is hard to guess'
               name='id'
@@ -89,7 +88,7 @@ function InviteForm () {
             <Input
               label={
                 <>
-                  <div className='d-flex align-items-center'>
+                  <div className='flex items-center'>
                     description <small className='text-muted ms-2'>optional</small>
                     <Info>
                       <Text>
@@ -107,7 +106,7 @@ function InviteForm () {
       }
       />
       <SubmitButton
-        className='mt-4'
+        className='mt-6'
         variant='secondary'
       >create
       </SubmitButton>
@@ -117,8 +116,8 @@ function InviteForm () {
 
 function InviteList ({ name, invites }) {
   return (
-    <div className='mt-4'>
-      <AccordianItem
+    <div className='mt-6'>
+      <AccordionItem
         show
         headerColor='#6c757d'
         header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>{name}</div>} body={
@@ -157,10 +156,10 @@ export default function Invites () {
   return (
     <Layout>
       <div className='text-center'>
-        <h2 className='mt-3 mb-0'>
+        <h2 className='mt-4 mb-0'>
           invite links
         </h2>
-        <small className='d-block text-muted fw-bold mx-5'>send these to people you trust, e.g. group chats or DMs</small>
+        <small className='block text-muted font-bold mx-12'>send these to people you trust, e.g. group chats or DMs</small>
       </div>
       <InviteForm />
       {active.length > 0 && <InviteList name='active' invites={active} />}

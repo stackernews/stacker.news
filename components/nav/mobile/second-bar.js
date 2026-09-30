@@ -1,4 +1,4 @@
-import { Nav, Navbar } from 'react-bootstrap'
+import { Nav, Navbar } from '@/components/ui/nav'
 import { NavWalletSummary, Sorts, hasNavSelect, SignUpButton } from '../common'
 import styles from '../../header.module.css'
 import { useMe } from '@/components/me'
@@ -8,7 +8,7 @@ export default function SecondBar (props) {
   const { topNavKey } = props
   if (!hasNavSelect(props)) return null
   return (
-    <Navbar>
+    <Navbar className='not-first:pt-0'>
       <Nav
         className={styles.navbarNav}
         activeKey={topNavKey}

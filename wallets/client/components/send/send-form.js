@@ -126,7 +126,7 @@ function SendFormFields ({ controller, enforcesMaxFee }) {
 
   return (
     <>
-      <div className={classNames(styles.fields, styles.formResponsiveReset, 'd-flex flex-column')}>
+      <div className={classNames(styles.fields, styles.formResponsiveReset, 'flex flex-col')}>
         <DestinationInput
           destination={destination}
           lnAddrLookup={lnAddrLookup}

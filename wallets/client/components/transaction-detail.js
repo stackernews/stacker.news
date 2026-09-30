@@ -14,7 +14,7 @@ export function TransactionDetailHeading ({ title, amount, walletInfo, identity,
     <>
       {status}
       {timestamp && (
-        <small className='d-block text-muted' title={timestamp} suppressHydrationWarning>
+        <small className='block text-muted' title={timestamp} suppressHydrationWarning>
           {timeSince(new Date(timestamp))}
         </small>
       )}
@@ -41,7 +41,7 @@ export function TransactionDetailSection ({ title, children, className }) {
   if (!children) return null
 
   return (
-    <section className={classNames('d-flex flex-column', className)} style={{ gap: 'var(--wt-gap-md)' }}>
+    <section className={classNames('flex flex-col', className)} style={{ gap: 'var(--wt-gap-md)' }}>
       {title && <h5 className='m-0'>{title}</h5>}
       {children}
     </section>

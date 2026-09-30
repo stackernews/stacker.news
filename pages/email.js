@@ -3,7 +3,7 @@ import { StaticLayout } from '@/components/layout'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { useRouter } from 'next/router'
 import { useState, useEffect, useCallback } from 'react'
-import { Form, SubmitButton, MultiInput } from '@/components/form'
+import { Form, SubmitButton, OtpInput } from '@/components/form'
 import { emailTokenSchema } from '@/lib/validate'
 import ArrowRightLineIcon from '@/svgs/arrow-right-line.svg'
 import LoopVideo from '@/components/loop-video'
@@ -40,7 +40,7 @@ export default function Email () {
 
   return (
     <StaticLayout>
-      <div className='p-4 text-center'>
+      <div className='p-6 text-center'>
         {signin
           ? (
             <LoopVideo src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/coming-home.mp4`} width='480' height='270' />
@@ -48,8 +48,8 @@ export default function Email () {
           : (
             <LoopVideo src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/signup-email.mp4`} width='640' height='302' />
             )}
-        <h2 className='pt-4'>Check your email</h2>
-        <h4 className='text-muted pt-2 pb-4'>{buildMessage()}</h4>
+        <h2 className='pt-6'>Check your email</h2>
+        <h4 className='text-muted pt-2 pb-6'>{buildMessage()}</h4>
         <MagicCodeForm onSubmit={(token) => pushCallback(token)} disabled={!callback} signin={signin} />
       </div>
     </StaticLayout>
@@ -64,22 +64,18 @@ export const MagicCodeForm = ({ onSubmit, disabled }) => {
       }}
       schema={emailTokenSchema}
       onSubmit={(values) => {
-        onSubmit(values.token.toLowerCase()) // token is displayed in uppercase but we need to check it in lowercase
+        onSubmit(values.token)
       }}
     >
-      <MultiInput
+      <OtpInput
         length={6}
-        charLength={1}
         name='token'
         required
         autoFocus
-        groupClassName='d-flex flex-column justify-content-center gap-2'
-        inputType='text'
-        hideError // hide error message on every input, allow custom error message
+        groupClassName='flex flex-col justify-center gap-2'
         disabled={disabled}
-        autoComplete='one-time-code'
       />
-      <SubmitButton variant='primary' className='ps-4 pe-3' disabled={disabled}>enter <ArrowRightLineIcon height={20} width={20} className='ms-2' /></SubmitButton>
+      <SubmitButton variant='primary' className='ps-6 pe-4' disabled={disabled}>enter <ArrowRightLineIcon height={20} width={20} className='ms-2' /></SubmitButton>
     </Form>
   )
 }

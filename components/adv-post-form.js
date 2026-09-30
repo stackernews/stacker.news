@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import AccordianItem from './accordian-item'
-import { Input, InputUserSuggest, VariableInput, Checkbox } from './form'
-import InputGroup from 'react-bootstrap/InputGroup'
+import AccordionItem from './accordion-item'
+import { Input, InputAddon, InputUserSuggest, VariableInput, Checkbox } from './form'
 import { MAX_FORWARDS } from '@/lib/constants'
 import { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import Info from './info'
@@ -9,6 +8,7 @@ import styles from './adv-post-form.module.css'
 import { useMe } from './me'
 import { useRouter } from 'next/router'
 import { useFormikContext } from 'formik'
+import { fieldDraftKey } from '@/lib/form-draft'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
@@ -23,7 +23,7 @@ const FormStatus = {
   ERROR: 'error'
 }
 
-export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
+export default function AdvPostForm ({ children, item, storageKeyPrefix, keepMounted }) {
   const { me } = useMe()
   const router = useRouter()
   const [itemType, setItemType] = useState()
@@ -34,7 +34,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
     const isDirty = formik?.values.forward?.[0].nym !== '' || formik?.values.forward?.[0].pct !== '' ||
       (router.query?.type === 'link' && formik?.values.text !== '')
 
-    // if the adv post form is dirty on first render, show the accordian
+    // if the adv post form is dirty on first render, show the accordion
     if (isDirty) {
       setShow(FormStatus.DIRTY)
     }
@@ -44,7 +44,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
     if (storageKeyPrefix) {
       for (let i = 0; i < MAX_FORWARDS; i++) {
         ['nym', 'pct'].forEach(key => {
-          const value = window.localStorage.getItem(`${storageKeyPrefix}-forward[${i}].${key}`)
+          const value = window.localStorage.getItem(fieldDraftKey(storageKeyPrefix, `forward[${i}].${key}`))
           if (value !== undefined && value !== null) {
             formik?.setFieldValue(`forward[${i}].${key}`, value)
           }
@@ -54,7 +54,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
   }, [formik?.values, storageKeyPrefix])
 
   useEffect(() => {
-    // force show the accordian if there is an error and the form is submitting
+    // force show the accordion if there is an error and the form is submitting
     const hasError = formik?.errors?.forward?.length > 0
     // if it's open we don't want to collapse on submit
     setShow(show => hasError && formik?.isSubmitting ? FormStatus.ERROR : show)
@@ -101,9 +101,10 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
   }
 
   return (
-    <AccordianItem
+    <AccordionItem
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
       show={show}
+      keepMounted={keepMounted}
       body={
         <>
           {children}
@@ -117,12 +118,12 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
           >
             {({ index, AppendColumn }) => {
               return (
-                <div key={index} className='d-flex flex-row'>
+                <div key={index} className='flex flex-row'>
                   <InputUserSuggest
                     name={`forward[${index}].nym`}
-                    prepend={<InputGroup.Text>@</InputGroup.Text>}
+                    prepend={<InputAddon>@</InputAddon>}
                     showValid
-                    groupClassName={`${styles.name} me-3 mb-0`}
+                    groupClassName={`${styles.name} me-4 mb-0`}
                   />
                   <Input
                     name={`forward[${index}].pct`}
@@ -130,7 +131,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
                     step={5}
                     min={1}
                     max={100}
-                    append={<InputGroup.Text className='text-monospace'>%</InputGroup.Text>}
+                    append={<InputAddon className='font-mono'>%</InputAddon>}
                     groupClassName={`${styles.percent} mb-0`}
                     AppendColumn={AppendColumn}
                   />
@@ -141,7 +142,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
           {me && itemType &&
             <Checkbox
               label={
-                <div className='d-flex align-items-center'>crosspost to nostr
+                <div className='flex items-center'>crosspost to nostr
                   <Info>
                     <ul>
                       {renderCrosspostDetails(itemType)}

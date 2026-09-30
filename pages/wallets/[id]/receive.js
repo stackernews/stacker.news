@@ -1,5 +1,5 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { Checkbox, Form, Input, SubmitButton } from '@/components/form'
+import { Checkbox, Form, Input, InputAddon, SubmitButton } from '@/components/form'
 import Info from '@/components/info'
 import { useData } from '@/components/use-data'
 import { utf8ByteLength, walletInvoiceSchema } from '@/lib/validate'
@@ -16,7 +16,6 @@ import sharedStyles from '@/wallets/client/components/wallet.module.css'
 import sendStyles from '@/wallets/client/components/send/send.module.css'
 import classNames from 'classnames'
 import { useMutation, useQuery } from '@apollo/client/react'
-import { InputGroup } from 'react-bootstrap'
 import { useRouter } from 'next/router'
 import { FormikConsumer } from 'formik'
 const styles = { ...sharedStyles, ...sendStyles }
@@ -77,7 +76,7 @@ function WalletReceive ({ wallet, defaultProxyReceive }) {
             : `/wallets/transactions/${data.createWalletInvoice}`)
         }}
       >
-        <div className={classNames(styles.fields, styles.formResponsiveReset, 'd-flex flex-column')}>
+        <div className={classNames(styles.fields, styles.formResponsiveReset, 'flex flex-col')}>
           <FormikConsumer>
             {({ values }) => {
               const bytes = utf8ByteLength((values.description || '').trim())
@@ -95,7 +94,7 @@ function WalletReceive ({ wallet, defaultProxyReceive }) {
                     max={max}
                     required
                     autoFocus
-                    append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+                    append={<InputAddon className='font-mono'>sats</InputAddon>}
                   />
                   <Input
                     label='memo'
@@ -113,7 +112,7 @@ function WalletReceive ({ wallet, defaultProxyReceive }) {
                   <Checkbox
                     name='proxyReceive'
                     label={
-                      <span className='d-flex align-items-center'>
+                      <span className='flex items-center'>
                         proxy receive for enhanced privacy
                         <Info>
                           <ul>

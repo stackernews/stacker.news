@@ -4,7 +4,7 @@ import ArrowLeft from '@/svgs/arrow-left-line.svg'
 import ArrowRight from '@/svgs/arrow-right-line.svg'
 import styles from './carousel.module.css'
 import { useShowModal } from './modal'
-import { Dropdown } from 'react-bootstrap'
+import { MenuItem } from '@/components/ui/menu'
 
 function useSwiping ({ moveLeft, moveRight }) {
   const [touchStartX, setTouchStartX] = useState(null)
@@ -38,21 +38,6 @@ function useSwiping ({ moveLeft, moveRight }) {
   }, [onTouchStart, onTouchEnd])
 }
 
-function useArrowKeys ({ moveLeft, moveRight }) {
-  const onKeyDown = useCallback((e) => {
-    if (e.key === 'ArrowLeft') {
-      moveLeft()
-    } else if (e.key === 'ArrowRight') {
-      moveRight()
-    }
-  }, [moveLeft, moveRight])
-
-  useEffect(() => {
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onKeyDown])
-}
-
 function Carousel ({ close, mediaArr, src, setOptions }) {
   const [index, setIndex] = useState(mediaArr.findIndex(([key]) => key === src))
   const [currentSrc, canGoLeft, canGoRight] = useMemo(() => {
@@ -75,11 +60,20 @@ function Carousel ({ close, mediaArr, src, setOptions }) {
     setIndex(i => Math.min(mediaArr.length - 1, i + 1))
   }, [setIndex, mediaArr.length])
 
+  // focus the container so arrow keys land on it, tabIndex -1 keeps it out of the tab order.
+  // handle keys here, not on document: Dialog.Popup stops propagation of arrow keys
+  const containerRef = useRef(null)
+  useEffect(() => { containerRef.current?.focus() }, [])
+
+  const onKeyDown = useCallback((e) => {
+    if (e.key === 'ArrowLeft') moveLeft()
+    else if (e.key === 'ArrowRight') moveRight()
+  }, [moveLeft, moveRight])
+
   useSwiping({ moveLeft, moveRight })
-  useArrowKeys({ moveLeft, moveRight })
 
   return (
-    <div className={styles.fullScreenContainer} onClick={close}>
+    <div ref={containerRef} tabIndex={-1} className={styles.fullScreenContainer} onClick={close} onKeyDown={onKeyDown}>
       <img className={styles.fullScreen} src={currentSrc} />
       <div className={styles.fullScreenNavContainer}>
         <div
@@ -108,7 +102,7 @@ function Carousel ({ close, mediaArr, src, setOptions }) {
 const CarouselContext = createContext()
 
 function CarouselOverflow ({ originalSrc, rel }) {
-  return <Dropdown.Item href={originalSrc} rel={rel} target='_blank'>view original</Dropdown.Item>
+  return <MenuItem href={originalSrc} rel={rel} target='_blank'>view original</MenuItem>
 }
 
 export function CarouselProvider ({ children }) {

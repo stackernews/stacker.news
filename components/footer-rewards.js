@@ -12,12 +12,12 @@ const REWARDS = gql`
   }
 }`
 
-export default function Rewards () {
+export default function Rewards ({ className }) {
   const { data } = useQuery(REWARDS, SSR ? { ssr: false } : { pollInterval: LONG_POLL_INTERVAL_MS, nextFetchPolicy: 'cache-and-network' })
   const total = data?.rewards?.[0]?.total
   const time = data?.rewards?.[0]?.time
   return (
-    <Link href='/rewards' className='nav-link p-0 p-0 d-inline-flex'>
+    <Link href='/rewards' className={className}>
       {total ? <span><RewardLine total={total} time={time} /></span> : 'rewards'}
     </Link>
   )

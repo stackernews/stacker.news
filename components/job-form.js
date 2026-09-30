@@ -1,7 +1,4 @@
-import { Checkbox, Form, Input, SNInput, SubmitButton } from './form'
-import Row from 'react-bootstrap/Row'
-import Col from 'react-bootstrap/Col'
-import Image from 'react-bootstrap/Image'
+import { Checkbox, Form, FormGroup, Input, SNInput, SubmitButton } from './form'
 import { useState } from 'react'
 import styles from '@/styles/post.module.css'
 import Avatar from './avatar'
@@ -23,7 +20,7 @@ export default function JobForm ({ item, subs }) {
   return (
     <>
       <Form
-        className='pb-5 pt-3'
+        className='pb-12 pt-4'
         initial={{
           title: item?.title || '',
           company: item?.company || '',
@@ -39,15 +36,14 @@ export default function JobForm ({ item, subs }) {
         requireSession
         onSubmit={onSubmit}
       >
-        <div className='form-group'>
-          <label className='form-label'>logo</label>
-          <div className='position-relative' style={{ width: 'fit-content' }}>
-            <Image
-              src={logoId ? `${MEDIA_URL}/${logoId}` : '/jobs-default.png'} width='135' height='135' roundedCircle
+        <FormGroup label='logo'>
+          <div className='relative w-fit'>
+            <img
+              src={logoId ? `${MEDIA_URL}/${logoId}` : '/jobs-default.png'} width='135' height='135' className='rounded-full'
             />
             <Avatar onSuccess={setLogoId} />
           </div>
-        </div>
+        </FormGroup>
         <Input
           label='job title'
           name='title'
@@ -62,21 +58,21 @@ export default function JobForm ({ item, subs }) {
           required
           clear
         />
-        <Row className='me-0'>
-          <Col>
+        <div className='flex gap-4'>
+          <div className='grow basis-0'>
             <Input
               label='location'
               name='location'
               clear
             />
-          </Col>
-          <Col className='d-flex ps-0' xs='auto'>
+          </div>
+          <div className='flex'>
             <Checkbox
-              label={<div className='fw-bold'>remote</div>} name='remote' hiddenLabel
+              label={<div className='font-bold'>remote</div>} name='remote' hiddenLabel
               groupClassName={styles.inlineCheckGroup}
             />
-          </Col>
-        </Row>
+          </div>
+        </div>
         <SNInput
           topLevel
           label='description'
@@ -105,12 +101,12 @@ export function JobButtonBar ({
   const resolvedStopText = stopText ?? 'stop job'
 
   return (
-    <div className={`mt-3 ${className}`}>
-      <div className='d-flex justify-content-between'>
+    <div className={`mt-4 ${className}`}>
+      <div className='flex justify-between'>
         {itemId && !isStopped &&
           <SubmitButton valueName='status' value='STOPPED' variant='grey-medium'>{resolvedStopText}</SubmitButton>}
         {children}
-        <div className='d-flex align-items-center ms-auto'>
+        <div className='flex items-center ms-auto'>
           {hasCancel && <CancelButton onClick={onCancel} />}
           <FeeButton
             text={itemId ? resolvedEditText : createText}

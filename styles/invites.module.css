@@ -1,17 +1,16 @@
+@layer components {
+
 .invites {
     background-color: rgba(0, 0, 0, 0.06);
     border-radius: .4rem;
     padding: .75rem;
-}
-
-.invites {
-    margin-bottom: 0 !important;
+    margin-bottom: 0;
 }
 
 .other {
     font-weight: 500;
     font-size: 70%;
-    color: var(--theme-grey);
+    color: var(--sn-grey);
 }
 
 .revoke {
@@ -24,4 +23,5 @@
 
 .invites .invite:last-child {
     padding-bottom: 0;
+}
 }

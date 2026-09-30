@@ -1,14 +1,13 @@
 import { ITEM_TYPES, ITEM_TYPES_UNIVERSAL } from '@/lib/constants'
-import BootstrapForm from 'react-bootstrap/Form'
-import { Select } from './form'
+import { Checkbox, Select } from './form'
 import { useRouter } from 'next/router'
 import { usePrefix } from './territory-domains'
 
 function ActiveBountiesCheckbox ({ prefix }) {
   const router = useRouter()
 
-  const onChange = (e) => {
-    if (e.target.checked) {
+  const onChange = (checked) => {
+    if (checked) {
       router.push(prefix + '/new/bounties?' + new URLSearchParams({ active: true }).toString())
     } else {
       router.push(prefix + '/new/bounties')
@@ -16,14 +15,13 @@ function ActiveBountiesCheckbox ({ prefix }) {
   }
 
   return (
-    <div className='mx-2 mb-2'>
-      <BootstrapForm.Check
-        inline
-        checked={router.query.active === 'true'}
-        label='active only'
-        onChange={onChange}
-      />
-    </div>
+    <Checkbox
+      noForm inline
+      label='active only'
+      groupClassName='mx-2 mb-2'
+      checked={router.query.active === 'true'}
+      handleChange={onChange}
+    />
   )
 }
 
@@ -41,12 +39,11 @@ export default function NewHeader ({ type, sub }) {
 
   return (
     <div className='flex-wrap'>
-      <div className='text-muted fw-bold my-1 d-flex justify-content-start align-items-center'>
+      <div className='text-muted font-bold my-1 flex justify-start items-center'>
         <Select
           groupClassName='mb-2'
           className='w-auto'
           name='type'
-          size='sm'
           value={type}
           items={items}
           noForm

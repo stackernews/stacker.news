@@ -1,11 +1,11 @@
-import { Container } from 'react-bootstrap'
+import Container from '@/components/ui/container'
 import TopBar from './top-bar'
 import SecondBar from './second-bar'
 
 export default function Header (props) {
   return (
-    <div className='d-none d-md-block'>
-      <Container as='header' className='px-0'>
+    <div data-sn-navigation className='hidden md:block'>
+      <Container as='header'>
         <TopBar {...props} />
         <SecondBar {...props} />
       </Container>

@@ -9,6 +9,7 @@ import { useMe } from './me'
 import { useShowModal } from './modal'
 import { TerritoryInfo } from './territory-header'
 import { subNames, subNamesFromSlug } from '@/lib/subs'
+import { cn } from '@/lib/cn'
 
 export function SubSelectInitial ({ item, subs }) {
   const router = useRouter()
@@ -22,6 +23,13 @@ export function SubSelectInitial ({ item, subs }) {
 const DEFAULT_PREPEND_SUBS = []
 const DEFAULT_APPEND_SUBS = []
 const DEFAULT_FILTER_SUBS = () => true
+const SUB_SELECT_WIDTHS = {
+  small: 'w-24',
+  medium: 'w-52'
+}
+
+export const subSelectClasses = ({ size, className } = {}) =>
+  cn(styles.subSelect, SUB_SELECT_WIDTHS[size], className)
 
 export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs = DEFAULT_FILTER_SUBS, appendSubs = DEFAULT_APPEND_SUBS }) {
   const { data, refetch } = useQuery(ACTIVE_SUBS, SSR
@@ -132,13 +140,13 @@ export default function SubSelect ({ prependSubs, sub, onChange, size, appendSub
       size='sm'
       {...valueProps}
       {...props}
-      className={`${className} ${styles.subSelect} ${size === 'large' ? styles.subSelectLarge : size === 'medium' ? styles.subSelectMedium : ''}`}
+      className={subSelectClasses({ size, className })}
       items={subItems}
     />
   )
 }
 
-export function SubMultiSelect ({ prependSubs, subs, onChange, size, appendSubs, filterSubs, className, ...props }) {
+export function SubMultiSelect ({ prependSubs, subs, onChange, appendSubs, filterSubs, className, ...props }) {
   const router = useRouter()
   const client = useApolloClient()
   const activeSubs = useSubs({ prependSubs, subs, filterSubs, appendSubs })
@@ -173,6 +181,7 @@ export function SubMultiSelect ({ prependSubs, subs, onChange, size, appendSubs,
   return (
     <MultiSelect
       id='subNames'
+      emptyText='no territories found'
       onValueClick={handleTerritoryClick}
       onChange={onChange || ((_, e) => {
         // NOTE: a lot of this is not used yet, because this component is only used in PostForm,
@@ -233,7 +242,7 @@ export function SubMultiSelect ({ prependSubs, subs, onChange, size, appendSubs,
       size='md'
       {...valueProps}
       {...props}
-      className={`${className} ${styles.subSelect} ${size === 'large' ? styles.subSelectLarge : size === 'medium' ? styles.subSelectMedium : ''}`}
+      className={className}
       items={activeSubs}
     />
   )

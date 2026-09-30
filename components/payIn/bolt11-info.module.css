@@ -1,10 +1,12 @@
+@layer components {
+
 .details {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   width: 100%;
   padding: 0.5rem 0 0.25rem;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   line-height: 1.25;
 }
 
@@ -12,8 +14,8 @@
   display: flex;
   align-items: baseline;
   gap: 0.45rem;
-  color: var(--bs-body-color);
-  font-family: var(--bs-font-monospace);
+  color: var(--sn-body-color);
+  font-family: var(--sn-font-monospace);
   line-height: 1;
 }
 
@@ -24,7 +26,7 @@
 }
 
 .amount span:last-child {
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   font-size: 0.95rem;
   font-weight: 700;
 }
@@ -42,27 +44,22 @@
   max-width: 100%;
 }
 
+/* a copy-chip; only the gap between icon, label and indicator is its own */
 .detailPillButton {
-  box-sizing: border-box;
-  min-height: 32px;
-  display: inline-flex;
-  align-items: center;
   gap: 0.35rem;
-  max-width: 100%;
-  padding: 0.3rem 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--theme-borderColor) 70%, transparent);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--theme-grey);
-  font-family: var(--bs-font-monospace);
-  font-size: 0.9rem;
-  font-weight: 700;
-  line-height: 1;
 }
 
 .detailPillIndicator {
   flex: 0 0 auto;
   margin-left: 0.15rem;
+}
+
+.detailPillIndicator::before {
+  content: "+";
+}
+
+.detailPillButton[data-panel-open] .detailPillIndicator::before {
+  content: "-";
 }
 
 .detailPillLabel {
@@ -72,21 +69,16 @@
   white-space: nowrap;
 }
 
-.detailPillButton:hover,
-.detailPillButton:focus-visible,
-.detailPillOpen .detailPillButton {
-  border-color: var(--bs-body-color);
-  color: var(--bs-body-color);
-}
-
-.detailPillButton:focus-visible {
-  outline: 2px solid var(--theme-borderColor);
-  outline-offset: 2px;
+.detailPillButton[data-panel-open] {
+  border-color: var(--sn-body-color);
+  color: var(--sn-body-color);
 }
 
 .detailPillBody {
   max-width: min(100%, 36rem);
   padding-top: 0.45rem;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   font-size: 0.875rem;
+}
+
 }

@@ -15,5 +15,5 @@ export function WhenLineChartSkeleton ({ height = '300px', minWidth = '300px' })
 }
 
 function ChartSkeleton (props) {
-  return <div className='mx-auto w-100 clouds' style={{ ...props }} />
+  return <div className='mx-auto w-full clouds' style={{ ...props }} />
 }

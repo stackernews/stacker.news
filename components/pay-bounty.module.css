@@ -1,10 +1,13 @@
+@layer components {
+
 .pay {
-    color: var(--bs-success);
+    color: var(--sn-success);
     margin-left: 1rem;
 }
 
 .noWallet {
-    color: var(--theme-grey);
+    color: var(--sn-grey);
     margin-left: 1rem;
     font-style: italic;
+}
 }

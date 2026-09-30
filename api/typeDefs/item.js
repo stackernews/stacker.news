@@ -124,6 +124,7 @@ export default gql`
     lastCommentAt: Date
     upvotes: Int!
     meSats: Int!
+    meCredits: Int! @deprecated(reason: "Compatibility shim; always 0")
     meDontLikeSats: Int!
     meBookmark: Boolean!
     meSubscription: Boolean!

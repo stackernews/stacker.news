@@ -150,7 +150,9 @@ This can happen for any of the following reasons:
 
 ### I don't want to receive CCs. How do I disable them?
 
-You cannot disable receiving CCs but we might change that in the future. For now, you can donate any CCs you received [here](/rewards).
+Open [wallet settings](/settings/wallets), uncheck "receive cowboy credits", and save.
+
+For new zaps, any share that would otherwise become CCs goes directly to the rewards pool instead. You can still receive sats through an attached wallet, and your existing CCs remain available to spend. You can also donate existing CCs [here](/rewards).
 
 ### If I attach a wallet, do I always pay with sats?
 

@@ -3,7 +3,7 @@ import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
 import Nav from 'react-bootstrap/Nav'
 import Navbar from 'react-bootstrap/Navbar'
-import { numWithUnits } from '@/lib/format'
+import { numWithUnits, zapBreakdown } from '@/lib/format'
 import { defaultCommentSort } from '@/lib/item'
 import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
@@ -11,7 +11,7 @@ import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
 import { useCommentsNavigatorContext } from './use-comments-navigator'
 
-export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, commentCost, commentBoost }) {
+export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, commentCredits, commentDonatedSats, commentCost, commentBoost }) {
   const router = useRouter()
   const sort = router.query.sort || defaultCommentSort(pinned, bio, parentCreatedAt)
 
@@ -27,7 +27,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
         className={styles.navbarNav}
         activeKey={sort}
       >
-        <Nav.Item className='text-muted' title={`${numWithUnits(commentSats + commentCost + commentBoost)} (${commentSats} stacked \\ ${commentCost} cost \\ ${commentBoost} boost)`}>
+        <Nav.Item className='text-muted' title={`${numWithUnits(commentSats + commentCost + commentBoost)} (${zapBreakdown({ sats: commentSats, credits: commentCredits, donatedSats: commentDonatedSats })} \\ ${commentCost} cost \\ ${commentBoost} boost)`}>
           {numWithUnits(commentSats + commentCost + commentBoost)}
         </Nav.Item>
         <div className='ms-auto d-flex'>
@@ -66,7 +66,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
 
 export default function Comments ({
   parentId, pinned, bio, parentCreatedAt,
-  commentSats, commentCost, commentBoost, comments, commentsCursor, fetchMoreComments, ncomments, lastCommentAt, item, ...props
+  commentSats, commentCredits, commentDonatedSats, commentCost, commentBoost, comments, commentsCursor, fetchMoreComments, ncomments, lastCommentAt, item, ...props
 }) {
   const router = useRouter()
 
@@ -83,6 +83,7 @@ export default function Comments ({
       {comments?.length > 0
         ? <CommentsHeader
             commentSats={commentSats} commentCost={commentCost} commentBoost={commentBoost} parentCreatedAt={parentCreatedAt}
+            commentCredits={commentCredits} commentDonatedSats={commentDonatedSats}
             pinned={pinned} bio={bio} handleSort={sort => {
               const { commentsViewedAt, commentId, ...query } = router.query
               delete query.nodata

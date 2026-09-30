@@ -1261,6 +1261,7 @@ export default {
 
       return (mcost && msatsToSats(mcost)) || 0
     },
+    meCredits: () => 0,
     meDontLikeSats: async (item, args, { me, models }) => {
       if (!me) return 0
       if (typeof item.meDontLikeMsats !== 'undefined') {

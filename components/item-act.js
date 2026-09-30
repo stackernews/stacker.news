@@ -93,8 +93,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       options.cachePhases.onPaid = onPaid
     }
 
-    // instant feedback: bump the item's counters directly in the root cache (assume p2p — the act
-    // cache phases add credits later if the response says otherwise)
+    // instant feedback for totals; breakdowns come from item queries
     const result = { id: item.id, sats: Number(amount), act, path: item.path }
     try {
       const { error } = await withActBump(client.cache, result, me, () =>
@@ -142,11 +141,11 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
   )
 }
 
-function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me) {
-  const result = payerPrivates?.result
+// Write totals to the root cache so they survive navigation under maxMerge.
+// Both the modal (item-act) and the bolt (use-zap) use this. Item queries supply breakdowns.
+export function bumpActCache (cache, result, me) {
   if (!result) return
   const { id, sats, act } = result
-  const p2p = !!payOutBolt11Public
 
   cache.modify({
     id: `Item:${id}`,
@@ -157,23 +156,11 @@ function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me) {
         }
         return existingSats
       },
-      credits (existingCredits = 0) {
-        if (act === 'TIP' && !p2p) {
-          return existingCredits + sats
-        }
-        return existingCredits
-      },
       meSats: (existingSats = 0) => {
         if (act === 'TIP' && me) {
           return existingSats + sats
         }
         return existingSats
-      },
-      meCredits: (existingCredits = 0) => {
-        if (act === 'TIP' && !p2p && me) {
-          return existingCredits + sats
-        }
-        return existingCredits
       },
       meDontLikeSats: (existingSats = 0) => {
         if (act === 'DONT_LIKE_THIS') {
@@ -199,11 +186,9 @@ function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me) {
 
 // doing this onPaid fixes issue #1695 because optimistically updating all ancestors
 // conflicts with the writeQuery on navigation from SSR
-function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
-  const result = payerPrivates?.result
+function updateAncestors (cache, result) {
   if (!result) return
   const { id, sats, act, path } = result
-  const p2p = !!payOutBolt11Public
 
   if (act === 'TIP') {
     // update all ancestors
@@ -212,12 +197,6 @@ function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
       cache.modify({
         id: `Item:${aId}`,
         fields: {
-          commentCredits (existingCommentCredits = 0) {
-            if (p2p) {
-              return existingCommentCredits
-            }
-            return existingCommentCredits + sats
-          },
           commentSats (existingCommentSats = 0) {
             return existingCommentSats + sats
           }
@@ -255,17 +234,8 @@ function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
   }
 }
 
-// act bump: write an item's counters to the ROOT cache (survives navigation under
-// maxMerge), assuming p2p so credits are skipped — getActCachePhases.onMutationResult adds them if
-// the response turns out non-p2p. both the modal (item-act) and the bolt (use-zap) use this.
-export function bumpActCache (cache, result, me) {
-  modifyActCache(cache, { payerPrivates: { result }, payOutBolt11Public: true }, me)
-}
-
-// reverse a bump. payOutBolt11Public defaults to the bump's p2p assumption (no credits were added);
-// pass the response's real value when reverting after the credit reconcile below may have run.
-export function revertActBump (cache, result, me, payOutBolt11Public = true) {
-  modifyActCache(cache, { payerPrivates: { result: { ...result, sats: -result.sats } }, payOutBolt11Public }, me)
+export function revertActBump (cache, result, me) {
+  bumpActCache(cache, { ...result, sats: -result.sats }, me)
 }
 
 // bump an item's counters at click time, run the act attempt, and revert the bump if the attempt
@@ -284,34 +254,16 @@ export async function withActBump (cache, result, me, attempt) {
   }
 }
 
-// the bump already wrote sats/meSats to the root cache; these phases only reconcile what the bump
-// couldn't know up front: credits (if the act turned out non-p2p), ancestors (on payment), and the
-// reversal (on terminal failure).
+// The click-time bump already wrote totals. Only update ancestors on success,
+// or reverse the bump on terminal failure; neither phase changes breakdowns.
 export function getActCachePhases (me) {
   return {
-    onMutationResult: (cache, { data }) => {
-      const response = getPayIn(data)
-      const result = response?.payerPrivates?.result
-      // only TIP credits the item; boost/downzap are non-p2p but never touch item credits, so gate
-      // on act === 'TIP'
-      if (!result || result.act !== 'TIP' || response.payOutBolt11Public) return
-      cache.modify({
-        id: `Item:${result.id}`,
-        fields: {
-          credits: (existing = 0) => existing + result.sats,
-          meCredits: (existing = 0) => me ? existing + result.sats : existing
-        }
-      })
-    },
     onPayError: (e, cache, { data }) => {
-      const response = getPayIn(data)
-      const result = response?.payerPrivates?.result
-      if (result) revertActBump(cache, result, me, response.payOutBolt11Public)
+      const result = getPayIn(data)?.payerPrivates?.result
+      if (result) revertActBump(cache, result, me)
     },
     onPaid: (cache, { data }) => {
-      const response = getPayIn(data)
-      if (!response) return
-      updateAncestors(cache, response)
+      updateAncestors(cache, getPayIn(data)?.payerPrivates?.result)
     }
   }
 }
@@ -327,7 +279,6 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
     ...restOptions,
     cachePhases: {
       ...callerCachePhases,
-      onMutationResult: composeCallbacks(phases.onMutationResult, callerCachePhases.onMutationResult),
       onPayError: composeCallbacks(phases.onPayError, callerCachePhases.onPayError),
       onPaid: composeCallbacks(phases.onPaid, callerCachePhases.onPaid)
     }

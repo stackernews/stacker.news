@@ -10,6 +10,7 @@ import rowsStyles from './rows.module.css'
 import sidebarStyles from './sidebar.module.css'
 import CaretDown from '@/svgs/arrow-down-s-fill.svg'
 import { walletRoute } from '@/wallets/lib/routes'
+import { useMe } from '@/components/me'
 import { WalletList, WalletRow } from './list'
 import { SelectedWalletPanel, WalletDetailsList } from './panel'
 import { defaultWalletHomeRouteId, selectedWalletHomeEntry, walletHomeEntries } from './state'
@@ -18,6 +19,7 @@ const styles = { ...sharedStyles, ...shellStyles, ...rowsStyles, ...sidebarStyle
 
 export function WalletHome ({ routeWalletId }) {
   const wallets = useWallets()
+  const { me } = useMe()
   const templates = useTemplates()
   const walletSendReady = useWalletSendReady()
   const setWalletPriorities = useSetWalletPriorities()
@@ -26,14 +28,25 @@ export function WalletHome ({ routeWalletId }) {
   const [showDetails, setShowDetails] = useState(false)
   const [ordering, setOrdering] = useState(false)
 
-  const entries = useMemo(() => walletHomeEntries(wallets), [wallets])
+  const receiveCredits = me?.privates?.receiveCredits ?? true
+  const cowboyCredits = me?.privates?.credits ?? 0
+  const entries = useMemo(
+    () => walletHomeEntries(wallets, { receiveCredits, cowboyCredits }),
+    [wallets, receiveCredits, cowboyCredits]
+  )
   const defaultRouteId = defaultWalletHomeRouteId(wallets)
   const selectedEntry = selectedWalletHomeEntry(entries, routeWalletId, defaultRouteId)
 
   useEffect(() => {
-    if (!router.isReady || !walletSendReady || routeWalletId || !selectedEntry) return
+    if (!router.isReady || !walletSendReady) return
+    if (!selectedEntry) {
+      const defaultEntry = entries.find(entry => entry.routeId === defaultRouteId)
+      if (defaultEntry) router.replace(walletRoute(defaultEntry))
+      return
+    }
+    if (routeWalletId) return
     router.replace(walletRoute(selectedEntry), undefined, { shallow: true })
-  }, [routeWalletId, router, selectedEntry, walletSendReady])
+  }, [defaultRouteId, entries, routeWalletId, router, selectedEntry, walletSendReady])
 
   const handleSelect = useCallback((routeId) => {
     setShowSwitcher(false)

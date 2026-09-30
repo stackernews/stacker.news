@@ -25,6 +25,7 @@ export function WalletActions ({ entry }) {
 
 function InternalWalletActions ({ entry }) {
   const action = entry.action
+  if (!action) return null
 
   return (
     <div className={styles.bar}>

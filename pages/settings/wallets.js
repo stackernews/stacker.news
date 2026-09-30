@@ -48,6 +48,7 @@ export default function WalletSettings ({ ssrData }) {
 
   const initial = {
     proxyReceive: settings?.proxyReceive ?? false,
+    receiveCredits: settings?.receiveCredits ?? true,
     receiveCreditsBelowSats: settings?.receiveCreditsBelowSats ?? 10,
     sendCreditsBelowSats: settings?.sendCreditsBelowSats ?? 10,
     autoWithdrawThreshold: settings?.autoWithdrawThreshold ?? 10000,
@@ -164,13 +165,28 @@ function CowboyCreditsSettings () {
   return (
     <>
       <h4 className='pt-6 mb-4'>Cowboy Credits Settings</h4>
+      <Checkbox
+        name='receiveCredits'
+        label={
+          <div className='flex items-center'>
+            receive cowboy credits
+            <Info>
+              <ul>
+                <li>when disabled, you will never receive cowboy credits</li>
+                <li>cowboy credits you would have received are donated to the rewards pool instead</li>
+                <li>your existing cowboy credits remain available to spend</li>
+              </ul>
+            </Info>
+          </div>
+        }
+      />
       <Input
         label={
           <div className='flex items-center'>
             receive credits for zaps below
             <Info>
               <ul>
-                <li>we will not attempt to forward zaps below this amount to you, you will receive credits instead</li>
+                <li>while receiving credits is enabled, we will not attempt to forward zaps below this amount to you; you will receive credits instead</li>
                 <li>this setting is useful if small amounts are expensive to receive for you</li>
               </ul>
             </Info>

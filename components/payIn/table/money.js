@@ -1,9 +1,9 @@
-import { formatMsatsToCCs, formatMsatsToSats, isNumber } from '@/lib/format'
+import { formatMsatsToCCs, formatMsatsToDonated, formatMsatsToSats, isNumber } from '@/lib/format'
 import { getPayInViewerAmounts } from '@/lib/pay-in'
 import Plug from '@/svgs/plug.svg'
 
 export function PayInMoney ({ payIn }) {
-  const { SATS, CREDITS, bolt11Mtokens } = getPayInViewerAmounts(payIn)
+  const { SATS, CREDITS, bolt11Mtokens, donatedMtokens } = getPayInViewerAmounts(payIn)
 
   if (payIn.mcost === 0 || (!payIn.payerPrivates && payIn.payInState !== 'PAID')) {
     return <>N/A</>
@@ -14,6 +14,7 @@ export function PayInMoney ({ payIn }) {
       {SATS.mtokens !== 0 && <Money mtokens={SATS.mtokens} mtokensAfter={SATS.mtokensAfter} format={formatMsatsToSats} />}
       {CREDITS.mtokens !== 0 && <Money mtokens={CREDITS.mtokens} mtokensAfter={CREDITS.mtokensAfter} format={formatMsatsToCCs} />}
       {bolt11Mtokens !== 0 && <Bolt11Money mtokens={bolt11Mtokens} />}
+      {donatedMtokens > 0 && <div>{formatMsatsToDonated(donatedMtokens)}</div>}
     </>
   )
 }

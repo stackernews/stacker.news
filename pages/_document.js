@@ -198,6 +198,8 @@ class MyDocument extends Document {
           )}
         </Head>
         <body>
+          {/* iOS 27 PWA top-edge blur workaround */}
+          <div className='ios-pwa-status-bar' aria-hidden='true' />
           <Main />
           <NextScript nonce={nonce} />
         </body>

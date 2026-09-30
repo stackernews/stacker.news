@@ -68,10 +68,10 @@ export default async function pay (payInType, payInArgs, { me, custodialOnly, se
 // 1. do NOT lock all users, but use NOWAIT on users locks so that we can catch AND retry transactions that fail with a deadlock error
 // anything we can do to minimize the time spent in these interactive txs would also help
 async function obtainRowLevelLocks (tx, payIn) {
-  const payOutUserIds = [...new Set(payIn.payOutCustodialTokens.map(t => t.userId)).add(payIn.userId)]
-  if (payIn.payOutBolt11) {
-    payOutUserIds.push(payIn.payOutBolt11.userId)
-  }
+  const payIns = [payIn, ...(payIn.beneficiaries ?? [])]
+  const payOutUserIds = [...new Set(payIns.flatMap(p => [
+    p.userId, p.payOutBolt11?.userId, ...(p.payOutCustodialTokens ?? []).map(t => t.userId)
+  ]).filter(id => id != null))]
   await tx.$executeRaw`SELECT * FROM users WHERE id IN (${Prisma.join(payOutUserIds)}) ORDER BY id ASC FOR NO KEY UPDATE`
 }
 
@@ -315,7 +315,7 @@ export async function onPaid (tx, payInId) {
     where: { id: payInId },
     include: {
       payOutBolt11: true,
-      beneficiaries: true,
+      beneficiaries: { include: { payOutCustodialTokens: true } },
       // need this for obtaining row level locks on the payOutCustodialTokens
       payOutCustodialTokens: true
     }

@@ -104,6 +104,16 @@ function walletActivityTimelineQuery ({
             WHERE "PayOutCustodialToken"."payInId" = "PayIn"."id"
               AND "PayOutCustodialToken"."userId" = ${userId}
               AND "PayIn"."payInState" = 'PAID'
+          ) OR
+          EXISTS (
+            SELECT 1
+            FROM "PayIn" donation
+            WHERE donation."benefactorId" = "PayIn"."id"
+              AND donation."userId" = ${userId}
+              AND donation."payInType" = 'DONATE'
+              AND donation."payInState" = 'PAID'
+              AND "PayIn"."payInType" = 'ZAP'
+              AND "PayIn"."payInState" = 'PAID'
           )
         )`
   const externalWalletFilter = walletIdNumber !== null
@@ -197,7 +207,16 @@ function walletInfoFromProtocol (protocol, role) {
 export async function getPayIn (parent, { id }, { me, models }) {
   const payIn = (await getPayInFull({
     models,
-    query: Prisma.sql`SELECT * FROM "PayIn" WHERE "PayIn"."id" = ${id}`
+    // Donation children are funded by their zap, not a separate wallet payment.
+    // Resolve child links to that zap without a second fetch.
+    query: Prisma.sql`
+      SELECT * FROM "PayIn" WHERE id = (
+        SELECT COALESCE(zap.id, requested.id)
+        FROM "PayIn" requested
+        LEFT JOIN "PayIn" zap ON zap.id = requested."benefactorId"
+          AND requested."payInType" = 'DONATE' AND zap."payInType" = 'ZAP'
+        WHERE requested.id = ${id}
+      )`
   }))[0]
 
   if (!payIn) {
@@ -207,7 +226,9 @@ export async function getPayIn (parent, { id }, { me, models }) {
   const meId = me?.id ?? USER_ID.anon
   if (Number(payIn.userId) !== Number(meId) &&
     !payIn.payOutCustodialTokens.some(token => Number(token.userId) === Number(meId)) &&
-    Number(payIn.payOutBolt11?.userId) !== Number(meId)) {
+    Number(payIn.payOutBolt11?.userId) !== Number(meId) &&
+    !(me && payIn.payInType === 'ZAP' && payIn.beneficiaries.some(child =>
+      child.payInType === 'DONATE' && isMine(child, { me })))) {
     throw new GqlAuthenticationError()
   }
   return payIn
@@ -351,6 +372,10 @@ export default {
   PayIn: {
     isSend: (payIn, args, { me }) => payIn.isSend ??
       (payIn.payInType === 'PROXY_PAYMENT' ? false : isMine(payIn, { me })),
+    // Statistics/detail reads already load children. Never expose another viewer's attribution.
+    beneficiaries: (payIn, args, { me }) => me && Number(me.id) !== USER_ID.anon
+      ? (payIn.beneficiaries ?? []).filter(child => isMine(child, { me }))
+      : [],
     payerPrivates: (payIn, args, { models, me }) => {
       if (!isMine(payIn, { me })) {
         return null
@@ -433,20 +458,15 @@ export default {
       return null
     },
     payOutCustodialTokens: async (payIn, args, { models, me }) => {
-      let payOutCustodialTokens = []
-      if (typeof payIn.payOutCustodialTokens !== 'undefined') {
-        payOutCustodialTokens = [
-          ...payIn.payOutCustodialTokens,
-          ...payIn.beneficiaries.reduce((acc, beneficiary) => {
-            if (beneficiary.payOutCustodialTokens) {
-              return [...acc, ...beneficiary.payOutCustodialTokens]
-            }
-            return acc
-          }, [])
-        ]
-      } else {
-        payOutCustodialTokens = await models.payOutCustodialToken.findMany({ where: { payInId: payIn.id } })
-      }
+      const loaded = Array.isArray(payIn.payOutCustodialTokens) &&
+        Array.isArray(payIn.beneficiaries) &&
+        payIn.beneficiaries.every(b => Array.isArray(b.payOutCustodialTokens))
+      let payOutCustodialTokens = loaded
+        ? [...payIn.payOutCustodialTokens, ...payIn.beneficiaries.flatMap(b => b.payOutCustodialTokens)]
+        : await models.payOutCustodialToken.findMany({
+          where: { OR: [{ payInId: payIn.id }, { payIn: { benefactorId: payIn.id } }] },
+          orderBy: { id: 'asc' }
+        })
 
       // obscure rewards if they are not mine
       if (payIn.payInType === 'REWARDS') {
@@ -476,11 +496,12 @@ export default {
       // if it's not mine, we need to hide the routing fee
       // by removing the routing fee and adding the amount to the rewards pool
       const routingFee = payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
-      const rewardsPool = payOutCustodialTokens.find(t => t.payOutType === 'REWARDS_POOL')
+      const rewardsPool = payOutCustodialTokens.find(t => t.payOutType === 'REWARDS_POOL' && t.payInId === payIn.id)
       if (routingFee && rewardsPool) {
-        const withoutRoutingFee = payOutCustodialTokens.filter(t => t.payOutType !== 'ROUTING_FEE')
-        rewardsPool.mtokens = BigInt(routingFee.mtokens) + BigInt(rewardsPool.mtokens)
-        payOutCustodialTokens = withoutRoutingFee
+        // Mask the fee on a copy of the parent's reward, never the donation.
+        payOutCustodialTokens = payOutCustodialTokens
+          .filter(t => t.payOutType !== 'ROUTING_FEE')
+          .map(t => t === rewardsPool ? { ...t, mtokens: BigInt(t.mtokens) + BigInt(routingFee.mtokens) } : t)
       }
 
       return payOutCustodialTokens

@@ -16,7 +16,7 @@ import {
   DEFAULT_COMMENTS_SATS_FILTER,
   HOMEPAGE_POSTS_SATS_FILTER
 } from '@/lib/constants'
-import { msatsToSats } from '@/lib/format'
+import { msatsToSats, roundedZapAmounts } from '@/lib/format'
 import uu from 'url-unshort'
 import { actSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
@@ -81,7 +81,6 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = Prisma.e
     return await models.$queryRaw(Prisma.sql`
       SELECT "Item".*, to_jsonb(users.*) || jsonb_build_object('meMute', "Mute"."mutedId" IS NOT NULL) as user,
         COALESCE("MeItemPayIn"."meMsats", 0) as "meMsats", COALESCE("MeItemPayIn"."mePendingMsats", 0) as "mePendingMsats",
-        COALESCE("MeItemPayIn"."meMcredits", 0) as "meMcredits", COALESCE("MeItemPayIn"."mePendingMcredits", 0) as "mePendingMcredits",
         COALESCE("MeItemPayIn"."meDontLikeMsats", 0) as "meDontLikeMsats", COALESCE("MeItemPayIn"."mePendingDontLikeMsats", 0) as "mePendingDontLikeMsats",
         COALESCE("MeItemPayIn"."mePendingBoostMsats", 0) as "mePendingBoostMsats",
         b."itemId" IS NOT NULL AS "meBookmark", "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription",
@@ -109,16 +108,13 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = Prisma.e
       ) "subs" ON true
       LEFT JOIN LATERAL (
         SELECT "itemId",
-          sum("PayIn".mcost) FILTER (WHERE "PayOutBolt11".id IS NOT NULL AND "PayIn"."payInType" = 'ZAP') AS "meMsats",
-          sum("PayIn".mcost) FILTER (WHERE "PayOutBolt11".id IS NULL AND "PayIn"."payInType" = 'ZAP') AS "meMcredits",
-          sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInState" <> 'PAID' AND "PayOutBolt11".id IS NOT NULL AND "PayIn"."payInType" = 'ZAP') AS "mePendingMsats",
-          sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInState" <> 'PAID' AND "PayOutBolt11".id IS NULL AND "PayIn"."payInType" = 'ZAP') AS "mePendingMcredits",
+          sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInType" = 'ZAP') AS "meMsats",
+          sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInState" <> 'PAID' AND "PayIn"."payInType" = 'ZAP') AS "mePendingMsats",
           sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInType" = 'DOWN_ZAP') AS "meDontLikeMsats",
           sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInType" = 'DOWN_ZAP' AND "PayIn"."payInState" <> 'PAID') AS "mePendingDontLikeMsats",
           sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInState" <> 'PAID' AND "PayIn"."payInType" = 'BOOST') AS "mePendingBoostMsats"
         FROM "ItemPayIn"
         JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId"
-        LEFT JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn"."id"
         WHERE "PayIn"."userId" = ${me.id}::INTEGER
         AND "ItemPayIn"."itemId" = "Item".id
         AND (
@@ -1034,7 +1030,7 @@ export default {
       if (me?.id === item.userId) {
         return msatsToSats(BigInt(item.msats))
       }
-      return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0) + BigInt(item.mePendingMcredits || 0))
+      return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0))
     },
     downSats: async (item, args, { models, me }) => {
       if (me?.id === item.userId) {
@@ -1051,18 +1047,19 @@ export default {
       }
       return item.boost + msatsToSats(BigInt(item.mePendingBoostMsats || 0))
     },
-    credits: async (item, args, { models, me }) => {
-      if (me?.id === item.userId) {
-        return msatsToSats(BigInt(item.mcredits))
-      }
-      return msatsToSats(BigInt(item.mcredits) + BigInt(item.mePendingMcredits || 0))
-    },
+    // Recipient categories are settled allocations. The payer's pending
+    // funding method cannot tell us whether recipients will get CCs or donate.
+    credits: item => roundedZapAmounts(item).credits,
+    donatedSats: item => roundedZapAmounts(item).donatedSats,
     commentSats: async (item, args, { models }) => {
       return msatsToSats(item.commentMsats)
     },
-    commentCredits: async (item, args, { models }) => {
-      return msatsToSats(item.commentMcredits)
-    },
+    commentCredits: item => roundedZapAmounts({
+      msats: item.commentMsats, mcredits: item.commentMcredits, donatedMsats: item.commentDonatedMsats
+    }).credits,
+    commentDonatedSats: item => roundedZapAmounts({
+      msats: item.commentMsats, mcredits: item.commentMcredits, donatedMsats: item.commentDonatedMsats
+    }).donatedSats,
     bountyPaidTo: async (item, args, { models, me }) => {
       if (!me || !item.bounty || item.userId !== me.id) return item.bountyPaidTo
 
@@ -1242,8 +1239,8 @@ export default {
     },
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0
-      if (typeof item.meMsats !== 'undefined' && typeof item.meMcredits !== 'undefined') {
-        return msatsToSats(BigInt(item.meMsats) + BigInt(item.meMcredits))
+      if (typeof item.meMsats !== 'undefined') {
+        return msatsToSats(item.meMsats)
       }
 
       const { _sum: { mcost } } = await models.payIn.aggregate({
@@ -1258,33 +1255,6 @@ export default {
           userId: me.id,
           payInState: {
             not: 'FAILED'
-          }
-        }
-      })
-
-      return (mcost && msatsToSats(mcost)) || 0
-    },
-    meCredits: async (item, args, { me, models }) => {
-      if (!me) return 0
-      if (typeof item.meMcredits !== 'undefined') {
-        return msatsToSats(item.meMcredits)
-      }
-
-      const { _sum: { mcost } } = await models.payIn.aggregate({
-        _sum: {
-          mcost: true
-        },
-        where: {
-          payInType: 'ZAP',
-          userId: me.id,
-          payInState: {
-            not: 'FAILED'
-          },
-          payOutBolt11: {
-            is: null
-          },
-          itemPayIn: {
-            itemId: Number(item.id)
           }
         }
       })

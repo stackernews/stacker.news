@@ -1,0 +1,6 @@
+ALTER TABLE "users"
+ADD COLUMN "receiveCredits" BOOLEAN NOT NULL DEFAULT true;
+
+ALTER TABLE "Item"
+  ADD COLUMN "donatedMsats" BIGINT NOT NULL DEFAULT 0,
+  ADD COLUMN "commentDonatedMsats" BIGINT NOT NULL DEFAULT 0;

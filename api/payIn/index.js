@@ -348,9 +348,18 @@ export async function onPaid (tx, payInId) {
         "userId",
         SUM(CASE WHEN "custodialTokenType" = 'SATS' THEN mtokens ELSE 0 END) as final_sats,
         SUM(CASE WHEN "custodialTokenType" = 'CREDITS' THEN mtokens ELSE 0 END) as final_credits,
-        SUM(mtokens) as final_total
-      FROM "PayOutCustodialToken"
-      WHERE "payInId" = ${payIn.id}
+        SUM(donated_credits) as donated_credits
+      FROM (
+        SELECT "userId", "custodialTokenType", mtokens, 0::BIGINT AS donated_credits
+        FROM "PayOutCustodialToken"
+        WHERE "payInId" = ${payIn.id}
+        UNION ALL
+        -- Redirected zap shares add CC earnings, but no spendable balance.
+        SELECT "userId", NULL::"CustodialTokenType", 0::BIGINT, mcost
+        FROM "PayIn"
+        WHERE "benefactorId" = ${payIn.id} AND ${payIn.payInType} = 'ZAP'
+          AND "payInType" = 'DONATE' AND "payInState" = 'PAID'
+      ) payouts
       GROUP BY "userId"
     ),
     outuser AS (
@@ -359,7 +368,7 @@ export async function onPaid (tx, payInId) {
         msats = users.msats + ut.final_sats,
         "stackedMsats" = users."stackedMsats" + ${isWithdrawal(payIn) ? 0 : Prisma.sql`ut.final_sats`},
         mcredits = users.mcredits + ut.final_credits,
-        "stackedMcredits" = users."stackedMcredits" + ${isWithdrawal(payIn) ? 0 : Prisma.sql`ut.final_credits`}
+        "stackedMcredits" = users."stackedMcredits" + ${isWithdrawal(payIn) ? 0 : Prisma.sql`ut.final_credits + ut.donated_credits`}
       FROM user_totals ut
       WHERE users.id = ut."userId"
       RETURNING users.id, users.mcredits, users.msats

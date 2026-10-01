@@ -163,6 +163,8 @@ function AutowithdrawSettings () {
 }
 
 function CowboyCreditsSettings () {
+  const [{ value: receiveCredits }] = useField('receiveCredits')
+
   return (
     <>
       <h4 className='pt-4 mb-3'>Cowboy Credits Settings</h4>
@@ -184,10 +186,11 @@ function CowboyCreditsSettings () {
       <Input
         label={
           <div className='d-flex align-items-center'>
-            receive credits for zaps below
+            {receiveCredits ? 'receive credits for zaps below' : 'donate zaps below'}
             <Info>
               <ul>
-                <li>while receiving credits is enabled, we will not attempt to forward zaps below this amount to you; you will receive credits instead</li>
+                <li>we will not attempt to forward your share of a zap if it is below this amount</li>
+                <li>you will receive credits instead, or donate your share to the rewards pool if receiving credits is disabled</li>
                 <li>this setting is useful if small amounts are expensive to receive for you</li>
               </ul>
             </Info>

@@ -82,7 +82,7 @@ export async function getInitial (models, payInArgs, { me, custodialOnly, sendPr
     for (const c of candidates) {
       const candidateMtokens = zapMtokens * BigInt(c.pct) / 100n
       if (candidateMtokens < MIN_RECEIVE_MSATS) continue
-      if (c.receiveCredits !== false && msatsToSats(candidateMtokens) < c.receiveCreditsBelowSats) continue
+      if (msatsToSats(candidateMtokens) < c.receiveCreditsBelowSats) continue
 
       const routingFeeMtokens = candidateMtokens * 3n / 70n
       try {

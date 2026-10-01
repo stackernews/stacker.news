@@ -104,10 +104,10 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
   useEffect(() => {
     if (isEditing) return
 
-    const meaningfulUrl = getMeaningfulUrl(shareUrl || initial.url)
+    const draftUrl = storageKeyPrefix && window.localStorage.getItem(storageKeyPrefix + '-url')
+    const effectiveUrl = draftUrl || shareUrl || initial.url
+    const meaningfulUrl = getMeaningfulUrl(effectiveUrl)
     if (!meaningfulUrl) return
-
-    if (!shareUrl && window.localStorage.getItem(storageKeyPrefix + '-url')) return
 
     getDupesDebounce({
       variables: { url: meaningfulUrl }

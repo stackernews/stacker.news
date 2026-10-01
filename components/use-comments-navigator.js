@@ -16,6 +16,25 @@ const CommentsNavigatorContext = createContext({
 
 export function CommentsNavigatorProvider ({ children }) {
   const value = useCommentsNavigator()
+  const { navigator: { scrollToComment, clearCommentRefs }, commentCount } = value
+
+  // Header and sticky-bar copies share one keyboard handler for the page.
+  useEffect(() => {
+    if (!commentCount) return
+
+    const onNext = (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable) return
+      if (e.key === 'ArrowRight' && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+        e.preventDefault()
+        scrollToComment()
+      }
+      if (e.key === 'Escape') clearCommentRefs()
+    }
+
+    document.addEventListener('keydown', onNext)
+    return () => document.removeEventListener('keydown', onNext)
+  }, [commentCount, scrollToComment, clearCommentRefs])
+
   return (
     <CommentsNavigatorContext.Provider value={value}>
       {children}
@@ -175,29 +194,12 @@ export function useCommentsNavigator () {
 export function CommentsNavigator ({ navigator, commentCount, className }) {
   const { scrollToComment, clearCommentRefs } = navigator
 
-  const onNext = useCallback((e) => {
-    // ignore if there are no new comments or if we're focused on a textarea or input
-    if (!commentCount || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') return
-    // arrow right key scrolls to the next new comment
-    if (e.key === 'ArrowRight' && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-      e.preventDefault()
-      scrollToComment()
-    }
-    // escape key clears the new comments navigator
-    if (e.key === 'Escape') clearCommentRefs()
-  }, [commentCount, scrollToComment, clearCommentRefs])
-
-  useEffect(() => {
-    if (!commentCount) return
-    document.addEventListener('keydown', onNext)
-    return () => document.removeEventListener('keydown', onNext)
-  }, [onNext])
+  if (!commentCount) return null
 
   return (
     <LongPressable onShortPress={scrollToComment} onLongPress={clearCommentRefs}>
       <aside
         className={navLinkClasses({ className: `${styles.commentNavigator} font-bold ${className}` })}
-        style={{ visibility: commentCount ? 'visible' : 'hidden' }}
       >
         <span aria-label='next comment' className={styles.navigatorButton}>
           <div className={styles.newCommentDot} />

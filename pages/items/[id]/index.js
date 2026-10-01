@@ -19,7 +19,7 @@ export default function Item ({ ssrData }) {
   if (!data && !ssrData) return <PageLoading />
 
   const { item } = data || ssrData
-  const sub = item.subName || item.root?.subName
+  const sub = item.subNames?.[0] || item.root?.subNames?.[0]
 
   const fetchMoreComments = async () => {
     await fetchMore({ variables: { ...router.query, cursor: item.comments.cursor } })
@@ -27,7 +27,7 @@ export default function Item ({ ssrData }) {
 
   return (
     <CommentsNavigatorProvider key={item.id}>
-      <Layout sub={sub} item={item}>
+      <Layout sub={sub} item={item} twoColumns>
         <ItemFull item={item} fetchMoreComments={fetchMoreComments} />
       </Layout>
     </CommentsNavigatorProvider>

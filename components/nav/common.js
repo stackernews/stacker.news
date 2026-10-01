@@ -5,10 +5,9 @@ import { Menu, MenuTrigger, MenuPopup, MenuItem, MenuSeparator } from '@/compone
 import styles from '../header.module.css'
 import { useRouter } from 'next/router'
 import BackArrow from '../../svgs/arrow-left-line.svg'
-import { useCallback, useEffect, useState } from 'react'
-import Price from '../price'
+import { useCallback, useEffect, useId, useState } from 'react'
 import SubSelect from '../sub-select'
-import { PUBLIC_MEDIA_URL, USER_ID } from '../../lib/constants'
+import { PUBLIC_MEDIA_URL } from '../../lib/constants'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
 import { abbrNum } from '../../lib/format'
@@ -37,14 +36,6 @@ export function Brand ({ className }) {
         ? <img src={logoUrl} alt='site logo' width={36} height={36} className={styles.brandImage} loading='eager' decoding='async' />
         : <SnIcon width={36} height={36} />}
     </Link>
-  )
-}
-
-export function hasNavSelect ({ path, pathname }) {
-  return (
-    pathname.startsWith('/~') &&
-    !path.endsWith('/post') &&
-    !path.endsWith('/edit')
   )
 }
 
@@ -97,24 +88,18 @@ export function SearchItem ({ className }) {
   )
 }
 
-export function NavPrice ({ className }) {
-  return (
-    <NavItem className={cn(styles.price, className)}>
-      <Price className={navLinkClasses({ className: 'font-mono' })} />
-    </NavItem>
-  )
-}
-
 const PREPEND_SUBS = ['home']
 const APPEND_SUBS = [{ label: '--------', items: ['create'] }]
-export function NavSelect ({ sub: subName, className, size }) {
+export function NavSelect ({ sub: subName, className }) {
   const sub = subName || 'home'
+  const id = useId()
 
   return (
     <NavItem className={className}>
       <SubSelect
         sub={sub} prependSubs={PREPEND_SUBS} appendSubs={APPEND_SUBS} noForm
-        groupClassName='mb-0' size={size}
+        id={id} aria-label='territory' title={sub}
+        groupClassName='mb-0 min-w-0' className='min-w-0 w-full md:h-8'
       />
     </NavItem>
   )
@@ -159,9 +144,9 @@ export function NavWalletSummary ({ className }) {
   )
 }
 
-export const Indicator = ({ show, top = '0px', right = '0px', variant = 'secondary', children }) => {
+export const Indicator = ({ show, top = '0px', right = '0px', variant = 'secondary', className, children }) => {
   return (
-    <div className='w-fit relative'>
+    <div className={cn('w-fit relative', className)}>
       {children}
       {show && (
         <span
@@ -185,14 +170,16 @@ export function MeDropdown ({ me, dropNavKey }) {
   const topKey = dropNavKey?.split('/')[0]
 
   return (
-    <div className='ms-2'>
+    <div className='min-w-0'>
       <Menu className={styles.dropdown}>
-        <MenuTrigger className={navLinkClasses({ className: 'font-normal ps-0' })}>
-          <div className='flex items-center'>
-            <span className={navLinkClasses({ active: topKey === me.name, className: 'p-0' })}>
-              <Indicator show={indicator} top='2px' right='-5px'>@{me.name}</Indicator>
+        <MenuTrigger className={navLinkClasses({ className: 'max-w-full font-normal px-0' })}>
+          <div className='flex min-w-0 items-center'>
+            <span className={navLinkClasses({ active: topKey === me.name, className: 'min-w-0 p-0' })}>
+              <Indicator show={indicator} top='2px' right='-5px' className='max-w-full'>
+                <span className='block max-w-32 truncate lg:max-w-48' title={`@${me.name}`}>@{me.name}</span>
+              </Indicator>
             </span>
-            <Badges user={me} className='ms-1' height={16} width={14} />
+            <Badges user={me} className='ms-1 shrink-0' height={16} width={14} />
           </div>
         </MenuTrigger>
         <MenuPopup align='end'>
@@ -245,7 +232,7 @@ export function SignUpButton ({ className, width }) {
   )
 }
 
-export default function LoginButton () {
+export default function LoginButton ({ className, width }) {
   const router = useRouter()
   const handleLogin = useCallback(async pathname => await router.push({
     pathname,
@@ -254,9 +241,9 @@ export default function LoginButton () {
 
   return (
     <Button
-      className='items-center px-4 py-1'
+      className={cn('items-center px-4 py-1', className)}
       id='login'
-      style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
+      style={{ borderWidth: '2px', width: width || SWITCH_ACCOUNT_BUTTON_WIDTH }}
       variant='outline-grey-darkmode'
       onClick={() => handleLogin('/login')}
     >
@@ -365,34 +352,17 @@ export function LoginButtons ({ handleClose, className }) {
   )
 }
 
-export function AnonDropdown () {
-  return (
-    <div className='relative'>
-      <Menu className={cn(styles.dropdown, 'pe-0')}>
-        <MenuTrigger className={navLinkClasses({ className: 'font-normal px-0' })}>
-          <span className={navLinkClasses({ className: 'p-0' })}>
-            @anon<Badges user={{ id: USER_ID.anon }} />
-          </span>
-        </MenuTrigger>
-        <MenuPopup align='end' className='p-4'>
-          <LoginButtons />
-        </MenuPopup>
-      </Menu>
-    </div>
-  )
-}
-
-export function Sorts ({ prefix, className }) {
+export function Sorts ({ prefix, className, linkClassName }) {
   return (
     <>
       <NavItem className={className}>
-        <NavLink href={prefix + '/'} eventKey='' className={cn(styles.navSort, 'py-1')}>lit</NavLink>
+        <NavLink href={prefix + '/'} eventKey='' className={cn(styles.navSort, 'py-1', linkClassName)}>lit</NavLink>
       </NavItem>
       <NavItem className={className}>
-        <NavLink href={prefix + '/new'} eventKey='new' className={cn(styles.navSort, 'py-1')}>new</NavLink>
+        <NavLink href={prefix + '/new'} eventKey='new' className={cn(styles.navSort, 'py-1', linkClassName)}>new</NavLink>
       </NavItem>
       <NavItem className={className}>
-        <NavLink href={prefix + '/top/posts/day'} eventKey='top' className={cn(styles.navSort, 'py-1')}>top</NavLink>
+        <NavLink href={prefix + '/top/posts/day'} eventKey='top' className={cn(styles.navSort, 'py-1', linkClassName)}>top</NavLink>
       </NavItem>
     </>
   )
@@ -418,16 +388,18 @@ export function PostItem ({ className, prefix, size }) {
   )
 }
 
-export function RightCorner ({ dropNavKey, className = 'flex' }) {
+export function RightCorner ({ dropNavKey, className = 'flex min-w-0 items-center gap-2' }) {
   const { me } = useMe()
-  const isLurker = useIsLurker()
   return (
     <>
       {me
         ? <MeCorner dropNavKey={dropNavKey} me={me} className={className} />
-        : isLurker
-          ? <LurkerCorner className={className} />
-          : <AnonCorner className={className} />}
+        : (
+          <div className='flex shrink-0 items-center gap-2'>
+            <LoginButton width='auto' className='inline-flex h-8 justify-center px-3 py-0 text-sm whitespace-nowrap' />
+            <SignUpButton width='auto' className='inline-flex h-8 justify-center px-3 py-0 text-sm whitespace-nowrap' />
+          </div>
+          )}
     </>
   )
 }
@@ -435,26 +407,9 @@ export function RightCorner ({ dropNavKey, className = 'flex' }) {
 export function MeCorner ({ dropNavKey, me, className }) {
   return (
     <div className={className}>
-      <NavNotifications />
+      <NavNotifications className='shrink-0 px-1' />
       <MeDropdown me={me} dropNavKey={dropNavKey} />
-      <NavWalletSummary className='inline-flex items-center ms-1' />
-    </div>
-  )
-}
-
-export function AnonCorner ({ className }) {
-  return (
-    <div className={className}>
-      <AnonDropdown />
-    </div>
-  )
-}
-
-// add signup button to lurker corner
-export function LurkerCorner ({ className }) {
-  return (
-    <div className={className}>
-      <SignUpButton width='auto' />
+      <NavWalletSummary className='inline-flex shrink-0 items-center' />
     </div>
   )
 }

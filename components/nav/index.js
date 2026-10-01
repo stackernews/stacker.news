@@ -1,34 +1,46 @@
 import { useRouter } from 'next/router'
-import { useState } from 'react'
-import { MenuProvider } from '@/components/ui/menu'
-import DesktopHeader from './desktop/header'
-import MobileHeader from './mobile/header'
-import StickyBar from './sticky-bar'
-import { PriceCarouselProvider } from './price-carousel'
+import { useEffect, useState } from 'react'
+import Container from '@/components/ui/container'
+import NavigationRow from './row'
 import { usePrefix, useNavKeys } from '../territory-domains'
+import { subNamesFromSlug } from '@/lib/subs'
+import { cn } from '@/lib/cn'
+import styles from '../header.module.css'
 
 export default function Navigation ({ sub, hideMobileNav = false }) {
-  const [stickyVisible, setStickyVisible] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const router = useRouter()
   const path = router.asPath.split('?')[0]
-  const prefix = usePrefix(sub)
-  const { topNavKey, dropNavKey } = useNavKeys(path, sub)
+  const routeSubs = subNamesFromSlug(router.query.sub)
+  const selectedSub = sub || (routeSubs.length === 1 ? routeSubs[0] : undefined)
+  const prefix = usePrefix(selectedSub)
+  const { topNavKey, dropNavKey } = useNavKeys(path, selectedSub)
   const props = {
     prefix,
-    path,
-    pathname: router.pathname,
     topNavKey,
     dropNavKey,
-    sub
+    sub: selectedSub
   }
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 0)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
-    <PriceCarouselProvider>
-      <MenuProvider visible={!stickyVisible}>
-        <DesktopHeader {...props} />
-        {!hideMobileNav && <MobileHeader {...props} />}
-      </MenuProvider>
-      <StickyBar {...props} hideMobileNav={hideMobileNav} visible={stickyVisible} onVisibilityChange={setStickyVisible} />
-    </PriceCarouselProvider>
+    <header data-sn-navigation data-scrolled={scrolled || undefined} className={cn(styles.header, 'sticky top-0 z-sticky shrink-0', hideMobileNav && 'hidden md:block')}>
+      <Container>
+        <div className='hidden md:block'>
+          <NavigationRow {...props} />
+        </div>
+        {!hideMobileNav && (
+          <div className='block md:hidden'>
+            <NavigationRow {...props} mobile />
+          </div>
+        )}
+      </Container>
+    </header>
   )
 }

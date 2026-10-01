@@ -33,51 +33,16 @@
     align-content: center;
 }
 
-.price {
-    margin-top: 2px;
-    white-space: nowrap;
-    display: flex;
-    flex-grow: 1;
-    justify-content: center;
-    align-items: center;
-}
-
-.price:first-child {
-    justify-content: flex-start;
-}
-
-.price > div {
-    font-size: min(3.5cqw, 0.9rem);
-}
-
 .dropdown {
     padding: 0;
 }
 
-/* slides in but snaps out (the transition is on .visible) so the hidden bar is untabbable right away */
-.sticky {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: var(--sn-z-sticky);
+.header {
     background-color: var(--sn-body-bg);
-    border-bottom: 1px solid var(--sn-toolbar-active);
-    transform: translateY(-100%);
-    visibility: hidden;
 }
 
-.sticky.visible {
-    transform: none;
-    visibility: visible;
-    transition: transform 150ms ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .sticky,
-    .sticky.visible {
-        transition: none;
-    }
+.header[data-scrolled] {
+    box-shadow: 0 1px 0 var(--sn-toolbar-active);
 }
 
 }

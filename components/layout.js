@@ -7,9 +7,12 @@ import Seo, { SeoSearch } from './seo'
 import Search from './search'
 import styles from './layout.module.css'
 import PullToRefresh from './pull-to-refresh'
+import Price from './price'
+import { PriceCarouselProvider } from './nav/price-carousel'
+import { navLinkClasses } from '@/components/ui/nav'
 
 export default function Layout ({
-  sub, contain = true, footer = true, footerLinks = true,
+  sub, contain = true, twoColumns = false, footer = true, footerLinks = true,
   containClassName = '', seo = true, item, user, hideMobileNav = false, children
 }) {
   return (
@@ -19,7 +22,20 @@ export default function Layout ({
       {contain
         ? (
           <Container as={PullToRefresh} className={`${styles.contain} ${containClassName}`}>
-            {children}
+            {twoColumns
+              ? (
+                <div className='grid grow grid-cols-1 gap-x-6 md:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]'>
+                  <div className='flex min-w-0 flex-col'>
+                    {children}
+                  </div>
+                  <aside className='hidden min-w-0 pt-2 md:block' aria-label='Bitcoin statistics'>
+                    <PriceCarouselProvider>
+                      <Price className={navLinkClasses({ className: 'w-full px-0 text-center font-mono text-sm' })} />
+                    </PriceCarouselProvider>
+                  </aside>
+                </div>
+                )
+              : children}
           </Container>
           )
         : children}

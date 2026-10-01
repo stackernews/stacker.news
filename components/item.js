@@ -208,7 +208,7 @@ export function ItemSkeleton ({ rank, children, showUpvote = true }) {
         {showUpvote && <UpVote className={styles.upvote} />}
         <div className={styles.hunk}>
           <div className={classNames(styles.main, 'flex-wrap md:flex-nowrap')}>
-            <span className={classNames(styles.title, 'clouds md:flex-auto md:shrink-0 me-2')} />
+            <span className={classNames(styles.title, 'clouds md:flex-auto md:min-w-0 me-2')} />
             <span className={`${styles.link} clouds`} />
           </div>
           <div className={styles.other}>

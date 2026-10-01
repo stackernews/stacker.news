@@ -40,7 +40,7 @@ export default function Index ({ ssrData }) {
   const { sub } = data || ssrData
 
   return (
-    <Layout sub={sub?.name}>
+    <Layout sub={sub?.name} twoColumns>
       <NewHeader sub={sub} />
       <Items
         ssrData={ssrData}

@@ -1,5 +1,6 @@
-import { Navbar } from '@/components/ui/nav'
-import { Brand, NavNotifications, PostItem, SearchItem } from '../common'
+import { Navbar, NavLink } from '@/components/ui/nav'
+import { Brand, NavNotifications, PostItem } from '../common'
+import WalletIcon from '@/svgs/wallet-line.svg'
 import { useMe } from '../../me'
 import styles from './footer.module.css'
 import classNames from 'classnames'
@@ -56,7 +57,9 @@ export default function BottomBar ({ sub }) {
         <Navbar className='w-full px-safe'>
           <div className={styles.footerNav}>
             <Brand />
-            <SearchItem />
+            <NavLink href='/wallets' eventKey='wallets' aria-label='wallets'>
+              <WalletIcon width={22} height={28} aria-hidden />
+            </NavLink>
             <PostItem {...props} size='sm' />
             <NavNotifications />
             <Offcanvas me={me} {...props} />

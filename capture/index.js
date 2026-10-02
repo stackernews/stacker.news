@@ -71,6 +71,8 @@ const retryLaterResult = {
   }
 }
 
+const DEFAULT_BROWSER = '/usr/local/bin/chrome'
+
 function requestBrowserReset (targetBrowser = browser) {
   if (targetBrowser && targetBrowser !== browser) return
   browserResetRequestedAt ??= Date.now()
@@ -90,7 +92,7 @@ async function getBrowser () {
 
   browserPromise ||= puppeteer.launch({
     headless: 'new',
-    executablePath: 'google-chrome-stable',
+    executablePath: DEFAULT_BROWSER,
     handleSIGINT: false,
     handleSIGTERM: false,
     handleSIGHUP: false,

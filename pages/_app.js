@@ -4,6 +4,7 @@ import { gql } from '@apollo/client'
 import { ApolloProvider } from '@apollo/client/react'
 import { MeProvider } from '@/components/me'
 import PlausibleProvider from 'next-plausible'
+import { PLAUSIBLE_SCRIPT_PATH, PLAUSIBLE_EVENT_PATH } from '@/lib/plausible'
 import getApolloClient from '@/lib/apollo.js'
 import { PriceProvider } from '@/components/price'
 import { BlockHeightProvider } from '@/components/block-height'
@@ -114,7 +115,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
         <meta name='viewport' content='initial-scale=1.0, width=device-width, viewport-fit=cover' />
       </Head>
       <ErrorBoundary>
-        <PlausibleProvider>
+        <PlausibleProvider src={PLAUSIBLE_SCRIPT_PATH} init={{ endpoint: PLAUSIBLE_EVENT_PATH }}>
           <ApolloProvider client={client}>
             <BrandingProvider branding={branding}>
               <MeProvider me={me}>

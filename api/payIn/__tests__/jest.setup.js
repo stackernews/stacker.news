@@ -28,6 +28,29 @@ jest.mock('@shocknet/clink-sdk', () => ({
   default: jest.fn()
 }))
 
+// wallets/lib/preimage.js reaches this through the wallet protocols; it's ESM only,
+// so back it with node's crypto rather than stubbing preimage verification itself.
+jest.mock('@noble/hashes/sha2.js', () => ({
+  __esModule: true,
+  sha256: (data) => new Uint8Array(require('crypto').createHash('sha256').update(Buffer.from(data)).digest())
+}))
+
+// itemCreate pulls this in, and its unified/micromark/mdast deps ship ESM only.
+// no payIn test asserts on mention extraction, so stub it out.
+// the path is relative because the @/ alias is resolved by SWC at transform time,
+// and jest.mock's specifier isn't rewritten by it.
+jest.mock('../../../lib/lexical/server/mentions', () => ({
+  __esModule: true,
+  extractMentions: jest.fn(() => ({ userNames: [], itemIds: [] }))
+}))
+
+// same for the other lexical entry point the payIn engine drags in through api/resolvers/item.js.
+// lexicalHTMLGenerator only ever runs in `html` field resolvers, never in a payIn write path.
+jest.mock('../../../lib/lexical/server/html', () => ({
+  __esModule: true,
+  lexicalHTMLGenerator: jest.fn(() => '')
+}))
+
 // Counter for guaranteed unique invoice hashes
 let invoiceCounter = 0
 let hodlCounter = 0

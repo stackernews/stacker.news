@@ -1,11 +1,23 @@
 // Load environment variables FIRST before anything else
 const { loadEnvConfig } = require('@next/env')
 const path = require('path')
+
+// jest sets NODE_ENV=test, and @next/env keys the files it reads off NODE_ENV, not off
+// its `dev` argument — so it would look for a .env.test that this repo doesn't have.
+// pretend to be development for the duration of the load so .env.development/.env.local are read.
+const nodeEnv = process.env.NODE_ENV
+process.env.NODE_ENV = 'development'
 loadEnvConfig('./', true) // Load .env.development and .env.local
+process.env.NODE_ENV = nodeEnv
+
+// container names only resolve inside the docker network, so the rewrites below apply
+// when the suite runs on the host — but the same suite can also be run inside the app
+// container (docker compose exec app npm test -- --config ...), where they must not.
+const onHost = !require('fs').existsSync('/.dockerenv')
 
 // Override DATABASE_URL for tests running on host machine
 // docker-compose exposes db on port 5431, but internally it's db:5432
-if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('@db:5432')) {
+if (onHost && process.env.DATABASE_URL && process.env.DATABASE_URL.includes('@db:5432')) {
   // Running tests from host machine, need to use localhost:5431
   process.env.DATABASE_URL = process.env.DATABASE_URL.replace('@db:5432', '@localhost:5431')
   console.log('📝 Adjusted DATABASE_URL for host machine:', process.env.DATABASE_URL.split('@')[1])
@@ -13,7 +25,7 @@ if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('@db:5432')) {
 
 // Override LND_SOCKET for tests running on host machine
 // docker-compose exposes sn_lnd on port 10009, but internally it's sn_lnd:10009
-if (process.env.LND_SOCKET && process.env.LND_SOCKET === 'sn_lnd:10009') {
+if (onHost && process.env.LND_SOCKET && process.env.LND_SOCKET === 'sn_lnd:10009') {
   process.env.LND_SOCKET = 'localhost:10009'
   console.log('📝 Adjusted LND_SOCKET for host machine:', process.env.LND_SOCKET)
 }

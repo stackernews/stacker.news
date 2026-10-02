@@ -14,7 +14,7 @@ export const PAY_IN_INCLUDE = {
 }
 
 export async function payInCreate (tx, payInProspect, payInArgs, { me }) {
-  const { mCostRemaining, mP2PCost, payInCustodialTokens } = await getPayInCosts(tx, payInProspect, { me })
+  const { mCostRemaining, mP2PCost, payInCustodialTokens } = await getPayInCosts(tx, payInProspect, payInArgs, { me })
   const payInState = await getPayInState(payInProspect, { mCostRemaining, mP2PCost })
   const payOutCustodialTokens = payInProspect.payOutCustodialTokens
   const fullProspect = {
@@ -44,9 +44,9 @@ export async function payInCreate (tx, payInProspect, payInArgs, { me }) {
   return { payIn, mCostRemaining }
 }
 
-async function getPayInCosts (tx, payIn, { me }) {
+async function getPayInCosts (tx, payIn, payInArgs, { me }) {
   const { mP2PCost, mCustodialCost } = getCostBreakdown(payIn)
-  const payInCustodialTokens = await getPayInCustodialTokens(tx, mCustodialCost, payIn, { me })
+  const payInCustodialTokens = await getPayInCustodialTokens(tx, mCustodialCost, payIn, payInArgs, { me })
   const mCustodialPaid = payInCustodialTokens.reduce((acc, token) => acc + token.mtokens, 0n)
 
   return {

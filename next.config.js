@@ -1,4 +1,3 @@
-const { withPlausibleProxy } = require('next-plausible')
 const { InjectManifest } = require('workbox-webpack-plugin')
 const CopyPlugin = require('copy-webpack-plugin')
 const webpack = require('webpack')
@@ -71,7 +70,7 @@ const getAllowedDevOrigins = () => {
   return devOrigins
 }
 
-module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi3E-sauvdFABb.js' })({
+module.exports = {
   allowedDevOrigins: getAllowedDevOrigins(),
   env: {
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
@@ -362,4 +361,4 @@ module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi
 
     return config
   }
-})
+}

@@ -9,8 +9,14 @@ import {
   DOMAINS_AUTH_VERIFIER_TTL_S
 } from '@/lib/domains/auth'
 import { getDomainMapping, createDomainsDebugLogger } from '@/lib/domains'
+import { PLAUSIBLE_DESTINATIONS } from '@/lib/plausible'
 
 const REFERRER_TTL_S = 60 * 60 * 24
+const PLAUSIBLE_REQUEST_HEADERS = [
+  'accept', 'accept-encoding', 'accept-language',
+  'content-type', 'content-encoding', 'content-length',
+  'if-none-match', 'if-modified-since', 'referer', 'user-agent', 'x-forwarded-for'
+]
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -244,10 +250,28 @@ function applySecurityHeaders (resp) {
 }
 
 export async function proxy (req) {
+  // Own the external rewrite and its header policy together: no Plausible
+  // request may bypass sanitization through a separate next.config rewrite.
+  const destination = PLAUSIBLE_DESTINATIONS[req.nextUrl.pathname.toLowerCase()]
+  if (destination) {
+    const url = new URL(destination)
+    url.search = req.nextUrl.search
+    const headers = new Headers()
+    for (const name of PLAUSIBLE_REQUEST_HEADERS) {
+      const value = req.headers.get(name)
+      if (value !== null) headers.set(name, value)
+    }
+    // Next also derives x-forwarded-host from this. Keep the override nonempty
+    // even when no permitted headers were supplied, so all others are removed.
+    headers.set('host', url.host)
+    return applySecurityHeaders(NextResponse.rewrite(url, { request: { headers } }))
+  }
+
   // clear subname header to prevent potential spoofing
   const headers = new Headers(req.headers)
   headers.delete('x-stacker-news-subname')
   headers.delete('x-stacker-news-domain')
+
   const request = new NextRequest(req, { headers })
 
   // domain can have a port (local dev), so we pass the whole domain to the middleware
@@ -281,6 +305,8 @@ export async function proxy (req) {
 
 export const config = {
   matcher: [
+    // Next requires a literal matcher. Tests keep this in sync with lib/plausible.
+    '/([aA][pP][iI]/[eE][vV][eE][nN][tT])',
     // NextJS recommends to not add the CSP header to prefetches and static assets
     // prefetches are handled separately in the middleware for custom domain rewrites
     // See https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy

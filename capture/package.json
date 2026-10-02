@@ -9,10 +9,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.20.0",
-    "magic-bytes.js": "^1.12.1",
-    "puppeteer-core": "^21.10.0"
+    "cors": "^2.8.6",
+    "express": "^4.22.3",
+    "magic-bytes.js": "^1.13.1",
+    "puppeteer-core": "^25.11.0"
+  },
+  "overrides": {
+    "qs": "^6.16.0",
+    "ws": "^8.22.0",
+    "body-parser": "^1.20.8"
   },
   "type": "module"
 }

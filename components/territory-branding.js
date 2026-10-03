@@ -15,7 +15,7 @@ import { PUBLIC_MEDIA_URL, DOMAIN_POLL_INTERVAL_MS } from '@/lib/constants'
 import AccordianItem from './accordian-item'
 import TerritoryDomains from './territory-domains'
 
-// shape: { subName, primaryColor?, secondaryColor?, linkColor?, logoId?, title, tagline, faviconId? } | null
+// shape: { subName, domainName, primaryColor?, secondaryColor?, linkColor?, logoId?, title, tagline, faviconId? } | null
 // produced by getDomainBranding at SSR and threaded through ssrApollo -> BrandingProvider.
 const BrandingContext = createContext(null)
 

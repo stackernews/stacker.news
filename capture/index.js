@@ -2,6 +2,8 @@ import express from 'express'
 import puppeteer from 'puppeteer-core'
 import mediaCheck from './media-check.js'
 import cors from 'cors'
+import { resolveCaptureTarget } from './target.js'
+import { createDomainsAllowlist } from './domains.js'
 
 const captureUrl = process.env.CAPTURE_URL || 'http://host.docker.internal:3000/'
 const captureBaseUrl = new URL(captureUrl)
@@ -16,6 +18,16 @@ const width = process.env.WIDTH || 600
 const height = process.env.HEIGHT || 315
 const deviceScaleFactor = process.env.SCALE_FACTOR || 2
 const imageLoadTimeout = Number(process.env.IMAGE_LOAD_TIMEOUT) || 2000
+const isDev = process.env.NODE_ENV === 'development'
+// custom domains: capture may also navigate to the ACTIVE custom domains the app
+// vouches for. TTLs mirror CUSTOM_DOMAINS_CACHE_* in lib/constants.js, so a domain
+// that stops being ACTIVE stops being capturable within the same window.
+const domainsEndpoint = process.env.CAPTURE_DOMAINS_ENDPOINT ||
+  new URL('/api/capture/domains', captureBaseUrl).href
+const domainsSecret = process.env.CAPTURE_DOMAINS_SECRET
+const domainsTtl = Number(process.env.CAPTURE_DOMAINS_TTL) || 120000
+const domainsStaleTtl = Number(process.env.CAPTURE_DOMAINS_STALE_TTL) || 300000
+const domainProtocol = process.env.CAPTURE_DOMAIN_PROTOCOL || 'https'
 // from https://www.bannerbear.com/blog/ways-to-speed-up-puppeteer-screenshots/
 const args = [
   '--autoplay-policy=user-gesture-required',
@@ -54,6 +66,23 @@ const args = [
   '--use-gl=swiftshader',
   '--use-mock-keychain'
 ]
+
+// dev only: custom domains are served by the caddy container (docker-compose
+// `domains-caddy` profile), which terminates TLS with a local CA chrome doesn't
+// trust and lives behind a hostname only the host machine resolves.
+if (isDev) {
+  args.push(
+    `--host-resolver-rules=${process.env.CAPTURE_HOST_RESOLVER_RULES || 'MAP *.sndev caddy, MAP *.test caddy'}`,
+    '--ignore-certificate-errors'
+  )
+}
+
+const domainsAllowlist = createDomainsAllowlist({
+  endpoint: domainsEndpoint,
+  secret: domainsSecret,
+  ttl: domainsTtl,
+  staleTtl: domainsStaleTtl
+})
 
 let browser
 let browserPromise
@@ -184,17 +213,6 @@ function isProtocolError (err) {
     err?.message?.includes('Protocol error') ||
     err?.message?.includes('Session closed') ||
     err?.message?.includes('Target closed')
-}
-
-function isAssetPath (pathname) {
-  return pathname.startsWith('/_next/') ||
-    pathname.startsWith('/icons/') ||
-    pathname === '/sw.js' ||
-    pathname === '/robots.txt' ||
-    pathname === '/manifest.json' ||
-    pathname === '/site.webmanifest' ||
-    pathname === '/api/site.webmanifest' ||
-    /\/(?:favicon[^/]*|apple-touch-icon[^/]*)$/.test(pathname)
 }
 
 async function addCaptureCleanupScript (page) {
@@ -346,16 +364,22 @@ app.get('/media/:url', cors({
 }), mediaCheck)
 
 app.get('/*', async (req, res) => {
-  const url = new URL(req.originalUrl, captureBaseUrl)
+  const target = resolveCaptureTarget({
+    originalUrl: req.originalUrl,
+    baseUrl: captureBaseUrl,
+    allowedDomains: await domainsAllowlist.get(),
+    protocol: domainProtocol
+  })
+
+  if (target.status) {
+    res.setHeader('Cache-Control', 'no-store')
+    // 503 means we couldn't reach the allowlist, not that the request is wrong
+    if (target.status === 503) res.setHeader('Retry-After', '1')
+    return res.status(target.status).end()
+  }
+
+  const { url } = target
   const timeLabel = `${Date.now()}-${++captureCount}-${url.href}`
-  if (url.origin !== captureBaseUrl.origin) {
-    res.setHeader('Cache-Control', 'no-store')
-    return res.status(400).end()
-  }
-  if (isAssetPath(url.pathname)) {
-    res.setHeader('Cache-Control', 'no-store')
-    return res.status(404).end()
-  }
 
   const cacheKey = url.href
   let joined = false

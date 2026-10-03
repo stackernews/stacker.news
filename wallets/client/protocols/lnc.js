@@ -6,58 +6,92 @@ import { verificationUnsupportedResult } from '@/wallets/lib/external-transactio
 import { walletBalance } from './util'
 
 export const name = 'LNC'
-// LND enforces routing fee caps via the feeLimit oneof on SendPaymentSync.
+// LND enforces routing fee caps via the fee_limit_sat field on SendPaymentV2.
 export const enforcesMaxFee = true
 
 const serverHost = 'mailbox.terminal.lightning.today:443'
-const LNC_SEND_PAYMENT_PERMISSION = 'lnrpc.Lightning.SendPaymentSync'
+// LND 0.21 removed lnrpc.Lightning.SendPaymentSync; the current payment RPC is
+// routerrpc.Router.SendPaymentV2 (a server-streaming call).
+const LNC_SEND_PAYMENT_PERMISSION = 'routerrpc.Router.SendPaymentV2'
 const LNC_CHANNEL_BALANCE_PERMISSION = 'lnrpc.Lightning.ChannelBalance'
 const LNC_TRACK_PAYMENT_PERMISSION = 'routerrpc.Router.TrackPaymentV2'
 const LNC_SEND_COINS_PERMISSION = 'lnrpc.Lightning.SendCoins'
 // Disconnect an idle instance this long after the last call.
 const IDLE_DISCONNECT_MS = 4000
-// These SendPaymentSync payment_error values do not prove failure ("invoice is already
-// paid" actually SETTLED); TrackPaymentV2 resolves the true outcome.
-const LNC_NON_TERMINAL_PAYMENT_ERRORS = /payment is in transition|payment already exists|invoice is already paid|router shutting down|payment lifecycle exiting/
 
 export async function sendPayment (bolt11, credentials, { logger, maxFee, signal }) {
   return await connection.use(credentials, { logger, signal }, async lnc => {
-    const request = { paymentRequest: bolt11 }
+    const request = { paymentRequest: bolt11, noInflightUpdates: true }
     if (maxFee != null) {
       if (!Number.isSafeInteger(maxFee) || maxFee < 0) {
         throw new Error(`invalid maxFee: ${maxFee}`)
       }
-      // LND FeeLimit accepts fixed sats via the `fixed` oneof field; serialize
+      // SendPaymentV2 caps routing fees via the fee_limit_sat field; serialize
       // as a string to avoid the 53-bit int safety ceiling.
-      request.feeLimit = { fixed: String(maxFee) }
+      request.feeLimitSat = String(maxFee)
     }
     // a transport drop after the RPC was transmitted may leave the payment in
     // flight; classifyWalletPaymentError treats such errors as UNKNOWN by default
-    const result = await connection.call(lnc.lnd.lightning.sendPaymentSync(request), { logger, signal })
-    const { paymentError, paymentPreimage: preimage } = result
-    if (paymentError) {
-      // recorded as UNKNOWN; checkPayment/TrackPaymentV2 resolves the true outcome
-      if (LNC_NON_TERMINAL_PAYMENT_ERRORS.test(paymentError)) {
-        return { status: 'UNKNOWN', detail: paymentError }
-      }
-      throw new WalletPaymentRejectedError(paymentError) // all HTLC attempts resolved -> definitive
+    const payment = await sendPaymentV2(lnc, request, { signal })
+    const result = lncPaymentResult(payment)
+    if (result.status === 'FAILED') {
+      throw new WalletPaymentRejectedError(result.detail) // all HTLC attempts resolved -> definitive
     }
-    // A successful provider response is authoritative even without proof.
-    if (!preimage) {
-      return {
-        status: 'SETTLED',
-        actualFeeMsats: lndPaymentFeeMsats(result)
-      }
-    }
-    // downstream verifyPreimage does the shape check plus sha256 verification;
-    // a malformed value should surface as "invalid proof of payment", not be dropped here
-    const preimageHex = Buffer.from(preimage, 'base64').toString('hex')
-    return {
-      status: 'SETTLED',
-      preimage: preimageHex,
-      actualFeeMsats: lndPaymentFeeMsats(result)
-    }
+    return result
   })
+}
+
+// SendPaymentV2 is a server-streaming RPC: it emits in-flight updates and then a
+// terminal SUCCEEDED/FAILED payment. We set noInflightUpdates so the only message
+// is terminal, but ignore any non-terminal update defensively.
+function sendPaymentV2 (lnc, request, { signal }) {
+  throwIfAborted(signal)
+
+  // raceAbort owns cancellation, so the caller's timeout diagnosis propagates
+  // instead of a fabricated bare 'aborted' error
+  return raceAbort(new Promise((resolve, reject) => {
+    let done = false
+    const finish = (err, payment) => {
+      if (done) return
+      done = true
+      if (err) return reject(err)
+      resolve(payment)
+    }
+    const onMessage = payment => {
+      if (lndPaymentSucceeded(payment) || lndPaymentFailed(payment)) finish(null, payment)
+    }
+    try {
+      lnc.lnd.router.sendPaymentV2(request, onMessage, err => finish(err))
+    } catch (err) {
+      finish(err)
+    }
+  }), signal)
+}
+
+// Map a terminal routerrpc Payment to the adapter result contract.
+export function lncPaymentResult (payment) {
+  if (lndPaymentFailed(payment)) {
+    const reason = payment.failureReason && String(payment.failureReason)
+    return {
+      status: 'FAILED',
+      detail: reason && reason !== 'FAILURE_REASON_NONE' ? reason : 'lnd reports payment failed'
+    }
+  }
+  if (!lndPaymentSucceeded(payment)) {
+    return { status: 'UNKNOWN', detail: 'payment did not reach a terminal state' }
+  }
+  const { paymentPreimage: preimage } = payment
+  // A successful provider response is authoritative even without proof.
+  if (!preimage) {
+    return { status: 'SETTLED', actualFeeMsats: lndPaymentFeeMsats(payment) }
+  }
+  // downstream verifyPreimage does the shape check plus sha256 verification;
+  // a malformed value should surface as "invalid proof of payment", not be dropped here
+  return {
+    status: 'SETTLED',
+    preimage: Buffer.from(preimage, 'base64').toString('hex'),
+    actualFeeMsats: lndPaymentFeeMsats(payment)
+  }
 }
 
 export async function testSendPayment (credentials, { logger, signal }) {
@@ -367,10 +401,11 @@ class LncCredentialStore {
   }
 }
 
-// LND PaymentStatus: numeric enum from the gRPC bridge or string from lnc-web
-const lndPaymentSucceeded = payment =>
+// routerrpc PaymentStatus: numeric enum from the gRPC bridge or string from lnc-web
+// (UNKNOWN=0, IN_FLIGHT=1, SUCCEEDED=2, FAILED=3)
+export const lndPaymentSucceeded = payment =>
   payment?.status === 2 || String(payment?.status).toUpperCase() === 'SUCCEEDED'
-const lndPaymentFailed = payment =>
+export const lndPaymentFailed = payment =>
   payment?.status === 3 || String(payment?.status).toUpperCase() === 'FAILED'
 
 function lndAmountToSats (amount) {
@@ -381,7 +416,7 @@ function lndAmountToSats (amount) {
   }
 }
 
-function lndPaymentFeeMsats (payment) {
+export function lndPaymentFeeMsats (payment) {
   const route = payment.paymentRoute
   // two chained calls so a present-but-malformed msat field still falls back to sats
   return walletAmountToMsatsOrUndefined(payment.feeMsat ?? route?.totalFeesMsat) ??

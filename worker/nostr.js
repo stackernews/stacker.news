@@ -1,7 +1,17 @@
-import Nostr from '@/lib/nostr'
+import Nostr, { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import { createHash } from 'crypto'
 import { parsePaymentRequest } from 'ln-service'
 import { assertValidBolt11, logInvalidBolt11 } from '@/lib/bolt11-validator'
+
+// NIP-57 Appendix D says a zap request "should" carry a relays tag, not "must",
+// so third-party wallets are allowed to omit it. The worker must not throw on
+// such a note (the payer already paid) — fall back to the default relays so the
+// receipt still gets published.
+export function zapRequestRelays (note) {
+  const tag = note?.tags?.find(t => t?.length >= 2 && t[0] === 'relays')
+  const relays = tag?.slice(1)
+  return relays?.length ? relays : DEFAULT_CROSSPOSTING_RELAYS
+}
 
 export async function nip57 ({ data: { hash }, boss, lnd, models }) {
   const payInBolt11 = await models.payInBolt11.findUnique({
@@ -67,7 +77,7 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
     const addressTag = note.tags.filter(t => t?.length >= 2 && t[0] === 'a')[0]
     const senderTag = typeof note.pubkey === 'string' ? ['P', note.pubkey] : null
     const kindTag = note.tags.filter(t => t?.length >= 2 && t[0] === 'k')[0]
-    const relays = note.tags.find(t => t?.length >= 2 && t[0] === 'relays').slice(1)
+    const relays = zapRequestRelays(note)
 
     const tags = [recipientTag]
     if (eventTag) tags.push(eventTag)

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOSS Webpage</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
+    <style>
+        :root {
+            --primary: #FADA5E;
+            --secondary: #F6911D;
+            --info: #007cbe;
+            --success: #5c8001;
+            --danger: #c03221;
+            --light: #f8f9fa;
+            --dark: #212529;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+        }
+
+        #navbar {
+            overflow: hidden;
+            background-color: var(--secondary);
+        }
+
+        #navbar a {
+            float: left;
+            display: block;
+            color: var(--light);
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        #navbar a:hover {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        .content {
+            display: none;
+            padding: 20px;
+            border-radius: 0.4rem;
+            margin: 10px;
+            background: var(--light);
+            border: 1px solid var(--dark);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid var(--dark);
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--info);
+        }
+
+        #docLinks a {
+            display: block;
+            margin-top: 5px;
+            color: var(--dark);
+            background-color: var(--success);
+            padding: 10px;
+            border-radius: 0.4rem;
+            text-decoration: none;
+        }
+
+        #docLinks a:hover {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        /* Code block styling */
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        /* Inline code styling */
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            color: #d63384;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+<body>
+<p>Getting semantic search setup in OpenSearch is a multistep process.</p>
+<h3 id="step1configurethemlplugin">step 1: configure the ml plugin</h3>
+<pre><code class="json language-json">PUT _cluster/settings
+{
+  "persistent": {
+        "plugins.ml_commons.only_run_on_ml_node": "false",
+        "plugins.ml_commons.model_access_control_enabled": "true",
+        "plugins.ml_commons.native_memory_threshold": "99"
+      }
+}
+</code></pre>
+<h3 id="step2createamodelgroup">step 2: create a model group</h3>
+<pre><code class="json language-json">POST /_plugins/_ml/model_groups/_register
+{
+  "name": "local_model_group",
+  "description": "A model group for local models"
+}
+</code></pre>
+<h3 id="step3registerapretainedmodeltothemodelgroup">step 3: register a pretained model to the model group</h3>
+<p>Importantly, we need to use a model that truncates input. Note the feature number of the model you're using, because we'll need to store those features. For example, the model below has 768 features.</p>
+<pre><code class="json language-json">POST /_plugins/_ml/models/_register
+{
+  "name": "huggingface/sentence-transformers/all-mpnet-base-v2",
+  "version": "1.0.1",
+  "model_group_id": &lt;model group id&gt;,
+  "model_format": "TORCH_SCRIPT"
+}
+</code></pre>
+<h3 id="step4waituntilthemodelregistrationiscomplete">step 4: wait until the model registration is complete</h3>
+<pre><code class="json language-json">GET /_plugins/_ml/tasks/&lt;task id from above&gt;
+</code></pre>
+<h3 id="step5deploythemodel">step 5: deploy the model</h3>
+<p>Note the model id</p>
+<pre><code class="json language-json">POST /_plugins/_ml/models/&lt;model id&gt;/_deploy
+</code></pre>
+<h3 id="step6createaningestpipeline">step 6: create an ingest pipeline</h3>
+<p>Most models choke on empty strings, so we remove them at an earlier stage in the pipeline. We also add the model to the pipeline which generates the embeddings.</p>
+<pre><code class="json language-json">PUT /_ingest/pipeline/nlp-ingest-pipeline
+{
+  "description": "An NLP ingest pipeline",
+  "processors": [
+    {
+      "remove": {
+        "field": "text",
+        "if": "ctx?.text?.trim() == ''"
+      }
+    },
+    {
+      "remove": {
+        "field": "title",
+        "if": "ctx?.title?.trim() == ''"
+      }
+    },
+    {
+      "text_embedding": {
+        "model_id": "6whlBY0B2sj1ObjeeD5d",
+        "field_map": {
+          "text": "text_embedding",
+          "title": "title_embedding"
+        }
+      }
+    }
+  ]
+}
+</code></pre>
+<h3 id="step7createanewindexwiththeknn_vectortype">step 7: create a new index with the knn_vector type</h3>
+<p>We'll need to create mappings for the embeddings which is also a convenient time to specifiy special analyzers for the text and title fields.</p>
+<pre><code class="json language-json">PUT /item-nlp
+{
+  "settings": {
+    "index.knn": true,
+    "default_pipeline": "nlp-ingest-pipeline"
+  },
+  "mappings": {
+    "properties": {
+      "text": {
+        "type": "text",
+        "analyzer": "english",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "title": {
+        "type": "text",
+        "analyzer": "english",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "title_embedding": {
+        "type": "knn_vector",
+        "dimension": 768,
+        "method": {
+          "engine": "lucene",
+          "space_type": "l2",
+          "name": "hnsw",
+          "parameters": {}
+        }
+      },
+      "text_embedding": {
+        "type": "knn_vector",
+        "dimension": 768,
+        "method": {
+          "engine": "lucene",
+          "space_type": "l2",
+          "name": "hnsw",
+          "parameters": {}
+        }
+      }
+    }
+  }
+}
+</code></pre>
+<h3 id="step8createasearchpipelineforweightingtermsearchandvectorsearch">step 8: create a search pipeline for weighting term search and vector search</h3>
+<pre><code class="json language-json">PUT /_search/pipeline/nlp-search-pipeline
+{
+  "description": "Pre and post processor for hybrid search",
+  "request_processors": [
+    {
+      "neural_query_enricher" : {
+        "description": "Sets the default model ID at index and field levels (which doesn't actually work)",
+        "default_model_id": &lt;model id&gt;,
+      }
+    }
+  ],
+  "phase_results_processors": [
+    {
+      "normalization-processor": {
+        "normalization": {
+          "technique": "min_max"
+        },
+        "combination": {
+          "technique": "arithmetic_mean",
+          "parameters": {
+            "weights": [
+              0.7,
+              0.3
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
+</code></pre>
+<h3 id="step9setitasthedefaultsearchpipeline">step 9: set it as the default search pipeline</h3>
+<pre><code class="json language-json">PUT /item-nlp/_settings
+{
+  "index.search.default_pipeline" : "nlp-search-pipeline"
+}
+</code></pre>
+<h3 id="step10reindexyourdataifyouhavedata">step 10: reindex your data if you have data</h3>
+<p>Warning: this take a very very long time.</p>
+<pre><code class="json language-json">POST _reindex?wait_for_completion=false
+{
+  "source": {
+    "index": "item"
+  },
+  "dest": {
+    "index": "item-nlp"
+  }
+}
+</code></pre>
+<p>You can check the status of the reindexing with the following command:</p>
+<pre><code class="json language-json">GET _tasks/&lt;task id&gt;
+</code></pre>
+<h3 id="step11search">step 11: search!</h3>
+<pre><code class="json language-json">GET /item-nlp/_search
+{
+  "_source": {
+    "excludes": [
+      "text_embedding",
+      "title_embedding"
+    ]
+  },
+  "size": 100,
+  "function_score": {
+    "query": {
+      "hybrid": {
+        "queries": [
+          {
+            "bool": {
+              "should": [
+                {
+                  "neural": {
+                    "title_embedding": {
+                      "query_text": "etf bitcoin",
+                      "model_id": &lt;model id&gt;,
+                      "k": 100
+                    }
+                  }
+                },
+                {
+                  "neural": {
+                    "text_embedding": {
+                      "query_text": "etf bitcoin",
+                      "model_id": &lt;model id&gt;,
+                      "k": 100
+                    }
+                  }
+                }
+              ],
+              "filter": [
+                {
+                  "range": {
+                    "wvotes": {
+                      "gte": 0
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "bool": {
+              "should": [
+                {
+                  "multi_match": {
+                    "query": "etf bitcoin",
+                    "type": "most_fields",
+                    "fields": [
+                      "title^1000",
+                      "text"
+                    ],
+                    "minimum_should_match": "100%",
+                    "boost": 10
+                  }
+                },
+                {
+                  "multi_match": {
+                    "query": "etf bitcoin",
+                    "type": "most_fields",
+                    "fields": [
+                      "title^1000",
+                      "text"
+                    ],
+                    "minimum_should_match": "60%",
+                    "boost": 1
+                  }
+                }
+              ],
+              "filter": [
+                {
+                  "range": {
+                    "wvotes": {
+                      "gte": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "functions": [
+      {
+        "field_value_factor": {
+          "field": "wvotes",
+          "modifier": "none",
+          "factor": 1.2
+        }
+      },
+      {
+        "field_value_factor": {
+          "field": "ncomments",
+          "modifier": "ln1p",
+          "factor": 1
+        }
+      }
+    ]
+  }
+}
+</code></pre>
+</body>

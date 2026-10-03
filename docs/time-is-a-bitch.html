@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOSS Webpage</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
+    <style>
+        :root {
+            --primary: #FADA5E;
+            --secondary: #F6911D;
+            --info: #007cbe;
+            --success: #5c8001;
+            --danger: #c03221;
+            --light: #f8f9fa;
+            --dark: #212529;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+        }
+
+        #navbar {
+            overflow: hidden;
+            background-color: var(--secondary);
+        }
+
+        #navbar a {
+            float: left;
+            display: block;
+            color: var(--light);
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        #navbar a:hover {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        .content {
+            display: none;
+            padding: 20px;
+            border-radius: 0.4rem;
+            margin: 10px;
+            background: var(--light);
+            border: 1px solid var(--dark);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid var(--dark);
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--info);
+        }
+
+        #docLinks a {
+            display: block;
+            margin-top: 5px;
+            color: var(--dark);
+            background-color: var(--success);
+            padding: 10px;
+            border-radius: 0.4rem;
+            text-decoration: none;
+        }
+
+        #docLinks a:hover {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        /* Code block styling */
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        /* Inline code styling */
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            color: #d63384;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+<body>
+<p>We store times in the db as <code>timestamp(3)</code> which implicitly means</p>
+<ul>
+<li>store time without a time zone</li>
+<li>when we store a timestamp, it removes the timezone without any other modification, and we effectively lose it</li>
+<li>when we read a timestamp, it has no timezone</li>
+</ul>
+<p>In prod, and in the sndev env, the db's configured time zone is <code>UTC</code>, i.e. <code>now()</code> is returned in <code>UTC</code> and all times stored in the db are in UTC except any stats which are kept in <code>America/Chicago</code></p>
+<p>In most instances, we interested in relative times (e.g. is this item's time greater than this item) so the timezone is not relevant. However, when we want to do things at exact times in specific time zones it can get complicated.</p>
+<p>We do a lot of things that depend on knowing the time in <code>America/Chicago</code> (ie Austin's time zone), so we regularly need to read and write times from the db taking care of the time zones.</p>
+<ol>
+<li><p>If you want the time of an item in America/Chicago, you'll convert it by doing the following: <code>"Item".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'</code></p>
+<p><code>AT TIME ZONE 'UTC'</code> gives the timestamp its correct time zone. Then <code>AT TIME ZONE 'America/Chicago'</code> converts the time to be in time zone <code>America/Chicago</code></p>
+<p>This is useful if you want to know the day in <code>America/Chicago</code> that <code>"Item".created_at</code> corresponds to, e.g. <code>date_trunc('day', "Item".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')</code></p></li>
+<li><p>All of our materialized views that deal with discrete periods of time (e.g. days, hours) store time as <code>America/Chicago</code>, but without a time zone (heh).</p>
+<p>This means that if you want to see if a row in <code>user_values_days</code> is today in <code>America/Chicago</code>, you'd do the following: <code>date_trunc('day', user_values_days.t) = date_trunc('day', now() AT TIME ZONE 'America/Chicago')</code></p>
+<p>Note: <code>now()</code> returns a timestamp with a time zone, so <code>AT TIME ZONE 'UTC'</code> is not needed</p></li>
+<li><p>When we pass absolute times from the frontend to the backend we use unix timestamps, seconds, or milliseconds, since jan 1 1970 UTC. When we use these for querying materialized views, which store discrete time periods in <code>America/Chicago</code>, they need to be converted to <code>America/Chicago</code> to use them as filters on queries.</p>
+<p>So what we'll usually do is something like <code>user_values_days.t &gt;= date_trunc('day', ${new Date(input)} AT TIME ZONE 'America/Chicago')</code>, which converts the inputted day (which has a time zone) to whichever corresponding day in <code>America/Chicago</code>.</p></li>
+<li><p>Often we want to send <code>America/Chicago</code> dates to the frontend. When we do that, we need to make sure the times passed have a time zone, otherwise the time will be assumed to be <code>UTC</code>.</p>
+<p>For example, if we want to pass an Austin day to the frontend, we'll want to say so like <code>date_trunc('day', user_values.day.t) AT TIME ZONE 'America/Chicago'</code></p></li>
+<li><p>Beware of daylight savings when doing time zone conversions. <code>(now() - interval '1 month') AT TIME ZONE 'America/Chicago' &lt;&gt; now() AT TIME ZONE 'America/Chicago' - interval '1 month'</code> if there was a time change in the last month. If you want one month ago in <code>America/Chicago</code>, you should do <code>now() AT TIME ZONE 'America/Chicago' - interval '1 month'</code></p></li>
+</ol>
+</body>

@@ -252,7 +252,7 @@ function applySecurityHeaders (resp) {
 export async function proxy (req) {
   // Own the external rewrite and its header policy together: no Plausible
   // request may bypass sanitization through a separate next.config rewrite.
-  const destination = PLAUSIBLE_DESTINATIONS[req.nextUrl.pathname.toLowerCase()]
+  const destination = PLAUSIBLE_DESTINATIONS[req.nextUrl.pathname]
   if (destination) {
     const url = new URL(destination)
     url.search = req.nextUrl.search
@@ -305,8 +305,10 @@ export async function proxy (req) {
 
 export const config = {
   matcher: [
-    // Next requires a literal matcher. Tests keep this in sync with lib/plausible.
-    '/([aA][pP][iI]/[eE][vV][eE][nN][tT])',
+    // Next requires literal matchers; imported constants aren't supported.
+    // Keep these in sync with PLAUSIBLE_EVENT_PATH and PLAUSIBLE_SCRIPT_PATH in lib/plausible.
+    '/api/event',
+    '/js/script.js',
     // NextJS recommends to not add the CSP header to prefetches and static assets
     // prefetches are handled separately in the middleware for custom domain rewrites
     // See https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy

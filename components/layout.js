@@ -7,13 +7,14 @@ import Seo, { SeoSearch } from './seo'
 import Search from './search'
 import styles from './layout.module.css'
 import PullToRefresh from './pull-to-refresh'
+import { SearchStateProvider } from './nav/search'
 
 export default function Layout ({
   sub, contain = true, footer = true, footerLinks = true,
   containClassName = '', seo = true, item, user, hideMobileNav = false, children
 }) {
   return (
-    <>
+    <SearchStateProvider>
       {seo && <Seo sub={sub} item={item} user={user} />}
       <Navigation sub={sub} hideMobileNav={hideMobileNav} />
       {contain
@@ -25,7 +26,7 @@ export default function Layout ({
         : children}
       {footer && <Footer links={footerLinks} />}
       {!hideMobileNav && <NavFooter sub={sub} />}
-    </>
+    </SearchStateProvider>
   )
 }
 

@@ -1,13 +1,14 @@
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
 import { searchHref } from '@/lib/search'
 import { MAX_SEARCH_LENGTH } from '@/lib/constants'
 import { useRouter } from 'next/router'
 import styles from './search.module.css'
 import { searchBarClasses } from './bar'
+import { useSearchState } from './state'
 
 export default function Search ({ className }) {
   const router = useRouter()
-  const [query, setQuery] = useState('')
+  const { text: query, setText: setQuery } = useSearchState()
 
   const onSubmit = useCallback((e) => {
     e.preventDefault()
@@ -23,7 +24,6 @@ export default function Search ({ className }) {
         <input name='q' value={query} onChange={(e) => setQuery(e.target.value)} className={styles.input} />
         <button type='submit' className={styles.submit}>Search</button>
       </div>
-
     </form>
   )
 }

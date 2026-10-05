@@ -14,6 +14,7 @@ import { navSubFromPath } from '@/lib/navigation'
 import { useQuery } from '@apollo/client/react'
 import { ACTIVE_SUBS } from '@/fragments/subs'
 import useDesktopSidebar from './use-desktop-sidebar'
+import { SearchStateProvider } from './nav/search'
 
 export default function Layout ({
   sub, contain = true, twoColumns = false, sidebar = null, footer = true, footerLinks = true,
@@ -27,7 +28,7 @@ export default function Layout ({
   const hasSidebar = contain && twoColumns
 
   return (
-    <>
+    <SearchStateProvider>
       {seo && <Seo sub={sub} item={item} user={user} />}
       <Navigation sub={navSub} hideMobileNav={hideMobileNav} containerClassName={widthClassName} />
       {hasSidebar
@@ -52,7 +53,7 @@ export default function Layout ({
           : children}
       {footer && !hasSidebar && <Footer sub={navSub} links={footerLinks} />}
       {!hideMobileNav && <NavFooter sub={navSub} />}
-    </>
+    </SearchStateProvider>
   )
 }
 

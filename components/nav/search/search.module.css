@@ -19,6 +19,14 @@
     outline: 0;
   }
 
+  .divider {
+    background-color: var(--sn-border-color-translucent);
+  }
+
+  .clear {
+    color: var(--sn-grey);
+  }
+
   .submit {
     color: var(--sn-nav-link);
   }

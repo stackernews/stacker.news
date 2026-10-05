@@ -1,0 +1,32 @@
+@layer components {
+
+  .bar {
+    background-color: var(--sn-click-to-context-color);
+    color: var(--sn-body-color);
+    border: 1px solid transparent;
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+  }
+  
+  /* no transition on focus, fade out on blur */
+  .bar:focus-within {
+    background-color: var(--sn-input-bg);
+    border-color: var(--sn-primary);
+    box-shadow: var(--sn-focus-ring);
+    transition: none;
+  }
+  
+  .input {
+    outline: 0;
+  }
+
+  .submit {
+    color: var(--sn-nav-link);
+  }
+  
+  .submit:hover,
+  .submit:active,
+  .bar:focus-within .submit {
+    color: var(--sn-nav-link-active);
+  }
+
+}

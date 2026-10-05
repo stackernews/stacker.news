@@ -1,0 +1,24 @@
+@layer components {
+
+.item {
+  color: var(--sn-body-color);
+  cursor: pointer;
+  outline: 0;
+}
+
+/* hover and keyboard both set data-highlighted, a tap only gets :active */
+.item[data-highlighted],
+.item:active {
+  background-color: var(--sn-toolbar-active);
+}
+
+.tile {
+  border: 1px solid var(--sn-toolbar-active);
+}
+
+.tile[data-highlighted],
+.tile:active {
+  border-color: var(--sn-border-color-translucent);
+}
+
+}

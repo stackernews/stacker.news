@@ -91,7 +91,7 @@ function FwdUsers ({ forwards }) {
   )
 }
 
-function TopLevelItem ({ item, noReply, ...props }) {
+function TopLevelItem ({ item, noReply, tocContainer, ...props }) {
   const { me } = useMe()
   const ItemComponent = item.isJob ? ItemJob : Item
   const { ref: readerRef, onRef: onReaderRef } = useCallbackRef()
@@ -107,7 +107,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
       right={
         !noReply &&
           <>
-            <Toc text={item.text} readerRef={readerRef} />
+            <Toc text={item.text} readerRef={readerRef} container={tocContainer} />
             <Share title={item?.title} path={`/items/${item?.id}`} />
           </>
       }
@@ -166,7 +166,7 @@ function ItemText ({ item, readerRef }) {
     : <Text itemId={item.id} state={item.lexicalState} html={item.html} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} imgproxyUrls={item.imgproxyUrls} readerRef={readerRef} />
 }
 
-export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {
+export default function ItemFull ({ item, fetchMoreComments, bio, rank, tocContainer, ...props }) {
   // no cache update here because we need to preserve the initial value
   const { markItemViewed } = useCommentsView(item.id, { updateCache: false })
 
@@ -189,7 +189,7 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
             : (
               <div className='pt-2'>{bio
                 ? <BioItem item={item} {...props} />
-                : <TopLevelItem item={item} {...props} />}
+                : <TopLevelItem item={item} tocContainer={tocContainer} {...props} />}
               </div>)}
           {item.comments &&
             <div className={styles.comments}>

@@ -23,7 +23,7 @@ export default function Related ({ ssrData }) {
   const { item } = data || ssrData
 
   return (
-    <Layout>
+    <Layout sub={item.subNames?.[0]}>
       <Item item={item} />
       <div className='font-bold mt-2'>related</div>
       <Items

@@ -9,6 +9,7 @@ import Moon from '@/svgs/moon-fill.svg'
 import ClipboardLine from '@/svgs/clipboard-line.svg'
 import styles from './territory-domains.module.css'
 import { useBranding } from './territory-branding'
+import { navKeys } from '@/lib/navigation'
 
 // on a custom domain the URL is already the sub root, so drop the `/~name` prefix
 export function usePrefix (sub) {
@@ -18,13 +19,9 @@ export function usePrefix (sub) {
 }
 
 // path segment offsets shift by one on custom domains (no leading `/~name`)
-export function useNavKeys (path, sub) {
+export function useNavKeys (path) {
   const branding = useBranding()
-  const offset = branding ? 1 : (sub ? 2 : 1)
-  return {
-    topNavKey: path.split('/')[offset] ?? '',
-    dropNavKey: path.split('/').slice(offset).join('/')
-  }
+  return navKeys(path, !!branding)
 }
 
 const getStatusBadge = (type, status) => {

@@ -7,15 +7,23 @@ import Seo, { SeoSearch } from './seo'
 import Search from './search'
 import styles from './layout.module.css'
 import PullToRefresh from './pull-to-refresh'
+import { useRouter } from 'next/router'
+import { navSubFromPath } from '@/lib/navigation'
+import { useQuery } from '@apollo/client/react'
+import { ACTIVE_SUBS } from '@/fragments/subs'
 
 export default function Layout ({
   sub, contain = true, footer = true, footerLinks = true,
   containClassName = '', seo = true, item, user, hideMobileNav = false, children
 }) {
+  const router = useRouter()
+  const { data } = useQuery(ACTIVE_SUBS, { fetchPolicy: 'cache-only' })
+  const navSub = navSubFromPath(router.asPath, sub, data?.activeSubs)
+
   return (
     <>
       {seo && <Seo sub={sub} item={item} user={user} />}
-      <Navigation sub={sub} hideMobileNav={hideMobileNav} />
+      <Navigation sub={navSub} hideMobileNav={hideMobileNav} />
       {contain
         ? (
           <Container as={PullToRefresh} className={`${styles.contain} ${containClassName}`}>
@@ -23,8 +31,8 @@ export default function Layout ({
           </Container>
           )
         : children}
-      {footer && <Footer links={footerLinks} />}
-      {!hideMobileNav && <NavFooter sub={sub} />}
+      {footer && <Footer sub={navSub} links={footerLinks} />}
+      {!hideMobileNav && <NavFooter sub={navSub} />}
     </>
   )
 }

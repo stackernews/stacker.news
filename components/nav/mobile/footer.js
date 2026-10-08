@@ -1,5 +1,6 @@
-import { Navbar } from '@/components/ui/nav'
-import { Brand, NavNotifications, PostItem, SearchItem } from '../common'
+import { Navbar, NavLink } from '@/components/ui/nav'
+import { Brand, NavNotifications, PostItem } from '../common'
+import WalletIcon from '@/svgs/wallet-fill.svg'
 import { useMe } from '../../me'
 import styles from './footer.module.css'
 import classNames from 'classnames'
@@ -33,20 +34,11 @@ export default function BottomBar ({ sub }) {
   const router = useRouter()
   const { me } = useMe()
   const isKeyboardOpen = useDetectKeyboardOpen(200, false)
-  const path = router.asPath.split('?')[0]
   const prefix = usePrefix(sub)
-  const { topNavKey, dropNavKey } = useNavKeys(path, sub)
+  const { dropNavKey } = useNavKeys(router.asPath)
 
   if (isKeyboardOpen) {
     return null
-  }
-
-  const props = {
-    prefix,
-    path,
-    topNavKey,
-    dropNavKey,
-    sub
   }
 
   return (
@@ -56,10 +48,12 @@ export default function BottomBar ({ sub }) {
         <Navbar className='w-full px-safe'>
           <div className={styles.footerNav}>
             <Brand />
-            <SearchItem />
-            <PostItem {...props} size='sm' />
+            <NavLink href='/wallets' eventKey='wallets' aria-label='wallets'>
+              <WalletIcon width={22} height={28} aria-hidden />
+            </NavLink>
+            <PostItem prefix={prefix} size='sm' />
             <NavNotifications />
-            <Offcanvas me={me} {...props} />
+            <Offcanvas me={me} dropNavKey={dropNavKey} />
           </div>
         </Navbar>
       </div>

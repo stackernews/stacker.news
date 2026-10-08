@@ -1,17 +1,11 @@
 import { Menu as BaseMenu } from '@base-ui/react/menu'
-import { createContext, useContext, useEffect, useMemo, useRef } from 'react'
+import { createContext, useContext } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/cn'
 import motionStyles from './popup-motion.module.css'
 import styles from './menu.module.css'
 
 const InMenuContext = createContext(false)
-const MenuContext = createContext({ visible: true })
-
-export function MenuProvider ({ container, visible = true, children }) {
-  const value = useMemo(() => ({ container, visible }), [container, visible])
-  return <MenuContext.Provider value={value}>{children}</MenuContext.Provider>
-}
 
 // also used by the mentions and suggest listboxes
 export const menuClasses = ({ className } = {}) =>
@@ -40,30 +34,19 @@ export function itemClasses ({ active, variant, className } = {}) {
   )
 }
 
-export function Menu ({ className, children, actionsRef: actionsRefProp, ...props }) {
-  const { visible } = useContext(MenuContext)
-  const localActionsRef = useRef(null)
-  const actionsRef = actionsRefProp ?? localActionsRef
-
-  // close menus when the other navbar takes over
-  useEffect(() => {
-    if (!visible) actionsRef.current?.close()
-  }, [visible, actionsRef])
-
+export function Menu ({ className, children, ...props }) {
   return (
     <span className={className}>
-      <BaseMenu.Root modal={false} actionsRef={actionsRef} {...props}>{children}</BaseMenu.Root>
+      <BaseMenu.Root modal={false} {...props}>{children}</BaseMenu.Root>
     </span>
   )
 }
 
-export function MenuPopup ({ side = 'bottom', align = 'start', sideOffset = 2, className, children, finalFocus, ...props }) {
-  const { container, visible } = useContext(MenuContext)
+export function MenuPopup ({ side = 'bottom', align = 'start', sideOffset = 2, className, children, ...props }) {
   return (
-    <BaseMenu.Portal container={container}>
+    <BaseMenu.Portal>
       <BaseMenu.Positioner side={side} align={align} sideOffset={sideOffset} className={styles.positioner}>
-        {/* don't return focus to a hidden or offscreen navbar */}
-        <BaseMenu.Popup className={menuClasses({ className })} finalFocus={visible ? finalFocus : false} {...props}>
+        <BaseMenu.Popup className={menuClasses({ className })} {...props}>
           <InMenuContext.Provider value>{children}</InMenuContext.Provider>
         </BaseMenu.Popup>
       </BaseMenu.Positioner>

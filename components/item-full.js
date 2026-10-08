@@ -141,19 +141,9 @@ function TopLevelItem ({ item, noReply, tocContainer, ...props }) {
             onQuoteReply={quoteReply}
             quote={quote}
           />
-          {
-          // Don't show related items for Saloon items (position is set but no subName)
-          (!item.position && item.subNames?.length > 0) &&
-          // Don't show related items for jobs
-          !item.isJob &&
-          // Don't show related items for child items
-          !item.parentId &&
-          // Don't show related items for deleted items
-          !item.deletedAt &&
-          // Don't show related items for items with bounties, show past bounties instead
-          !(item.bounty > 0) &&
-            <Related title={item.title} itemId={item.id} show={item.ncomments === 0} />
-          }
+          <div className='md:hidden'>
+            <Related item={item} show={item.ncomments === 0} />
+          </div>
           {item.bounty > 0 && <PastBounties item={item} />}
         </>}
     </ItemComponent>

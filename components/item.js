@@ -85,7 +85,7 @@ function ItemLink ({ url, rel }) {
 }
 
 export default function Item ({
-  item, rank, belowTitle, right, full, children, itemClassName,
+  item, rank, belowTitle, right, full, compact = false, children, itemClassName,
   onQuoteReply, pinnable, ...props
 }) {
   const titleRef = useRef()
@@ -103,13 +103,13 @@ export default function Item ({
           </div>)
         : <div />}
       <div className={classNames(styles.item, itemClassName)}>
-        {item.position && (pinnable || !item.subNames)
+        {!compact && (item.position && (pinnable || !item.subNames)
           ? <Pin width={24} height={24} className={styles.pin} />
           : item.mine || item.meForward
             ? <Boost item={item} className={classNames(styles.upvote, item.bio && 'invisible')} />
             : item.meDontLikeSats > item.meSats
               ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
-              : <UpVote item={item} className={styles.upvote} />}
+              : <UpVote item={item} className={styles.upvote} />)}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
             <Link
@@ -131,12 +131,22 @@ export default function Item ({
             </Link>
             {item.url && !media && <ItemLink url={item.url} rel={item.rel} />}
           </div>
-          <ItemInfo
-            full={full} item={item}
-            onQuoteReply={onQuoteReply}
-            pinnable={pinnable}
-            {...props}
-          />
+          {compact
+            ? (
+              <div className={styles.other}>
+                {numWithUnits(item.sats + item.boost + item.cost)}
+                <span> \ </span>
+                <Link href={`/${item.user.name}`}>@{item.user.name}</Link>
+              </div>
+              )
+            : (
+              <ItemInfo
+                full={full} item={item}
+                onQuoteReply={onQuoteReply}
+                pinnable={pinnable}
+                {...props}
+              />
+              )}
           {belowTitle}
           {item.searchText && (
             <div className={styles.searchSnippet}>
@@ -195,7 +205,7 @@ export function ItemSummary ({ item }) {
   )
 }
 
-export function ItemSkeleton ({ rank, children, showUpvote = true }) {
+export function ItemSkeleton ({ rank, children, compact = false, showUpvote = true }) {
   return (
     <>
       {rank
@@ -207,15 +217,19 @@ export function ItemSkeleton ({ rank, children, showUpvote = true }) {
       <div className={`${styles.item} ${styles.skeleton}`}>
         {showUpvote && <UpVote className={styles.upvote} />}
         <div className={styles.hunk}>
-          <div className={classNames(styles.main, 'flex-wrap md:flex-nowrap')}>
-            <span className={classNames(styles.title, 'clouds md:flex-auto md:shrink-0 me-2')} />
+          <div className={classNames(styles.main, 'flex-wrap', !compact && 'md:flex-nowrap')}>
+            <span className={classNames(styles.title, 'clouds md:flex-auto md:min-w-0 me-2')} />
             <span className={`${styles.link} clouds`} />
           </div>
           <div className={styles.other}>
             <span className={`${styles.otherItem} clouds`} />
-            <span className={`${styles.otherItem} clouds`} />
-            <span className={`${styles.otherItem} ${styles.otherItemLonger} clouds`} />
-            <span className={`${styles.otherItem} ${styles.otherItemLonger} clouds`} />
+            <span className={classNames(styles.otherItem, compact && styles.otherItemLonger, 'clouds')} />
+            {!compact && (
+              <>
+                <span className={`${styles.otherItem} ${styles.otherItemLonger} clouds`} />
+                <span className={`${styles.otherItem} ${styles.otherItemLonger} clouds`} />
+              </>
+            )}
           </div>
         </div>
       </div>

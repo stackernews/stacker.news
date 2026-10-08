@@ -13,7 +13,7 @@ import { useData } from './use-data'
 const DEFAULT_FILTER = () => true
 const DEFAULT_VARIABLES = {}
 
-export default function Items ({ ssrData, variables = DEFAULT_VARIABLES, query, destructureData, rank, noMoreText, Footer, Header, filter = DEFAULT_FILTER }) {
+export default function Items ({ ssrData, variables = DEFAULT_VARIABLES, query, destructureData, rank, compact = false, noMoreText, Footer, Header, filter = DEFAULT_FILTER }) {
   const { data, fetchMore } = useQuery(query || SUB_ITEMS, { variables })
   const Foooter = Footer || MoreFooter
   const dat = useData(data, ssrData)
@@ -44,7 +44,7 @@ export default function Items ({ ssrData, variables = DEFAULT_VARIABLES, query, 
   }, [pins, items])
 
   const Skeleton = useCallback(() =>
-    <ItemsSkeleton rank={rank} startRank={items?.length} limit={variables.limit} Footer={Foooter} />, [rank, items])
+    <ItemsSkeleton rank={rank} compact={compact} startRank={items?.length} limit={variables.limit} Footer={Foooter} />, [rank, compact, items])
 
   if (!dat) {
     return <Skeleton />
@@ -57,7 +57,7 @@ export default function Items ({ ssrData, variables = DEFAULT_VARIABLES, query, 
       {Header && <Header data={destructured} />}
       <div className={styles.grid}>
         {itemsWithPins.filter(filter).map((item, i) => (
-          <ListItem key={`${item.id}-${i + 1}`} item={item} rank={rank && i + 1} itemClassName={variables.includeComments ? 'py-2' : ''} pinnable={isHome ? false : pins?.length > 0} />
+          <ListItem key={`${item.id}-${i + 1}`} item={item} compact={compact} rank={rank && i + 1} itemClassName={variables.includeComments ? 'py-2' : ''} pinnable={isHome ? false : pins?.length > 0} />
         ))}
       </div>
       <Foooter
@@ -69,24 +69,24 @@ export default function Items ({ ssrData, variables = DEFAULT_VARIABLES, query, 
   )
 }
 
-export function ListItem ({ item, ...props }) {
+export function ListItem ({ item, compact, ...props }) {
   return (
     item.parentId
       ? <CommentFlat item={item} noReply includeParent search {...props} />
-      : (item.isJob
+      : (item.isJob && !compact
           ? <ItemJob item={item} />
-          : <Item item={item} {...props} />)
+          : <Item item={item} compact={compact} {...props} />)
   )
 }
 
-export function ItemsSkeleton ({ rank, startRank = 0, limit = LIMIT, Footer }) {
+export function ItemsSkeleton ({ rank, compact, startRank = 0, limit = LIMIT, Footer }) {
   const items = new Array(limit).fill(null)
 
   return (
     <>
       <div className={styles.grid}>
         {items.map((_, i) => (
-          <ItemSkeleton rank={rank && i + startRank + 1} key={i + startRank} />
+          <ItemSkeleton rank={rank && i + startRank + 1} compact={compact} showUpvote={!compact} key={i + startRank} />
         ))}
       </div>
       <Footer invisible cursor />

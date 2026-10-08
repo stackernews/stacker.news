@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
 import { MenuItem, MenuSeparator } from '@/components/ui/menu'
 import Badge from '@/components/ui/badge'
-import Button, { buttonClasses } from '@/components/ui/button'
+import { buttonClasses } from '@/components/ui/button'
 import { AccordionCard } from './accordion-item'
 import TerritoryPaymentDue, { TerritoryBillingLine } from './territory-payment-due'
 import Link from 'next/link'
@@ -34,8 +34,8 @@ export function TerritoryDetails ({ sub, children, className, show, truncated })
       className={className}
       show={show}
       header={
-        <small className='text-muted font-bold items-center flex'>
-          {sub.name}
+        <small className='text-muted font-bold items-center flex min-w-0 flex-wrap gap-y-1'>
+          <span className='min-w-0 wrap-break-word'>{sub.name}</span>
           {sub.status === 'STOPPED' && <Badge variant='danger' className='ms-2'>archived</Badge>}
           {(sub.nsfw) && <Badge variant='secondary' className='ms-2'>nsfw</Badge>}
         </small>
@@ -75,7 +75,7 @@ export function TerritoryInfo ({ sub, includeLink, truncated }) {
             <span> on </span>
             <span className='font-bold' suppressHydrationWarning>{new Date(sub.createdAt).toDateString()}</span>
           </div>}
-        <div className='flex'>
+        <div className='flex flex-wrap'>
           <div className='text-muted'>
             <span>post cost </span>
             <span className='font-bold'>{numWithUnits(sub.baseCost)}</span>
@@ -93,26 +93,9 @@ export function TerritoryInfo ({ sub, includeLink, truncated }) {
   )
 }
 
-export default function TerritoryHeader ({ sub }) {
+export default function TerritoryHeader ({ sub, show = false }) {
   const { me } = useMe()
-  const toaster = useToast()
   const prefix = usePrefix(sub.name)
-
-  const [toggleMuteSub] = useMutation(
-    gql`
-      mutation toggleMuteSub($name: String!) {
-        toggleMuteSub(name: $name)
-      }`, {
-      update (cache, { data: { toggleMuteSub } }) {
-        cache.modify({
-          id: `Sub:{"name":"${sub.name}"}`,
-          fields: {
-            meMuteSub: () => toggleMuteSub
-          }
-        })
-      }
-    }
-  )
 
   const isMine = Number(sub.userId) === Number(me?.id)
 
@@ -121,36 +104,24 @@ export default function TerritoryHeader ({ sub }) {
       <TerritoryPaymentDue sub={sub} />
       <div className='mb-2 mt-1'>
         <div>
-          <TerritoryDetails sub={sub}>
-            <div className='flex my-2 justify-end'>
-              {sub.name}
+          <TerritoryDetails sub={sub} show={show}>
+            <div className='flex flex-wrap items-center gap-y-2 my-2 justify-end'>
+              <span className='min-w-0 wrap-break-word'>{sub.name}</span>
               <Share path={`${prefix}/`} title={`~${sub.name} stacker news territory`} className='mx-1' />
               {me &&
                 <>
-                  {(isMine
-                    ? (
-                      <Link href={`${prefix}/edit`} className={buttonClasses({ variant: 'outline-grey', size: 'sm', className: 'flex items-center border-2 rounded-md py-0' })}>
-                        edit territory
-                      </Link>)
-                    : (
-                      <Button
-                        variant='outline-grey'
-                        className='border-2 rounded-md py-0'
-                        size='sm'
-                        onClick={async () => {
-                          try {
-                            await toggleMuteSub({ variables: { name: sub.name } })
-                          } catch {
-                            toaster.danger(`failed to ${sub.meMuteSub ? 'join' : 'mute'} territory`)
-                            return
-                          }
-                          toaster.success(`${sub.meMuteSub ? 'joined' : 'muted'} territory`)
-                        }}
-                      >{sub.meMuteSub ? 'join' : 'mute'} territory
-                      </Button>)
-              )}
+                  {isMine && (
+                    <Link href={`${prefix}/edit`} className={buttonClasses({ variant: 'outline-grey', size: 'sm', className: 'flex items-center border-2 rounded-md py-0' })}>
+                      edit territory
+                    </Link>
+                  )}
                   <ActionDropdown>
                     <ToggleSubSubscriptionDropdownItem sub={sub} />
+                    {!isMine && (
+                      <MuteSubDropdownItem sub={sub}>
+                        {sub.meMuteSub ? 'join' : 'mute'} territory
+                      </MuteSubDropdownItem>
+                    )}
                     {isMine && (
                       <>
                         <MenuSeparator />
@@ -167,7 +138,7 @@ export default function TerritoryHeader ({ sub }) {
   )
 }
 
-export function MuteSubDropdownItem ({ item, sub }) {
+export function MuteSubDropdownItem ({ sub, children }) {
   const toaster = useToast()
   const { refetchQueries } = useSubscribeTerritoryContext()
 
@@ -200,7 +171,8 @@ export function MuteSubDropdownItem ({ item, sub }) {
         }
         toaster.success(`${sub.meMuteSub ? 'joined' : 'muted'} territory`)
       }}
-    >{sub.meMuteSub ? 'unmute' : 'mute'} ~{sub.name}
+    >
+      {children ?? `${sub.meMuteSub ? 'unmute' : 'mute'} ~${sub.name}`}
     </MenuItem>
   )
 }

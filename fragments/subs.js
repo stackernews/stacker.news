@@ -163,6 +163,20 @@ export const SUB_SUGGESTIONS = gql`
   }
 `
 
+export const TOP_TERRITORIES = gql`
+  query TopTerritories {
+    topSubs(when: "day", by: "stacked", limit: null) {
+      subs {
+        name
+        nsfw
+        optional {
+          stacked(when: "day")
+        }
+      }
+    }
+  }
+`
+
 export const TOP_SUBS = gql`
   ${SUB_FULL_FIELDS}
   query TopSubs($cursor: String, $when: String, $from: String, $to: String, $by: String, ) {

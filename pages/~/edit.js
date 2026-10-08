@@ -6,6 +6,7 @@ import PageLoading from '@/components/page-loading'
 import { useQuery } from '@apollo/client/react'
 import { useRouter } from 'next/router'
 import TerritoryPaymentDue from '@/components/territory-payment-due'
+import Custom404 from '../404'
 
 // SUB_EDIT bundles SubFields + owner-only domain (records/attempts) and branding (theme/seo)
 export const getServerSideProps = getGetServerSideProps({
@@ -20,6 +21,7 @@ export default function TerritoryPage ({ ssrData }) {
   if (!data && !ssrData) return <PageLoading />
 
   const { sub } = data || ssrData
+  if (!sub) return <Custom404 />
 
   return (
     <CenterLayout sub={sub?.name}>

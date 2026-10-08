@@ -70,6 +70,8 @@ const getAllowedDevOrigins = () => {
   return devOrigins
 }
 
+const integrateAgentTools = (!isProd && process.env.NEXT_FEAT_AGENTS === '1')
+
 module.exports = {
   allowedDevOrigins: getAllowedDevOrigins(),
   env: {
@@ -89,8 +91,11 @@ module.exports = {
   compress: false,
   experimental: {
     scrollRestoration: true,
-    serverSourceMaps: true
+    serverSourceMaps: true,
+    mcpServer: integrateAgentTools,
+    agentUpgrade: integrateAgentTools ? 'security' : false
   },
+  agentRules: integrateAgentTools,
   // suppress deprecation warnings of bootstrap sass
   // https://github.com/twbs/bootstrap/issues/40962
   sassOptions: {

@@ -32,4 +32,51 @@
 .content form {
     width: 100%;
 }
+
+.columns {
+    timeline-scope: --page-footer;
+}
+
+.sidebarColumn {
+    anchor-name: --page-sidebar;
+}
+
+.footer {
+    anchor-name: --page-footer;
+    view-timeline: --page-footer block;
+    view-timeline-inset: 0;
+}
+
+.sidebar {
+    --sidebar-top: calc(var(--sn-header-height) + 1px);
+    scrollbar-gutter: stable;
+    /* Match the main column's 2rem bottom spacing. */
+    max-height: calc(100dvh - var(--sidebar-top) - 2rem);
+}
+
+/* Older browsers keep the sidebar in normal flow. */
+@supports (height: anchor-size(height)) {
+    .sidebar {
+        position: fixed;
+        position-anchor: --page-sidebar;
+        top: var(--sidebar-top);
+        left: anchor(left);
+        width: anchor-size(width);
+        max-height: calc(100dvh - var(--sidebar-top) - 2rem - anchor-size(--page-footer height, 0px));
+    }
+
+    /* Reserve space only as the footer enters the viewport. */
+    @supports (animation-range: entry 0px entry 100px) {
+        .sidebar {
+            animation: sidebarHeight linear both;
+            animation-timeline: --page-footer;
+            animation-range: entry 0px entry calc(100dvh - var(--sidebar-top) - 2rem);
+        }
+    }
+}
+
+@keyframes sidebarHeight {
+    from { max-height: calc(100dvh - var(--sidebar-top) - 2rem); }
+    to { max-height: 0px; }
+}
 }

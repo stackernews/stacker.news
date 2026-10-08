@@ -153,7 +153,7 @@ function LegalPopover () {
   )
 }
 
-export default function Footer ({ sub, links = true }) {
+export default function Footer ({ sub, links = true, className, containerClassName }) {
   const branding = useBranding()
   const [darkMode, darkModeToggle] = useDarkMode()
 
@@ -168,8 +168,8 @@ export default function Footer ({ sub, links = true }) {
   const version = process.env.NEXT_PUBLIC_COMMIT_HASH
 
   return (
-    <footer>
-      <Container className='mb-4'>
+    <footer className={className}>
+      <Container className={cn('mb-4', containerClassName)}>
         {links &&
           <>
             <div className='mb-1 flex items-center gap-2 justify-center'>

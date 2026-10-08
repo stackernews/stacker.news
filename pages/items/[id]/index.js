@@ -1,6 +1,7 @@
 import Layout from '@/components/layout'
 import { ITEM_FULL } from '@/fragments/items'
 import ItemFull from '@/components/item-full'
+import Related from '@/components/related'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { useQuery } from '@apollo/client/react'
 import { useRouter } from 'next/router'
@@ -34,6 +35,7 @@ export default function Item ({ ssrData }) {
         sidebar={
           <div className='flex flex-col gap-4'>
             {!item.parentId && <div ref={setTocContainer} className='empty:hidden' />}
+            <Related item={item} compact show />
           </div>
         }
       >

@@ -3,8 +3,9 @@ import styles from './comment.module.css'
 import { navLinkClasses } from '@/components/ui/nav'
 import LongPressable from './long-pressable'
 import { useFavicon } from './favicon'
+import { cn } from '@/lib/cn'
 
-const CommentsNavigatorContext = createContext({
+const emptyNavigator = {
   navigator: {
     trackNewComment: () => {},
     untrackNewComment: () => {},
@@ -12,10 +13,12 @@ const CommentsNavigatorContext = createContext({
     clearCommentRefs: () => {}
   },
   commentCount: 0
-})
+}
+const CommentsNavigatorContext = createContext(null)
 
 export function CommentsNavigatorProvider ({ children }) {
   const value = useCommentsNavigator()
+
   return (
     <CommentsNavigatorContext.Provider value={value}>
       {children}
@@ -24,7 +27,7 @@ export function CommentsNavigatorProvider ({ children }) {
 }
 
 export function useCommentsNavigatorContext () {
-  return useContext(CommentsNavigatorContext)
+  return useContext(CommentsNavigatorContext) || emptyNavigator
 }
 
 export function useCommentsNavigator () {
@@ -172,38 +175,45 @@ export function useCommentsNavigator () {
   return { navigator: navigatorRef.current, commentCount }
 }
 
-export function CommentsNavigator ({ navigator, commentCount, className }) {
+export function CommentsNavigator () {
+  const context = useContext(CommentsNavigatorContext)
+  const { navigator, commentCount } = context || emptyNavigator
   const { scrollToComment, clearCommentRefs } = navigator
-
-  const onNext = useCallback((e) => {
-    // ignore if there are no new comments or if we're focused on a textarea or input
-    if (!commentCount || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') return
-    // arrow right key scrolls to the next new comment
-    if (e.key === 'ArrowRight' && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-      e.preventDefault()
-      scrollToComment()
-    }
-    // escape key clears the new comments navigator
-    if (e.key === 'Escape') clearCommentRefs()
-  }, [commentCount, scrollToComment, clearCommentRefs])
+  const hasNew = commentCount > 0
 
   useEffect(() => {
-    if (!commentCount) return
+    if (!hasNew) return
+
+    const onNext = (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable) return
+      if (e.key === 'ArrowRight' && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+        e.preventDefault()
+        scrollToComment()
+      }
+      if (e.key === 'Escape') clearCommentRefs()
+    }
+
     document.addEventListener('keydown', onNext)
     return () => document.removeEventListener('keydown', onNext)
-  }, [onNext])
+  }, [hasNew, scrollToComment, clearCommentRefs])
+
+  if (!context) return null
 
   return (
-    <LongPressable onShortPress={scrollToComment} onLongPress={clearCommentRefs}>
-      <aside
-        className={navLinkClasses({ className: `${styles.commentNavigator} font-bold ${className}` })}
-        style={{ visibility: commentCount ? 'visible' : 'hidden' }}
-      >
-        <span aria-label='next comment' className={styles.navigatorButton}>
-          <div className={styles.newCommentDot} />
-        </span>
-        <span className=''>{commentCount}</span>
-      </aside>
-    </LongPressable>
+    <div className={cn('w-14 shrink-0', !commentCount && 'invisible')}>
+      <LongPressable onShortPress={scrollToComment} onLongPress={clearCommentRefs}>
+        <button
+          type='button'
+          disabled={!commentCount}
+          aria-label={`next comment (${commentCount} unread)`}
+          title={`${commentCount} unread comments`}
+          onClick={e => { if (e.detail === 0) scrollToComment() }}
+          className={navLinkClasses({ className: `${styles.commentNavigator} w-full px-1 font-bold` })}
+        >
+          <span className={`${styles.newCommentDot} shrink-0`} />
+          <span aria-hidden>{commentCount > 99 ? '99+' : commentCount}</span>
+        </button>
+      </LongPressable>
+    </div>
   )
 }

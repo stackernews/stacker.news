@@ -2,11 +2,12 @@
    element defaults live in base.css */
 
 html {
-  scroll-padding-top: 60px;
+  --sn-header-height: calc(39px + 1rem);
+  scroll-padding-top: calc(var(--sn-header-height) + 5px);
   /* editor needs more padding to keep its toolbar visible when focused */
 }
 html:has([data-sn-editor]:focus) {
-  scroll-padding-top: 90px;
+  scroll-padding-top: calc(var(--sn-header-height) + 35px);
 }
 
 #nprogress .bar {

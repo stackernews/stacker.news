@@ -82,9 +82,8 @@ the component you're working on.
 
 ## Popups
 
-Popups render into `body` through portals by default. Menus can use a container
-from `MenuProvider`; sticky-bar menus use the bar so they follow its position and
-visibility.
+Popups, including navigation menus, render into `body` through portals. Base UI
+positions each popup relative to its trigger.
 
 Modules define appearance and transitions. Base UI handles focus, dismissal,
 keyboard navigation, and delayed unmounting where supported. Menu, popover, and

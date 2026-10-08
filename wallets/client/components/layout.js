@@ -1,6 +1,5 @@
 import Layout from '@/components/layout'
-import { Back, Brand, NavNotifications, NavPrice } from '@/components/nav/common'
-import { PriceCarouselProvider } from '@/components/nav/price-carousel'
+import { Back, Brand, NavNotifications } from '@/components/nav/common'
 import { walletGuideUrl } from '@/wallets/lib/util'
 import { WalletLogo } from './wallet-logo'
 import Link from 'next/link'
@@ -28,18 +27,13 @@ export function WalletShell ({ children, mobileHeader, noSidebar, mobileTopBar =
 
 function WalletMobileTopBar () {
   return (
-    <PriceCarouselProvider>
-      <div className={styles.walletMobileTopBar}>
-        <div className='inline-flex items-center w-fit'>
-          <Back />
-          <Brand />
-        </div>
-        <NavPrice className='justify-self-center' />
-        <div className={classNames(styles.walletMobileAccount, 'flex items-center justify-end gap-2')}>
-          <NavNotifications className='flex items-center justify-end p-0' />
-        </div>
+    <div className={styles.walletMobileTopBar}>
+      <div className='inline-flex items-center w-fit'>
+        <Back />
+        <Brand />
       </div>
-    </PriceCarouselProvider>
+      <NavNotifications className='flex items-center justify-end p-0' />
+    </div>
   )
 }
 

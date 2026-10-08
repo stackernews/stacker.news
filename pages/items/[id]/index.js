@@ -27,7 +27,7 @@ export default function Item ({ ssrData }) {
 
   return (
     <CommentsNavigatorProvider key={item.id}>
-      <Layout sub={sub} item={item}>
+      <Layout sub={sub} item={item} twoColumns>
         <ItemFull item={item} fetchMoreComments={fetchMoreComments} />
       </Layout>
     </CommentsNavigatorProvider>

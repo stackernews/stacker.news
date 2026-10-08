@@ -23,7 +23,7 @@ export default function Index ({ ssrData }) {
   const sub = ssrData?.sub?.name || variables.sub
 
   return (
-    <Layout sub={sub}>
+    <Layout sub={sub} twoColumns>
       <TopHeader sub={variables.sub} cat={variables.type} />
       <Items
         ssrData={ssrData}

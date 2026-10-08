@@ -12,7 +12,10 @@ export default function FeedSidebar ({ sub }) {
 }
 
 function TopTerritories () {
-  const { data, error } = useQuery(TOP_TERRITORIES)
+  const { data, error } = useQuery(TOP_TERRITORIES, {
+    fetchPolicy: 'cache-and-network',
+    nextFetchPolicy: 'cache-first'
+  })
   const { me } = useMe()
   const branding = useBranding()
   const prefix = branding ? process.env.NEXT_PUBLIC_URL : ''

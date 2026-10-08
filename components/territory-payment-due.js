@@ -5,8 +5,6 @@ import { TERRITORY_BILLING_OPTIONS } from '@/lib/constants'
 import { Form } from './form'
 import { timeSince } from '@/lib/time'
 import { LongCountdown } from './countdown'
-import { useCallback } from 'react'
-import { useApolloClient } from '@apollo/client/react'
 import { nextBillingWithGrace } from '@/lib/territory'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { throwUnlessUserCancel } from '@/wallets/client/errors'
@@ -14,19 +12,18 @@ import { SUB_PAY } from '@/fragments/payIn'
 
 export default function TerritoryPaymentDue ({ sub }) {
   const { me } = useMe()
-  const client = useApolloClient()
   const [paySub] = usePayInMutation(SUB_PAY)
 
-  const onSubmit = useCallback(async ({ ...variables }) => {
+  const onSubmit = async (variables) => {
     const { error, payError } = await paySub({
-      variables
+      variables: { ...variables, name: sub.name }
     })
 
     if (error) throw error
     // territory billing is pessimistic, so a terminal payment failure comes back in payError —
     // but a user-canceled QR isn't news
     throwUnlessUserCancel(payError)
-  }, [client, paySub])
+  }
 
   if (!sub || sub.userId !== Number(me?.id) || sub.status === 'ACTIVE') return null
 

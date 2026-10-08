@@ -15,11 +15,15 @@ export const getServerSideProps = getGetServerSideProps({
   notFound: (data, vars) => vars.sub && !data.sub
 })
 
+function MobileTerritoryHeader ({ sub }) {
+  const desktopSidebar = useDesktopSidebar()
+  return !desktopSidebar && <div className='md:hidden'><TerritoryHeader key={sub.name} sub={sub} /></div>
+}
+
 export default function Sub ({ ssrData }) {
   const router = useRouter()
   const variables = { ...router.query }
   const { data } = useQuery(SUB_FULL, { variables })
-  const desktopSidebar = useDesktopSidebar()
 
   if (!data && !ssrData) return <PageLoading />
   const { sub } = data || ssrData
@@ -27,7 +31,7 @@ export default function Sub ({ ssrData }) {
   return (
     <Layout sub={sub?.name} twoColumns sidebar={<FeedSidebar sub={sub} />}>
       {sub
-        ? !desktopSidebar && <div className='md:hidden'><TerritoryHeader key={sub.name} sub={sub} /></div>
+        ? <MobileTerritoryHeader sub={sub} />
         : (
           <>
             <Snl />

@@ -5,6 +5,9 @@ import { getGetServerSideProps } from '@/api/ssrApollo'
 import TopHeader from '@/components/top-header'
 import { SUB_ITEMS } from '@/fragments/subs'
 import { COMMENT_TYPE_QUERY } from '@/lib/constants'
+import { useQuery } from '@apollo/client/react'
+import PageLoading from '@/components/page-loading'
+import FeedSidebar from '@/components/feed-sidebar'
 
 const staticVariables = { sort: 'top' }
 const variablesFunc = vars => {
@@ -19,11 +22,13 @@ export const getServerSideProps = getGetServerSideProps({
 export default function Index ({ ssrData }) {
   const router = useRouter()
   const variables = variablesFunc(router.query)
+  const { data } = useQuery(SUB_ITEMS, { variables })
 
-  const sub = ssrData?.sub?.name || variables.sub
+  if (!data && !ssrData) return <PageLoading />
+  const { sub } = data || ssrData
 
   return (
-    <Layout sub={sub} twoColumns>
+    <Layout sub={sub?.name || variables.sub} twoColumns sidebar={<FeedSidebar sub={sub} />}>
       <TopHeader sub={variables.sub} cat={variables.type} />
       <Items
         ssrData={ssrData}

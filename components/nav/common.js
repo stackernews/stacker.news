@@ -90,7 +90,7 @@ export function NavSelect ({ sub: subName, className }) {
     <NavItem className={className}>
       <SubSelect
         sub={sub} prependSubs={PREPEND_SUBS} appendSubs={APPEND_SUBS}
-        id='nav-sub' aria-label='territory' title={sub} onChange={onChange}
+        id='nav-sub' aria-label='switch territory' title={sub} onChange={onChange}
         groupClassName='mb-0 min-w-0' className='min-w-0 w-full md:h-8'
       />
     </NavItem>

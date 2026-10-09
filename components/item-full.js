@@ -91,7 +91,7 @@ function FwdUsers ({ forwards }) {
   )
 }
 
-function TopLevelItem ({ item, noReply, ...props }) {
+function TopLevelItem ({ item, noReply, tocContainerRef, ...props }) {
   const { me } = useMe()
   const ItemComponent = item.isJob ? ItemJob : Item
   const { ref: readerRef, onRef: onReaderRef } = useCallbackRef()
@@ -107,7 +107,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
       right={
         !noReply &&
           <>
-            <Toc text={item.text} readerRef={readerRef} />
+            <Toc text={item.text} readerRef={readerRef} containerRef={tocContainerRef} />
             <Share title={item?.title} path={`/items/${item?.id}`} />
           </>
       }
@@ -141,19 +141,9 @@ function TopLevelItem ({ item, noReply, ...props }) {
             onQuoteReply={quoteReply}
             quote={quote}
           />
-          {
-          // Don't show related items for Saloon items (position is set but no subName)
-          (!item.position && item.subNames?.length > 0) &&
-          // Don't show related items for jobs
-          !item.isJob &&
-          // Don't show related items for child items
-          !item.parentId &&
-          // Don't show related items for deleted items
-          !item.deletedAt &&
-          // Don't show related items for items with bounties, show past bounties instead
-          !(item.bounty > 0) &&
-            <Related title={item.title} itemId={item.id} show={item.ncomments === 0} />
-          }
+          <div className='md:hidden'>
+            <Related item={item} show={item.ncomments === 0} />
+          </div>
           {item.bounty > 0 && <PastBounties item={item} />}
         </>}
     </ItemComponent>
@@ -166,7 +156,7 @@ function ItemText ({ item, readerRef }) {
     : <Text itemId={item.id} state={item.lexicalState} html={item.html} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} imgproxyUrls={item.imgproxyUrls} readerRef={readerRef} />
 }
 
-export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {
+export default function ItemFull ({ item, fetchMoreComments, bio, rank, tocContainerRef, ...props }) {
   // no cache update here because we need to preserve the initial value
   const { markItemViewed } = useCommentsView(item.id, { updateCache: false })
 
@@ -189,7 +179,7 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
             : (
               <div className='pt-2'>{bio
                 ? <BioItem item={item} {...props} />
-                : <TopLevelItem item={item} {...props} />}
+                : <TopLevelItem item={item} tocContainerRef={tocContainerRef} {...props} />}
               </div>)}
           {item.comments &&
             <div className={styles.comments}>

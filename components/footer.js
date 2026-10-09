@@ -20,6 +20,7 @@ import useDarkMode from './dark-mode'
 import ActionTooltip from './action-tooltip'
 import { useAnimationEnabled } from '@/components/animation'
 import { useLiveCommentsToggle } from './use-live-comments'
+import { useBranding } from './territory-branding'
 
 const linkClasses = navLinkClasses({ className: 'p-0 inline-flex' })
 
@@ -152,7 +153,8 @@ function LegalPopover () {
   )
 }
 
-export default function Footer ({ links = true }) {
+export default function Footer ({ sub, links = true, className, containerClassName }) {
+  const branding = useBranding()
   const [darkMode, darkModeToggle] = useDarkMode()
 
   const [animationEnabled, toggleAnimation] = useAnimationEnabled()
@@ -166,8 +168,8 @@ export default function Footer ({ links = true }) {
   const version = process.env.NEXT_PUBLIC_COMMIT_HASH
 
   return (
-    <footer>
-      <Container className='mb-4'>
+    <footer className={className}>
+      <Container className={cn('mb-4', containerClassName)}>
         {links &&
           <>
             <div className='mb-1 flex items-center gap-2 justify-center'>
@@ -185,7 +187,7 @@ export default function Footer ({ links = true }) {
               <Rewards className={linkClasses} />
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
-              <Link href='/stackers/all/day' className={linkClasses}>
+              <Link href={`/stackers/${branding?.subName || sub || 'all'}/day`} className={linkClasses}>
                 analytics
               </Link>
               <span className='mx-2 text-muted'> \ </span>

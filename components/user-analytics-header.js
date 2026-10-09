@@ -3,7 +3,7 @@ import { Select, DatePicker } from './form'
 import { WHENS } from '@/lib/constants'
 import { whenToFrom } from '@/lib/time'
 
-export function UserAnalyticsHeader ({ pathname = null }) {
+export function UserAnalyticsHeader ({ pathname = null, label = 'for' }) {
   const router = useRouter()
 
   const path = pathname || 'satistics/graph'
@@ -26,11 +26,12 @@ export function UserAnalyticsHeader ({ pathname = null }) {
   return (
     <div className='text-muted font-bold my-0 flex items-center flex-wrap'>
       <div className='text-muted font-bold mb-2 flex items-center'>
-        for
+        {label}
         <Select
-          groupClassName='mb-0 mx-2'
+          groupClassName={label ? 'mb-0 mx-2' : 'mb-0 me-2'}
           className='w-auto'
           name='when'
+          aria-label='time range'
           items={WHENS}
           value={when}
           noForm

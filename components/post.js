@@ -14,7 +14,7 @@ import { useCallback, useState } from 'react'
 import FeeButton, { FeeButtonProvider, FreebieCheckbox, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import Delete from './delete'
 import CancelButton from './cancel-button'
-import { subNames, subsPostPrefix, subsAllSupport } from '@/lib/subs'
+import { subNames, subsPostPrefix, subsAllSupport, postTypeForSubs } from '@/lib/subs'
 
 export function PostForm ({ type, subs, children }) {
   const { me } = useMe()
@@ -104,14 +104,6 @@ export function PostForm ({ type, subs, children }) {
           <Alert className='absolute' style={{ top: '-6rem' }} variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>
             {errorMessage}
           </Alert>}
-        {subs.length > 0 && (
-          <SubMultiSelect
-            placeholder='pick territories'
-            className='flex'
-            noForm
-            subs={subNames(subs)}
-          />
-        )}
         <div>
           {postButtons}
         </div>
@@ -158,11 +150,7 @@ export function PostForm ({ type, subs, children }) {
 
 export default function Post ({ subs }) {
   const router = useRouter()
-  let type = router.query.type
-
-  if (subs.length === 1 && subs[0].postTypes?.length === 1) {
-    type = subs[0].postTypes[0].toLowerCase()
-  }
+  const type = postTypeForSubs(subs, router.query.type)
 
   return (
     <>

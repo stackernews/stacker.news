@@ -7,7 +7,8 @@ export default gql`
     subLatestPost(name: String!): String
     subs(subNames: [String!]): [Sub!]!
     activeSubs: [Sub!]!
-    topSubs(cursor: String, when: String, from: String, to: String, by: String, limit: Limit! = ${LIMIT}): Subs
+    # An explicit null limit returns the complete ranking.
+    topSubs(cursor: String, when: String, from: String, to: String, by: String, limit: Limit = ${LIMIT}): Subs
     userSubs(name: String!, cursor: String, when: String, from: String, to: String, by: String, limit: Limit! = ${LIMIT}): Subs
     mySubscribedSubs(cursor: String): Subs
     subSuggestions(q: String!, limit: Limit! = 5): [Sub!]!

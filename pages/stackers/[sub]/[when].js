@@ -2,7 +2,7 @@ import { gql } from '@apollo/client'
 import { useQuery } from '@apollo/client/react'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import Layout from '@/components/layout'
-import { SubAnalyticsHeader } from '@/components/sub-analytics-header'
+import { UserAnalyticsHeader } from '@/components/user-analytics-header'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import PageLoading from '@/components/page-loading'
@@ -121,7 +121,7 @@ export default function Growth ({ ssrData }) {
 
   return (
     <Layout>
-      <SubAnalyticsHeader />
+      <UserAnalyticsHeader pathname={`stackers/${sub}`} label={null} />
       <GrowthTotals totals={growthTotals} sub={sub} />
       <div className='grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mt-4'>
         <div>

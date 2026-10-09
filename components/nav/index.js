@@ -1,34 +1,20 @@
 import { useRouter } from 'next/router'
-import { useState } from 'react'
-import { MenuProvider } from '@/components/ui/menu'
-import DesktopHeader from './desktop/header'
-import MobileHeader from './mobile/header'
-import StickyBar from './sticky-bar'
-import { PriceCarouselProvider } from './price-carousel'
+import Container from '@/components/ui/container'
+import NavigationRow from './row'
 import { usePrefix, useNavKeys } from '../territory-domains'
+import { cn } from '@/lib/cn'
+import styles from '../header.module.css'
 
-export default function Navigation ({ sub, hideMobileNav = false }) {
-  const [stickyVisible, setStickyVisible] = useState(false)
+export default function Navigation ({ sub, hideMobileNav = false, containerClassName }) {
   const router = useRouter()
-  const path = router.asPath.split('?')[0]
   const prefix = usePrefix(sub)
-  const { topNavKey, dropNavKey } = useNavKeys(path, sub)
-  const props = {
-    prefix,
-    path,
-    pathname: router.pathname,
-    topNavKey,
-    dropNavKey,
-    sub
-  }
+  const { topNavKey, dropNavKey } = useNavKeys(router.asPath)
 
   return (
-    <PriceCarouselProvider>
-      <MenuProvider visible={!stickyVisible}>
-        <DesktopHeader {...props} />
-        {!hideMobileNav && <MobileHeader {...props} />}
-      </MenuProvider>
-      <StickyBar {...props} hideMobileNav={hideMobileNav} visible={stickyVisible} onVisibilityChange={setStickyVisible} />
-    </PriceCarouselProvider>
+    <header data-sn-navigation className={cn(styles.header, 'sticky top-0 z-sticky shrink-0', hideMobileNav && 'hidden md:block')}>
+      <Container className={containerClassName}>
+        <NavigationRow prefix={prefix} topNavKey={topNavKey} dropNavKey={dropNavKey} sub={sub} />
+      </Container>
+    </header>
   )
 }

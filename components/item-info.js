@@ -224,7 +224,7 @@ export default function ItemInfo ({
               {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
                 <>
                   <MenuSeparator />
-                  <MuteSubDropdownItem item={item} sub={sub} />
+                  <MuteSubDropdownItem sub={sub} />
                 </>}
               {canPin &&
                 <>

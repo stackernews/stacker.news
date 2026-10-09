@@ -171,7 +171,7 @@ function MeDropdown ({ me, dropNavKey }) {
             <Badges user={me} className='ms-1 shrink-0' height={16} width={14} />
           </div>
         </MenuTrigger>
-        <MenuPopup align='end'>
+        <MenuPopup align='end' positionMethod='fixed'>
           <MenuItem href={'/' + me.name} active={me.name === dropNavKey}>
             <Indicator show={profileIndicator} top='2px' right='-10px'>profile</Indicator>
           </MenuItem>

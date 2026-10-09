@@ -42,10 +42,10 @@ export function Menu ({ className, children, ...props }) {
   )
 }
 
-export function MenuPopup ({ side = 'bottom', align = 'start', sideOffset = 2, className, children, ...props }) {
+export function MenuPopup ({ side = 'bottom', align = 'start', sideOffset = 2, positionMethod = 'absolute', className, children, ...props }) {
   return (
     <BaseMenu.Portal>
-      <BaseMenu.Positioner side={side} align={align} sideOffset={sideOffset} className={styles.positioner}>
+      <BaseMenu.Positioner side={side} align={align} sideOffset={sideOffset} positionMethod={positionMethod} className={styles.positioner}>
         <BaseMenu.Popup className={menuClasses({ className })} {...props}>
           <InMenuContext.Provider value>{children}</InMenuContext.Provider>
         </BaseMenu.Popup>

@@ -37,7 +37,7 @@ export async function getSub (parent, { name }, { models, me }) {
 
 export async function topSubs (parent, { query, cursor, when, from, to, limit, by = 'revenue' }, { models, me }) {
   const decodedCursor = decodeCursor(cursor)
-  const [fromDate, toDate] = whenRange(when, from, to || decodeCursor.time)
+  const [fromDate, toDate] = whenRange(when, from, to || decodedCursor.time)
   const granularity = timeUnitForRange([fromDate, toDate]).toUpperCase()
 
   let column

@@ -109,10 +109,19 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
     const meaningfulUrl = getMeaningfulUrl(effectiveUrl)
     if (!meaningfulUrl) return
 
+    const hasTitle = !!currentTitleRef.current.trim() && currentTitleRef.current !== titleOverrideRef.current
+    const hasDraftTitle = !!window.localStorage.getItem('link-title')?.trim()?.length
+
+    if (!hasTitle && !hasDraftTitle) {
+      getPageTitleAndUnshortedDebounce({
+        variables: { url: meaningfulUrl }
+      })
+    }
+
     getDupesDebounce({
       variables: { url: meaningfulUrl }
     })
-  }, [isEditing, shareUrl, initial.url, storageKeyPrefix, getDupesDebounce])
+  }, [isEditing, shareUrl, initial.url, storageKeyPrefix, getDupesDebounce, getPageTitleAndUnshortedDebounce])
 
   const postDisabled = !item && (pageTitleLoading || dupesLoading)
 

@@ -7,7 +7,7 @@ import { useQuery } from '@apollo/client/react'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 import { CommentsNavigatorProvider } from '@/components/use-comments-navigator'
-import { useState } from 'react'
+import { useRef } from 'react'
 
 export const getServerSideProps = getGetServerSideProps({
   query: ITEM_FULL,
@@ -16,7 +16,7 @@ export const getServerSideProps = getGetServerSideProps({
 
 export default function Item ({ ssrData }) {
   const router = useRouter()
-  const [tocContainer, setTocContainer] = useState(null)
+  const tocContainerRef = useRef(null)
 
   const { data, fetchMore } = useQuery(ITEM_FULL, { variables: { ...router.query } })
   if (!data && !ssrData) return <PageLoading />
@@ -34,12 +34,12 @@ export default function Item ({ ssrData }) {
         sub={sub} item={item} twoColumns
         sidebar={
           <div className='flex flex-col gap-4'>
-            {!item.parentId && <div ref={setTocContainer} className='empty:hidden' />}
+            {!item.parentId && <div ref={tocContainerRef} className='empty:hidden' />}
             <Related item={item} compact show />
           </div>
         }
       >
-        <ItemFull item={item} fetchMoreComments={fetchMoreComments} tocContainer={tocContainer} />
+        <ItemFull item={item} fetchMoreComments={fetchMoreComments} tocContainerRef={tocContainerRef} />
       </Layout>
     </CommentsNavigatorProvider>
   )

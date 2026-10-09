@@ -8,20 +8,23 @@ import { UPSERT_JOB } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 import FeeButton from './fee-button'
 import CancelButton from './cancel-button'
+import { useApolloClient } from '@apollo/client/react'
 
 // need to recent list items
-export default function JobForm ({ item, subs }) {
+export default function JobForm ({ item }) {
+  const client = useApolloClient()
   const storageKeyPrefix = item ? undefined : 'job'
   const [logoId, setLogoId] = useState(item?.uploadId)
 
   const extraValues = logoId ? { logo: Number(logoId) } : {}
-  const onSubmit = useItemSubmit(UPSERT_JOB, { item, sub: subs[0], extraValues })
+  const onSubmit = useItemSubmit(UPSERT_JOB, { item, extraValues })
 
   return (
     <>
       <Form
         className='pb-12 pt-4'
         initial={{
+          subNames: item?.subNames || ['jobs'],
           title: item?.title || '',
           company: item?.company || '',
           location: item?.location || '',
@@ -31,7 +34,7 @@ export default function JobForm ({ item, subs }) {
           stop: false,
           start: false
         }}
-        schema={jobSchema({})}
+        schema={jobSchema({ client })}
         storageKeyPrefix={storageKeyPrefix}
         requireSession
         onSubmit={onSubmit}

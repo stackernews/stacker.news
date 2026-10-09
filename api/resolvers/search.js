@@ -1,6 +1,6 @@
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { whenToFrom } from '@/lib/time'
-import { getItem, itemQueryWithMeta, SELECT } from './item'
+import { getItem, itemQueryWithMeta, muteSql, SELECT } from './item'
 import { parse } from 'tldts'
 import { searchSchema, validateSchema } from '@/lib/validate'
 import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER, HOMEPAGE_POSTS_SATS_FILTER } from '@/lib/constants'
@@ -734,6 +734,11 @@ async function hitsToItems (hits, { me, models, orderBy }) {
 
   const values = Prisma.join(hits.map((e, i) => Prisma.sql`(${Number(e._source.id)}::INTEGER, ${i}::INTEGER)`))
 
+  // Filter out items authored by users the current user has muted.
+  // OpenSearch does not know about the Mute table, so without this filter
+  // related and search hits can surface posts by muted stackers.
+  const muteFilter = muteSql(me)
+
   return itemQueryWithMeta({
     me,
     models,
@@ -741,7 +746,8 @@ async function hitsToItems (hits, { me, models, orderBy }) {
       WITH r(id, rank) AS (VALUES ${values})
       ${SELECT}, rank
       FROM "Item"
-      JOIN r ON "Item".id = r.id`,
+      JOIN r ON "Item".id = r.id
+      ${muteFilter ? Prisma.sql`WHERE ${muteFilter}` : Prisma.empty}`,
     orderBy
   })
 }

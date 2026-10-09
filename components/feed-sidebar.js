@@ -8,7 +8,7 @@ import { useBranding } from './territory-branding'
 import styles from './item.module.css'
 
 export default function FeedSidebar ({ sub }) {
-  return sub ? <TerritoryHeader key={sub.name} sub={sub} show /> : <TopTerritories />
+  return sub ? <TerritoryHeader key={sub.name} sub={sub} show menuPositionMethod='fixed' /> : <TopTerritories />
 }
 
 function TopTerritories () {

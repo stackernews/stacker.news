@@ -93,7 +93,7 @@ export function TerritoryInfo ({ sub, includeLink, truncated }) {
   )
 }
 
-export default function TerritoryHeader ({ sub, show = false }) {
+export default function TerritoryHeader ({ sub, show = false, menuPositionMethod }) {
   const { me } = useMe()
   const prefix = usePrefix(sub.name)
 
@@ -115,7 +115,7 @@ export default function TerritoryHeader ({ sub, show = false }) {
                       edit territory
                     </Link>
                   )}
-                  <ActionDropdown>
+                  <ActionDropdown positionMethod={menuPositionMethod}>
                     <ToggleSubSubscriptionDropdownItem sub={sub} />
                     {!isMine && (
                       <MuteSubDropdownItem sub={sub}>

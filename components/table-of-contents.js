@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/router'
 import { Combobox, ComboboxPopup, ComboboxList, ComboboxItem } from '@/components/ui/combobox'
@@ -7,9 +7,16 @@ import { cn } from '@/lib/cn'
 import TocIcon from '@/svgs/list-unordered.svg'
 import { $extractHeadingsFromRoot } from '@/lib/lexical/utils/toc'
 import { AccordionCard } from './accordion-item'
+import useDesktopSidebar from './use-desktop-sidebar'
 
-export default function Toc ({ text, readerRef, container }) {
+export default function Toc ({ text, readerRef, containerRef }) {
   const router = useRouter()
+  const desktopSidebar = useDesktopSidebar()
+  const [container, setContainer] = useState(null)
+
+  useEffect(() => {
+    setContainer(desktopSidebar ? containerRef?.current ?? null : null)
+  }, [desktopSidebar, containerRef])
 
   const toc = useMemo(() => {
     if (!readerRef || !text || text.length === 0) return []

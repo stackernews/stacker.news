@@ -48,8 +48,11 @@ variables:                    # Pass environment variables as key value pairs.
   PROTOCOL_TIMEOUT: 30000
   NEXT_PUBLIC_URL: https://stacker.news
 
-#secrets:                      # Pass secrets from AWS Systems Manager (SSM) Parameter Store.
-#  GITHUB_TOKEN: GITHUB_TOKEN  # The key is the name of the environment variable, the value is the name of the SSM parameter.
+secrets:                      # Pass secrets from AWS Systems Manager (SSM) Parameter Store.
+  # read access to /api/capture/domains, the ACTIVE custom domain allowlist.
+  # must match the app's CAPTURE_DOMAINS_SECRET; without it capture answers 503
+  # for custom domains and keeps serving main-domain captures.
+  CAPTURE_DOMAINS_SECRET: CAPTURE_DOMAINS_SECRET
 
 # You can override any of the values defined above by environment.
 #environments:

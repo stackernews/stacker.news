@@ -101,7 +101,7 @@ services:
     env_file: *env_file
     environment:
       # configure to screenshot production, because local dev is too slow
-      - CAPTURE_URL=http://stacker.news
+      - CAPTURE_URL=${CAPTURE_URL:-http://stacker.news}
     expose:
       - "5678"
     ports:
@@ -937,8 +937,11 @@ services:
     container_name: dnsmasq
     restart: unless-stopped
     ports:
-      - "5353:53/tcp"
-      - "5353:53/udp"
+      # host port is overridable: 5353/udp collides with mDNS (avahi, browsers,
+      # spotify) on many desktops. only needed to point your host resolver at
+      # dnsmasq; the worker reaches it in-network at 172.30.0.2.
+      - "${DNSMASQ_HOST_PORT:-5353}:53/tcp"
+      - "${DNSMASQ_HOST_PORT:-5353}:53/udp"
     command:
       - --no-daemon
       # Wildcard A records for dev test TLDs. Both .sndev and .test are RFC

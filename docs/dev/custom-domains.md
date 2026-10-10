@@ -73,7 +73,7 @@ A successful CNAME lookup logs a `DomainVerificationAttempt` with status `VERIFI
 In local, **dnsmasq** is used as a DNS server to mock records for the domain verification job.
 To have a dedicated IP for the `node:dns` Resolver, the `worker` container is part of a dedicated docker network that gives dnsmasq the `172.30.0.2` IP address.
 
-You can also set your machine's DNS configuration to point to 127.0.0.1:5353 and access custom rules that you might've set. For example, if you have a CNAME record www.pizza.com pointing to `local.sndev`, you can access www.pizza.com from your browser.
+You can also set your machine's DNS configuration to point to 127.0.0.1:5353 and access custom rules that you might've set. If 5353/udp is already taken on your machine (mDNS/avahi, browsers and some desktop apps bind it), set `DNSMASQ_HOST_PORT` in `.env.local` to move the host-side port; container-to-container resolution on 172.30.0.2 is unaffected. For example, if you have a CNAME record www.pizza.com pointing to `local.sndev`, you can access www.pizza.com from your browser.
 
 For more information on how to add/remove records, take a look at `README.md` on the `Custom domains` section.
 ### AWS management
@@ -283,6 +283,77 @@ Two variants worth walking through, since they exercise different parts of the d
 3. Weeks later, the owner re-adds `pizza.com`. A fresh row is created, `id=43`, `tokenVersion` defaulted to `0`.
 4. Verification succeeds, the `PENDING -> ACTIVE` trigger bumps `tokenVersion` to `1`.
 5. The attacker tries their stolen cookie again. The domain is `ACTIVE` (so `!mapping` passes) and the new `tokenVersion=1` happens to collide with the stolen JWT's `tokenVersion=1`. Without `domainId`, **this would resurrect the stolen token**. With `domainId` in place: `mapping.id` is `43`, the JWT claims `42`, `43 !== 42` -> rejected.
+
+# Capture (og:image)
+
+Social previews are screenshots taken by the `capture` service: the page renders
+`https://capture.stacker.news<path>` into `og:image`, and capture opens that path in a
+headless browser. Before custom domains had branding, capture only knew the main site, so
+a territory's preview was rendered at `stacker.news/~sub/...` — SN's colors and logo, not
+the territory's. Branding is resolved from the request `Host` (see `getDomainBranding`),
+so the only way to get a branded preview is to screenshot the custom domain itself.
+
+### URL shape
+
+The custom domain goes in as the first path segment:
+
+```
+capture.stacker.news/pizza.com/items/123  ->  https://pizza.com/items/123
+capture.stacker.news/items/123            ->  https://stacker.news/items/123
+```
+
+`lib/capture.js` builds it (`capturePath`/`captureUrl`), from `branding.domainName`. When
+a mapping has no `domainName` it falls back to the old `/~subName` path.
+
+A first segment containing a dot is treated as a hostname: usernames are `[\w_]+`,
+territories are `~name`, and no top-level SN route has a dot. The exceptions are the
+dotted asset paths (`/site.webmanifest`, `/favicon.ico`, `/manifest.json`), which is why
+`resolveCaptureTarget` answers those **before** it looks for a hostname.
+
+### The allowlist
+
+capture is publicly reachable and runs a browser on our infra, so it will not navigate to
+a host it can't prove is ours: doing otherwise makes it an SSRF vector and an open
+screenshot proxy. It has no DB access, so it mirrors `domainsMappingsCache` over HTTP:
+
+- **`GET /api/capture/domains`** returns `{ domains: [...] }`, the `ACTIVE` custom domain
+  names and nothing else off the mapping. Gated by `CAPTURE_DOMAINS_SECRET`, presented as
+  `Authorization: Bearer <secret>` and compared in constant time.
+- **`capture/domains.js`** caches the answer with the same stale-while-revalidate shape as
+  `lib/fetch.js`'s `cachedFetcher`: fresh under `CAPTURE_DOMAINS_TTL` (2 min), served stale
+  with a background refresh up to `CAPTURE_DOMAINS_STALE_TTL` (5 min), refetched past that.
+
+Failures degrade rather than cascade. A missing secret or an unreachable endpoint makes
+the allowlist `null`, which answers **503 + `Retry-After`** for custom domains — crawlers
+retry instead of caching a wrong image — while main-domain captures keep working. An
+unknown domain is a **400**.
+
+Revocation is therefore bounded by the stale TTL: a domain that leaves `ACTIVE` stops
+being capturable within ~5 minutes. Images already fetched and cached by a crawler are
+outside our control, as always with `og:image`.
+
+### Local dev
+
+`docker-compose.yml` points capture at production by default, because screenshotting the
+dev server is slow. To exercise custom domains locally, override it in `.env.local`:
+
+```sh
+CAPTURE_URL=http://app:3000/
+```
+
+`CAPTURE_DOMAINS_ENDPOINT` is derived from `CAPTURE_URL`, so that's the only change
+needed. `.env.development` already points `NEXT_PUBLIC_CAPTURE_URL` at
+`http://localhost:5678` so `og:image` refers to your local capture container.
+
+In dev, custom domains are served by the `caddy` container over HTTPS with a local CA that
+chrome doesn't trust, on hostnames only the host machine resolves. capture handles both
+when `NODE_ENV=development`, launching chrome with
+`--host-resolver-rules=MAP *.sndev caddy, MAP *.test caddy` (override with
+`CAPTURE_HOST_RESOLVER_RULES`) and `--ignore-certificate-errors`. Neither flag is ever
+added outside development.
+
+The first capture of a route can time out: Next.js compiles the route on first hit and the
+navigation timeout is 10s. Hit the page once in a browser, then retry.
 
 # Local dev: end-to-end HTTPS
 

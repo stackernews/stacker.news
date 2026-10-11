@@ -53,7 +53,7 @@ export default function Search ({ className, open, setOpen }) {
       >
         {/* with barRef we're declaring that this is the anchor for the popup (that we're going to pass to Autocomplete.Popup) */}
         <div ref={barRef} className={searchBarClasses({ className })}>
-          <Autocomplete.Input name='q' placeholder='search anything' value={query} onChange={(e) => setQuery(e.target.value)} className={styles.input} />
+          <Autocomplete.Input name='q' placeholder='search anything' value={query} onChange={(e) => setQuery(e.target.value)} className={cn(styles.input, 'grow min-w-0')} />
           <span className={cn('shrink-0 flex items-center gap-2', !query && 'invisible')}>
             <span aria-hidden className={cn(styles.divider, 'w-px h-4')} />
             <Autocomplete.Clear keepMounted aria-label='clear search' className={cn(styles.clear, 'flex pointer-coarse:hitbox-8')}>

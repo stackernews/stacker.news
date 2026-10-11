@@ -1,12 +1,12 @@
 import { Nav, Navbar } from '@/components/ui/nav'
-import { Back, Brand, NavSelect, PostItem, RightCorner, SearchItem, Sorts } from './common'
+import { Back, Brand, PostItem, RightCorner, SearchItem, Sorts } from './common'
 import SearchBar from './search'
 import { useBranding } from '@/components/territory-branding'
 import { CommentsNavigator } from '@/components/use-comments-navigator'
 import { cn } from '@/lib/cn'
 import styles from '../header.module.css'
 
-export default function NavigationRow ({ prefix, sub, topNavKey, dropNavKey }) {
+export default function NavigationRow ({ prefix, topNavKey, dropNavKey }) {
   const branding = useBranding()
 
   return (
@@ -20,8 +20,7 @@ export default function NavigationRow ({ prefix, sub, topNavKey, dropNavKey }) {
           <div className='hidden min-w-0 md:block'>
             <SearchBar className='min-w-8' />
           </div>
-          {!branding && <NavSelect sub={sub} className='min-w-0 flex-1 md:max-w-36 md:basis-36' />}
-          <div className='flex shrink-0'>
+          <div className='flex shrink-0 max-md:ms-auto'>
             <Sorts prefix={prefix} linkClassName='px-1 md:px-1.5' />
           </div>
         </div>

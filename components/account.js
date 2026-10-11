@@ -4,8 +4,6 @@ import { USER } from '@/fragments/users'
 import { useQuery } from '@apollo/client/react'
 import { UserListRow } from '@/components/user-list'
 import useCookie from '@/components/use-cookie'
-import Link from 'next/link'
-import AddIcon from '@/svgs/add-fill.svg'
 import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER } from '@/lib/auth'
 import { useBranding } from '@/components/territory-branding'
 
@@ -18,7 +16,6 @@ export const nextAccount = async () => {
 }
 
 export default function SwitchAccountList () {
-  const router = useRouter()
   const accounts = useAccounts()
   const [pointerCookie] = useCookie(MULTI_AUTH_POINTER)
 
@@ -42,15 +39,9 @@ export default function SwitchAccountList () {
               />)
           }
         </div>
-        <Link
-          href={{
-            pathname: '/login',
-            query: { callbackUrl: window.location.origin + router.asPath, multiAuth: true }
-          }}
-          className='text-reset fw-bold'
-        >
-          <AddIcon height={20} width={20} /> existing account
-        </Link>
+        <p className='text-muted mb-0'>
+          To add an account, switch to @anon above, then log in or sign up.
+        </p>
       </div>
     </>
   )

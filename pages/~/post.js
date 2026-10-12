@@ -22,7 +22,7 @@ export default function PostPage ({ ssrData }) {
   const { subs } = data || ssrData
 
   return (
-    <CenterLayout>
+    <CenterLayout sub={subs.length === 1 ? subs[0].name : undefined}>
       <Post subs={subs} />
     </CenterLayout>
   )

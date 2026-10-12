@@ -7,6 +7,7 @@ import { SUB_FULL, SUB_ITEMS } from '@/fragments/subs'
 import { COMMENT_TYPE_QUERY } from '@/lib/constants'
 import { useQuery } from '@apollo/client/react'
 import PageLoading from '@/components/page-loading'
+import FeedSidebar from '@/components/feed-sidebar'
 
 const staticVariables = { sort: 'new' }
 
@@ -40,7 +41,7 @@ export default function Index ({ ssrData }) {
   const { sub } = data || ssrData
 
   return (
-    <Layout sub={sub?.name}>
+    <Layout sub={sub?.name} twoColumns sidebar={<FeedSidebar sub={sub} />}>
       <NewHeader sub={sub} />
       <Items
         ssrData={ssrData}

@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client/react'
 import { fixedDecimal } from '@/lib/format'
 import { useMe } from './me'
@@ -8,7 +8,9 @@ import { NORMAL_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 import { useBlockHeight } from './block-height'
 import { useChainFee } from './chain-fee'
 import { CompactLongCountdown } from './countdown'
-import { usePriceCarousel } from './nav/price-carousel'
+
+const STORAGE_KEY = 'asSats'
+const carousel = ['fiat', 'yep', '1btc', 'blockHeight', 'chainFee', 'halving']
 
 export const PriceContext = React.createContext({
   price: null,
@@ -54,7 +56,18 @@ function AccessibleButton ({ id, description, children, ...props }) {
 }
 
 export default function Price ({ className }) {
-  const [selection, handleClick] = usePriceCarousel()
+  const [selection, setSelection] = useState()
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(STORAGE_KEY)
+    setSelection(carousel.includes(saved) ? saved : carousel[0])
+  }, [])
+
+  const handleClick = () => {
+    const next = carousel[(carousel.indexOf(selection) + 1) % carousel.length]
+    window.localStorage.setItem(STORAGE_KEY, next)
+    setSelection(next)
+  }
 
   const { price, fiatSymbol } = usePrice()
   const { height: blockHeight, halving } = useBlockHeight()

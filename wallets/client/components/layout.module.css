@@ -21,12 +21,9 @@
 }
 .walletMobileTopBar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--wt-gap-md);
-}
-.walletMobileAccount {
-  min-width: 0;
 }
 .walletShell {
   width: 100%;

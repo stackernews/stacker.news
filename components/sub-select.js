@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
 import { MultiSelect, Select } from './form'
 import { EXTRA_LONG_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
@@ -10,6 +10,7 @@ import { useShowModal } from './modal'
 import { TerritoryInfo } from './territory-header'
 import { subNames, subNamesFromSlug } from '@/lib/subs'
 import { cn } from '@/lib/cn'
+import { territoryHref } from '@/lib/navigation'
 
 export function SubSelectInitial ({ item, subs }) {
   const router = useRouter()
@@ -23,27 +24,24 @@ export function SubSelectInitial ({ item, subs }) {
 const DEFAULT_PREPEND_SUBS = []
 const DEFAULT_APPEND_SUBS = []
 const DEFAULT_FILTER_SUBS = () => true
-const SUB_SELECT_WIDTHS = {
-  small: 'w-24',
-  medium: 'w-52'
-}
-
-export const subSelectClasses = ({ size, className } = {}) =>
-  cn(styles.subSelect, SUB_SELECT_WIDTHS[size], className)
-
 export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs = DEFAULT_FILTER_SUBS, appendSubs = DEFAULT_APPEND_SUBS }) {
   const { data, refetch } = useQuery(ACTIVE_SUBS, SSR
     ? {}
     : {
         pollInterval: EXTRA_LONG_POLL_INTERVAL_MS,
-        nextFetchPolicy: 'cache-and-network'
+        nextFetchPolicy: 'cache-first'
       })
 
   const { me } = useMe()
 
+  const nsfwMode = !!me?.privates?.nsfwMode
+  const previousNsfwMode = useRef(nsfwMode)
+
   useEffect(() => {
+    if (previousNsfwMode.current === nsfwMode) return
+    previousNsfwMode.current = nsfwMode
     refetch()
-  }, [me?.privates?.nsfwMode])
+  }, [nsfwMode, refetch])
 
   const [subs, setSubs] = useState([
     ...prependSubs.filter(s => s !== sub),
@@ -66,81 +64,20 @@ export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs =
   return subs
 }
 
-export default function SubSelect ({ prependSubs, sub, onChange, size, appendSubs, filterSubs, className, ...props }) {
-  const router = useRouter()
-  const subs = useSubs({ prependSubs, sub, filterSubs, appendSubs })
-  const valueProps = props.noForm
-    ? {
-        value: sub
-      }
-    : {
-        overrideValue: sub
-      }
-
-  // If logged out user directly visits a nsfw sub, subs will not contain `sub`, so manually add it
-  // to display the correct sub name in the sub selector
-  const subItems = !sub || subs.find((s) => s === sub) ? subs : [sub].concat(subs)
+export default function SubSelect ({ prependSubs, sub, onChange, appendSubs, className, ...props }) {
+  const subs = useSubs({ prependSubs, sub, appendSubs })
+  // A directly visited NSFW territory can be absent from the active list.
+  const containsSub = subs.some(s => s === sub || s.items?.includes(sub))
+  const subItems = !sub || containsSub ? subs : [sub, ...subs]
 
   return (
     <Select
-      onChange={onChange || ((_, e) => {
-        const sub = ['home', 'pick territory'].includes(e.target.value) ? undefined : e.target.value
-        if (sub === 'create') {
-          router.push('/territory')
-          return
-        }
-
-        let asPath
-        // are we currently in a sub (ie not home)
-        if (router.query.sub) {
-          // are we going to a sub or home?
-          const subReplace = sub ? `/~${sub}` : ''
-
-          // if we are going to a sub, replace the current sub with the new one
-          asPath = router.asPath.replace(`/~${router.query.sub}`, subReplace)
-          // if we're going to home, just go there directly
-          if (asPath === '') {
-            router.push('/')
-            return
-          }
-        } else {
-          // we're currently on the home sub
-          // if in /top/cowboys, /top/territories, or /top/stackers
-          // and a territory is selected, go to /~sub/top/posts/day
-          if (router.pathname.startsWith('/~/top/cowboys')) {
-            router.push(sub ? `/~${sub}/top/posts/day` : '/top/cowboys')
-            return
-          } else if (router.pathname.startsWith('/~/top/stackers')) {
-            router.push(sub ? `/~${sub}/top/posts/day` : 'top/stackers/day')
-            return
-          } else if (router.pathname.startsWith('/~/top/territories')) {
-            router.push(sub ? `/~${sub}/top/posts/day` : '/top/territories/day')
-            return
-          } else if (router.pathname.startsWith('/~')) {
-            // are we in a sub aware route?
-            // if we are, go to the same path but in the sub
-            asPath = `/~${sub}` + router.asPath
-          } else {
-            // otherwise, just go to the sub
-            router.push(sub ? `/~${sub}` : '/')
-            return
-          }
-        }
-        const query = {
-          ...router.query,
-          sub
-        }
-        delete query.nodata
-        router.push({
-          pathname: router.pathname,
-          query
-        }, asPath)
-      })}
+      onChange={onChange}
       name='sub'
-      size='sm'
-      {...valueProps}
+      noForm
+      value={sub}
       {...props}
-      className={subSelectClasses({ size, className })}
+      className={cn(styles.subSelect, className)}
       items={subItems}
     />
   )
@@ -174,70 +111,12 @@ export function SubMultiSelect ({ prependSubs, subs, onChange, appendSubs, filte
     }
   }
 
-  // If logged out user directly visits a nsfw sub, subs will not contain `sub`, so manually add it
-  // to display the correct sub name in the sub selector
-  // const subItems = !sub || subs.find((s) => s === sub) ? subs : [sub].concat(subs)
-
   return (
     <MultiSelect
       id='subNames'
       emptyText='no territories found'
       onValueClick={handleTerritoryClick}
-      onChange={onChange || ((_, e) => {
-        // NOTE: a lot of this is not used yet, because this component is only used in PostForm,
-        // but we'll keep it here for future use
-        if (e.length === 1 && e.includes('create')) {
-          router.push('/territory')
-          return
-        }
-        const sub = e.length ? e.join('~') : undefined
-
-        let asPath
-        // are we currently in a sub (ie not home)
-        if (router.query.sub) {
-          // are we going to a sub or home?
-          const subReplace = sub ? `/~${sub}` : ''
-
-          // if we are going to a sub, replace the current sub with the new one
-          asPath = router.asPath.replace(`/~${router.query.sub}`, subReplace)
-          // if we're going to home, just go there directly
-          if (asPath === '') {
-            router.push('/')
-            return
-          }
-        } else {
-          // we're currently on the home sub
-          // if in /top/cowboys, /top/territories, or /top/stackers
-          // and a territory is selected, go to /~sub/top/posts/day
-          if (router.pathname.startsWith('/~/top/cowboys')) {
-            router.push(sub ? `/~${sub}/top/posts/day` : '/top/cowboys')
-            return
-          } else if (router.pathname.startsWith('/~/top/stackers')) {
-            router.push(sub ? `/~${sub}/top/posts/day` : 'top/stackers/day')
-            return
-          } else if (router.pathname.startsWith('/~/top/territories')) {
-            router.push(sub ? `/~${sub}/top/posts/day` : '/top/territories/day')
-            return
-          } else if (router.pathname.startsWith('/~')) {
-            // are we in a sub aware route?
-            // if we are, go to the same path but in the sub
-            asPath = `/~${sub}` + router.asPath
-          } else {
-            // otherwise, just go to the sub
-            router.push(sub ? `/~${sub}` : '/')
-            return
-          }
-        }
-        const query = {
-          ...router.query,
-          sub
-        }
-        delete query.nodata
-        router.push({
-          pathname: router.pathname,
-          query
-        }, asPath)
-      })}
+      onChange={onChange || ((_, names) => router.push(territoryHref(router.asPath, names.join('~'))))}
       name='subNames'
       size='md'
       {...valueProps}

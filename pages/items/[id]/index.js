@@ -1,11 +1,13 @@
 import Layout from '@/components/layout'
 import { ITEM_FULL } from '@/fragments/items'
 import ItemFull from '@/components/item-full'
+import Related from '@/components/related'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { useQuery } from '@apollo/client/react'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 import { CommentsNavigatorProvider } from '@/components/use-comments-navigator'
+import { useRef } from 'react'
 
 export const getServerSideProps = getGetServerSideProps({
   query: ITEM_FULL,
@@ -14,12 +16,13 @@ export const getServerSideProps = getGetServerSideProps({
 
 export default function Item ({ ssrData }) {
   const router = useRouter()
+  const tocContainerRef = useRef(null)
 
   const { data, fetchMore } = useQuery(ITEM_FULL, { variables: { ...router.query } })
   if (!data && !ssrData) return <PageLoading />
 
   const { item } = data || ssrData
-  const sub = item.subName || item.root?.subName
+  const sub = item.subNames?.[0] || item.root?.subNames?.[0]
 
   const fetchMoreComments = async () => {
     await fetchMore({ variables: { ...router.query, cursor: item.comments.cursor } })
@@ -27,8 +30,16 @@ export default function Item ({ ssrData }) {
 
   return (
     <CommentsNavigatorProvider key={item.id}>
-      <Layout sub={sub} item={item}>
-        <ItemFull item={item} fetchMoreComments={fetchMoreComments} />
+      <Layout
+        sub={sub} item={item} twoColumns
+        sidebar={
+          <div className='flex flex-col gap-4'>
+            {!item.parentId && <div ref={tocContainerRef} className='empty:hidden' />}
+            <Related item={item} compact show />
+          </div>
+        }
+      >
+        <ItemFull item={item} fetchMoreComments={fetchMoreComments} tocContainerRef={tocContainerRef} />
       </Layout>
     </CommentsNavigatorProvider>
   )

@@ -734,6 +734,16 @@ async function hitsToItems (hits, { me, models, orderBy }) {
 
   const values = Prisma.join(hits.map((e, i) => Prisma.sql`(${Number(e._source.id)}::INTEGER, ${i}::INTEGER)`))
 
+  // respect explicit user mutes in search and related posts results
+  const muteClause = me
+    ? Prisma.sql`WHERE NOT EXISTS (
+        SELECT 1
+        FROM "Mute"
+        WHERE "Mute"."muterId" = ${me.id}::INTEGER
+          AND "Mute"."mutedId" = "Item"."userId"
+      )`
+    : Prisma.empty
+
   return itemQueryWithMeta({
     me,
     models,
@@ -741,7 +751,8 @@ async function hitsToItems (hits, { me, models, orderBy }) {
       WITH r(id, rank) AS (VALUES ${values})
       ${SELECT}, rank
       FROM "Item"
-      JOIN r ON "Item".id = r.id`,
+      JOIN r ON "Item".id = r.id
+      ${muteClause}`,
     orderBy
   })
 }

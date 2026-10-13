@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { gql } from '@apollo/client'
-import { useQuery, useApolloClient } from '@apollo/client/react'
+import { useQuery, useApolloClient, useMutation } from '@apollo/client/react'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'
@@ -45,10 +45,41 @@ import { withActBump } from './item-act'
 import { isAutoRetryEligiblePayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 import { isInvoiceSetupPending, toFailedPayIn } from '@/lib/pay-in'
 import { reconcileNotificationItemCounters } from '@/lib/apollo'
+import { UPDATE_ITEM_USER_VIEW } from '@/fragments/items'
+import { notificationViewed } from '@/lib/new-comments'
 import MapIcon from '@/svgs/map.svg'
+
+// A fresh comment notification renders the comment inline in the feed, so the
+// thread has been seen. Mark its root's meCommentsViewedAt at lastCommentAt —
+// the same state as opening the item page — so the main list's "new comments"
+// indicator clears without visiting the thread (#3150).
+function useNotificationCommentViewed (n, fresh) {
+  const { me } = useMe()
+  const viewed = notificationViewed(n, fresh)
+
+  const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, {
+    update (cache, { data: { updateCommentsViewAt } }) {
+      if (!viewed || !updateCommentsViewAt) return
+      cache.modify({
+        id: `Item:${viewed.id}`,
+        fields: { meCommentsViewedAt: () => updateCommentsViewAt }
+      })
+    }
+  })
+
+  const viewedId = viewed?.id
+  const viewedAt = viewed?.viewedAt?.getTime()
+
+  useEffect(() => {
+    if (!viewed || !me?.id) return
+    updateCommentsViewAt({ variables: { id: Number(viewedId), meCommentsViewedAt: new Date(viewedAt) } })
+  }, [viewedId, viewedAt, me?.id])
+}
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
+
+  useNotificationCommentViewed(n, fresh)
 
   return (
     <NotificationLayout nid={nid(n)} type={type} {...defaultOnClick(n)} fresh={fresh}>

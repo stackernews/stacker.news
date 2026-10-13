@@ -7,6 +7,7 @@ import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER, HOMEPAGE_POSTS
 import { resolveOpensearchModelId } from '../search/model-id'
 import removeMd from 'remove-markdown'
 import { Prisma } from '@prisma/client'
+import { buildMuteFilter } from '@/lib/related-mutes'
 
 const DOUBLE_QUOTE_VARIANTS = [
   '\u201C', // left double quotation mark
@@ -729,10 +730,15 @@ const SEARCH_HIGHLIGHT = {
   }
 }
 
-async function hitsToItems (hits, { me, models, orderBy }) {
+async function hitsToItems (hits, { me, models, orderBy, excludeMuted = false }) {
   if (hits.length === 0) return []
 
   const values = Prisma.join(hits.map((e, i) => Prisma.sql`(${Number(e._source.id)}::INTEGER, ${i}::INTEGER)`))
+
+  // the OpenSearch index knows nothing about a stacker's mutes, so when the
+  // caller asks, drop muted authors' and muted territories' posts here -
+  // the hydration query is the only Postgres-side filter point
+  const muteFilter = excludeMuted ? buildMuteFilter(me) : null
 
   return itemQueryWithMeta({
     me,
@@ -741,7 +747,8 @@ async function hitsToItems (hits, { me, models, orderBy }) {
       WITH r(id, rank) AS (VALUES ${values})
       ${SELECT}, rank
       FROM "Item"
-      JOIN r ON "Item".id = r.id`,
+      JOIN r ON "Item".id = r.id
+      ${muteFilter ? Prisma.sql`WHERE ${muteFilter}` : Prisma.empty}`,
     orderBy
   })
 }
@@ -834,7 +841,7 @@ export default {
         return { cursor: null, items: [] }
       }
 
-      const items = await hitsToItems(results.body.hits.hits, { me, models, orderBy: Prisma.sql`ORDER BY rank ASC` })
+      const items = await hitsToItems(results.body.hits.hits, { me, models, orderBy: Prisma.sql`ORDER BY rank ASC`, excludeMuted: !!me })
       return {
         cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         items

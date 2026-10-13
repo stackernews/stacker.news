@@ -16,6 +16,7 @@ import { UPSERT_LINK } from '@/fragments/payIn'
 import { usePostFormShared } from './use-post-form-shared'
 import useDebounceCallback from './use-debounce-callback'
 import { ensureProtocol } from '@/lib/url'
+import { planInitialUrlLookups } from '@/lib/link-form-lookups'
 
 const LOOKUP_DEBOUNCE_MS = 500
 const DUPES_DEBOUNCE_MS = 500
@@ -100,6 +101,32 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
       })
     }
   }, [data?.pageTitleAndUnshorted?.unshorted, getDupesDebounce])
+
+  // A URL can arrive prefilled (web share target or ?url= query param), which
+  // never fires the input's onChange, so replay the title/dupes lookups once
+  // on mount with the same conditions the onChange handler uses (#3259).
+  useEffect(() => {
+    if (isEditing || !shareUrl) return
+
+    const lookup = planInitialUrlLookups({
+      url: getMeaningfulUrl(shareUrl),
+      title: initial.title,
+      draftTitle: window.localStorage.getItem('link-title'),
+      isEditing
+    })
+
+    if (!lookup) return
+
+    if (lookup.needsTitleLookup) {
+      getPageTitleAndUnshortedDebounce({
+        variables: { url: lookup.url }
+      })
+    }
+
+    getDupesDebounce({
+      variables: { url: lookup.url }
+    })
+  }, [isEditing, shareUrl, initial.title, getPageTitleAndUnshortedDebounce, getDupesDebounce])
 
   const postDisabled = !item && (pageTitleLoading || dupesLoading)
 

@@ -5,11 +5,11 @@ import cardStyles from './capability-card.module.css'
 import { protocolDisplayName, protocolFields, protocolKey } from '@/wallets/lib/util'
 import { useFormikContext } from 'formik'
 import { useProtocolStatus } from './hooks/context'
-import { CapabilityStatus } from './test-status'
+import { CapabilityStatus } from './capability-test-status'
 import { CapabilityError, CapabilityStateRow, CapabilityTestRow } from './capability-test-ui'
 import { WalletProtocolFormField } from './protocol-fields'
 import { emptyDraft, isSavedProtocol } from './hooks/draft'
-import { useCapabilityTest } from './hooks/use-capability-test'
+import { useCapabilityTest } from './hooks/use-capability-testing'
 const styles = { ...sharedStyles, ...cardStyles }
 
 // `selection` ({ protocol, choose }) is omitted by single-protocol fallback

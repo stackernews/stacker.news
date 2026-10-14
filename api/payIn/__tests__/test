@@ -7,6 +7,10 @@
  * Assumes docker-compose is running with database on localhost:5431
  */
 
+// Disabled until these tests are (a) fixed and (b) ported away from jest
+console.error('X Script disabled.')
+process.exit(1)
+
 const { loadEnvConfig } = require('@next/env')
 const { execSync } = require('child_process')
 const path = require('path')

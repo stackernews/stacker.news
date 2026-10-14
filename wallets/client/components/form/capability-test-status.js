@@ -1,5 +1,5 @@
 import classNames from 'classnames'
-import styles from './test-status.module.css'
+import styles from './capability-test-status.module.css'
 import CheckCircle from '@/svgs/checkbox-circle-fill.svg'
 import { protocolDisplayName } from '@/wallets/lib/util'
 import { TestStatus } from './hooks/tests'

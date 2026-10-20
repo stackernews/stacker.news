@@ -106,7 +106,7 @@ function ComposedReader ({ topLevel, state, text, html, readerRef, innerClassNam
       ],
       theme: {
         ...theme,
-        topLevel: topLevel && 'topLevel'
+        topLevel: !!topLevel
       },
       $initialEditorState: (editor) => initiateEditorState(editor, state, text),
       onError: (error) => console.error('reader has encountered an error:', error)

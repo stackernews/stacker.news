@@ -6,6 +6,7 @@ import { useRouter } from 'next/router'
 import classNames from 'classnames'
 import { CarouselProvider, useCarousel } from './carousel'
 import { SNReader } from './editor'
+import { snTextClasses } from '@/lib/lexical/theme'
 
 export function SearchText ({ text }) {
   return (
@@ -124,8 +125,7 @@ export function TextBody ({ topLevel, children, className, innerClassName, state
 
   const textClassNames = useMemo(() => {
     return classNames(
-      'sn-text',
-      topLevel && 'topLevel',
+      snTextClasses({ topLevel }),
       show ? 'sn-text--uncontained' : overflowing && 'sn-text--contained',
       className
     )

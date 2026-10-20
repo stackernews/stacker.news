@@ -150,7 +150,7 @@ function ToolbarButton ({ id, isActive, onClick, tooltip, children, showDelay = 
   )
 }
 
-export function ToolbarPlugin ({ name, topLevel }) {
+export function ToolbarPlugin ({ name }) {
   const [editor] = useLexicalComposerContext()
   const { batchUpdateToolbarState, toolbarState, updateToolbarState } = useToolbarState()
   const { isMarkdown } = useEditorMode()

@@ -1,5 +1,9 @@
 import { MAX_SEARCH_LENGTH } from '@/lib/constants'
+import { useState, useEffect } from 'react'
 
+// the delay before the lookup is executed
+const DEBOUNCE_MS = 500
+// the minimum length of the text to search
 const MIN_LENGTH = 2
 
 // '' when the text is too short to search
@@ -20,6 +24,28 @@ export function toLookup (scope, text, caret) {
   // otherwise return search mode with the query
   return {
     mode: 'search',
-    text: query
+    text: query,
+    nameQ: nameWords(query),
+    key: `search|${query}`
   }
+}
+
+// the words that could be the name of a stacker or territory
+function nameWords (text) {
+  return text.replace(/"/g, '').split(/\s+/).filter(word => word && !/^([@~]|url:)/.test(word)).join(' ')
+}
+
+// the lookup after a pause in typing, the queries use this one
+export function useDebouncedLookup (lookup) {
+  const [debounced, setDebounced] = useState(lookup)
+  useEffect(() => {
+    // don't wait when there's nothing to look up
+    if (lookup.mode === 'browse') {
+      setDebounced(lookup)
+      return
+    }
+    const timeout = setTimeout(() => setDebounced(lookup), DEBOUNCE_MS)
+    return () => clearTimeout(timeout)
+  }, [lookup.key])
+  return debounced
 }

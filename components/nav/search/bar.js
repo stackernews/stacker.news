@@ -1,4 +1,4 @@
-import cn from 'classnames'
+import { cn } from '@/lib/cn'
 import styles from './search.module.css'
 
 // for onMouseDown on controls around the input: focus stays in the input, so

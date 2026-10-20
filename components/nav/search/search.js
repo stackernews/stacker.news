@@ -7,16 +7,21 @@ import { searchBarClasses, keepFocus } from './bar'
 import { useSearchState } from './state'
 import { Autocomplete } from '@base-ui/react'
 import { searchItem } from './items'
-import { toLookup } from './lookup'
+import { toLookup, useDebouncedLookup } from './lookup'
 import { cn } from '@/lib/cn'
 import CloseIcon from '@/svgs/close-line.svg'
 import { AutocompletePopup } from '@/components/ui/autocomplete'
 import { Results } from './results'
+import { useSearchGroups } from './search-groups'
 
 export default function Search ({ className, open, setOpen }) {
   const router = useRouter()
   const barRef = useRef(null)
   const { text: query, setText: setQuery } = useSearchState()
+
+  const lookup = useMemo(() => toLookup(undefined, query), [query])
+  const debounced = useDebouncedLookup(lookup)
+  const { groups: searchGroups, loading } = useSearchGroups({ lookup, debounced, open })
 
   const onSubmit = useCallback((e) => {
     e.preventDefault()
@@ -28,14 +33,17 @@ export default function Search ({ className, open, setOpen }) {
 
   const onOpenChange = (open) => setOpen(open)
 
-  const lookup = useMemo(() => toLookup(undefined, query), [query])
-
   const searchRows = useMemo(() => {
     if (lookup.mode !== 'search') return []
     return [searchItem(searchHref(lookup.text, router), lookup.text, 'everywhere')]
   }, [lookup, router.pathname, router.query])
 
-  const groups = lookup.mode === 'search' ? [{ value: 'search', items: searchRows }] : []
+  const groups = lookup.mode === 'search'
+    ? [{ value: 'search', items: searchRows }, ...searchGroups]
+    : searchGroups.filter(group => group.value === lookup.type)
+
+  // until the first stackers or territories arrive, a search shows searching…
+  const searching = loading && searchGroups.length === 0
 
   const onPick = () => setOpen(false)
 
@@ -53,7 +61,7 @@ export default function Search ({ className, open, setOpen }) {
       >
         {/* with barRef we're declaring that this is the anchor for the popup (that we're going to pass to Autocomplete.Popup) */}
         <div ref={barRef} className={searchBarClasses({ className })}>
-          <Autocomplete.Input name='q' placeholder='search anything' value={query} onChange={(e) => setQuery(e.target.value)} className={cn(styles.input, 'grow min-w-0')} />
+          <Autocomplete.Input name='q' placeholder='search anything' value={query} onChange={(e) => setQuery(e.target.value)} className={cn(styles.input, 'text-base grow min-w-0')} />
           <span className={cn('shrink-0 flex items-center gap-2', !query && 'invisible')}>
             <span aria-hidden className={cn(styles.divider, 'w-px h-4')} />
             <Autocomplete.Clear keepMounted aria-label='clear search' className={cn(styles.clear, 'flex pointer-coarse:hitbox-8')}>
@@ -62,8 +70,8 @@ export default function Search ({ className, open, setOpen }) {
           </span>
           <button type='submit' className={styles.submit} onMouseDown={keepFocus}>Search</button>
         </div>
-        <AutocompletePopup anchor={barRef} positionMethod='fixed'>
-          <Results lookup={lookup} onPick={onPick} />
+        <AutocompletePopup anchor={barRef} positionMethod='fixed' className='md:min-w-lg'>
+          <Results lookup={lookup} searching={searching} loading={loading} onPick={onPick} />
         </AutocompletePopup>
       </Autocomplete.Root>
     </form>

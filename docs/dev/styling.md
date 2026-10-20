@@ -56,9 +56,9 @@ overrides it, leaving a declaration that has no effect.
 and `[data-theme=light]`; dark values are set on `[data-theme=dark]`. Token names
 use kebab-case.
 
-Use `--sn-focus-ring` for focus styles, with its danger and success variants where
-needed. Apply it with `:focus-visible` so the browser shows it for keyboard focus
-and text entry without adding a focus ring to every click.
+Use --sn-focus-ring for focus styles, with its danger and success variants where needed. Apply it with :focus-visible, which matches keyboard focus and text entry but not a mouse click (e.g. a button doesn't keep a ring after it's pressed).
+
+When a wrapper is styled as the field around a text input, as in the search bar and the multi-select, apply the ring to the wrapper with :focus-within. The wrapper never takes focus itself, and a text input matches :focus-visible on every focus, so the ring appears exactly when the input's would.
 
 `styles/tailwind.css` maps reusable color tokens through `@theme inline`, so
 generated text, background, border, and fill utilities read the live `--sn-*`

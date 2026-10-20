@@ -28,7 +28,7 @@ export default function Layout ({
   const hasSidebar = contain && twoColumns
 
   return (
-    <SearchStateProvider>
+    <SearchStateProvider sub={navSub}>
       {seo && <Seo sub={sub} item={item} user={user} />}
       <Navigation sub={navSub} hideMobileNav={hideMobileNav} containerClassName={widthClassName} />
       {hasSidebar

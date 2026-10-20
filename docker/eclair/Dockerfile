@@ -7,7 +7,7 @@ ENTRYPOINT JAVA_OPTS="${JAVA_OPTS}" eclair-node/bin/eclair-node.sh "-Declair.dat
 #################
 # Builder image #
 #################
-FROM maven:3.8.6-openjdk-11-slim AS builder
+FROM maven:3.9.16-eclipse-temurin-11-noble AS builder
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -33,7 +33,7 @@ RUN mvn package -DskipTests
 # ###############
 # # final image #
 # ###############
-FROM openjdk:11.0.16-jre-slim-bullseye
+FROM eclipse-temurin:11.0.32_9-jre-noble
 WORKDIR /opt
 
 # Add utils

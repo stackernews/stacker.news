@@ -13,6 +13,7 @@ import CloseIcon from '@/svgs/close-line.svg'
 import { AutocompletePopup } from '@/components/ui/autocomplete'
 import { Results } from './results'
 import { useSearchGroups } from './search-groups'
+import SearchIcon from '@/svgs/search-line.svg'
 
 export default function Search ({ className, open, setOpen }) {
   const router = useRouter()
@@ -56,7 +57,7 @@ export default function Search ({ className, open, setOpen }) {
         onOpenChange={onOpenChange}
         openOnInputClick
         mode='none' // disables base ui filtering
-        autoHighlight // highlights the first item when the popup opens, TODO: would be nice if it didn't in BROWSE mode
+        autoHighlight={lookup.mode !== 'browse'} // highlights the first item when the popup opens, but not in browse mode
         keepHighlight
       >
         {/* with barRef we're declaring that this is the anchor for the popup (that we're going to pass to Autocomplete.Popup) */}
@@ -68,10 +69,12 @@ export default function Search ({ className, open, setOpen }) {
               <CloseIcon width={14} height={14} />
             </Autocomplete.Clear>
           </span>
-          <button type='submit' className={styles.submit} onMouseDown={keepFocus}>Search</button>
+          <button type='submit' aria-label='search' className={cn(styles.submit, 'shrink-0 flex')} onMouseDown={keepFocus}>
+            <SearchIcon width={16} height={16} aria-hidden />
+          </button>
         </div>
         <AutocompletePopup anchor={barRef} positionMethod='fixed' className='md:min-w-lg'>
-          <Results lookup={lookup} searching={searching} loading={loading} onPick={onPick} />
+          <Results searching={searching} loading={loading} onPick={onPick} />
         </AutocompletePopup>
       </Autocomplete.Root>
     </form>

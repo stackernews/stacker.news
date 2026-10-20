@@ -16,7 +16,7 @@ import { MaxLengthPlugin } from '@/components/editor/plugins/core/max-length'
 import MentionsPlugin from '@/components/editor/plugins/mentions'
 import FileUploadPlugin from '@/components/editor/plugins/upload'
 import { $setText } from '@/lib/lexical/utils'
-import theme from '@/lib/lexical/theme'
+import theme, { snTextClasses } from '@/lib/lexical/theme'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { HistoryExtension } from '@lexical/history'
 import useCallbackRef from '../use-callback-ref'
@@ -113,7 +113,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
         ...modeConfig.dependencies
       ],
       nodes: modeConfig.nodes,
-      theme: { ...theme, topLevel: topLevel ? 'topLevel' : '' },
+      theme: { ...theme, topLevel: !!topLevel },
       onError: (error) => console.error('editor has encountered an error:', error)
     // only depend on stable values to avoid unnecessary re-renders
     // text.value is, for example, not stable because it is updated by the formik context
@@ -152,17 +152,17 @@ function EditorContent ({
   return (
     <div className={classNames(styles.editorContainer)} data-top-level={topLevel ? 'true' : 'false'}>
       <EditorRefPlugin editorRef={editorRef} />
-      <ToolbarPlugin topLevel={topLevel} name={name} />
+      <ToolbarPlugin name={name} />
       {/* we only need a plain text editor for markdown */}
       <div
-        className={classNames(styles.editor, !isMarkdown && 'sn-text')}
+        className={classNames(styles.editor, !isMarkdown && snTextClasses({ topLevel }))}
         data-lexical-mode={isMarkdown ? 'markdown' : 'rich'}
         ref={onContainerRef}
       >
         <ContentEditable
           translate='no'
           data-sn-editor='true'
-          className={classNames(styles.editorContent, styles.editorContentInput, isMarkdown && 'sn-text')}
+          className={classNames(styles.editorContent, styles.editorContentInput, isMarkdown && snTextClasses({ topLevel }))}
           /* lh is a css unit that is equal to the line height of the element
               probably the worst thing is that we have to add 1 to the minRows to get the correct height
           */

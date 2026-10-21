@@ -2,7 +2,8 @@ import { useCallback, useEffect } from 'react'
 import { useMe } from '@/components/me'
 import { joinScope, splitScope } from '@/lib/search'
 
-// how many entries each list keeps
+// how many entries each list keeps, more than the bar shows because
+// visited territories that aren't active anymore get filtered out
 const MAX_RECENT = 8
 
 // recent entries in local storage, newest first, separate for each account and for logged out

@@ -13,6 +13,7 @@ import CloseIcon from '@/svgs/close-line.svg'
 import { AutocompletePopup } from '@/components/ui/autocomplete'
 import { Results } from './results'
 import { useSearchGroups } from './search-groups'
+import { useBrowseGroups } from './browse-groups'
 import SearchIcon from '@/svgs/search-line.svg'
 
 export default function Search ({ className, open, setOpen }) {
@@ -23,6 +24,7 @@ export default function Search ({ className, open, setOpen }) {
   const lookup = useMemo(() => toLookup(undefined, query), [query])
   const debounced = useDebouncedLookup(lookup)
   const { groups: searchGroups, loading } = useSearchGroups({ lookup, debounced, open })
+  const browseGroups = useBrowseGroups({ open })
 
   const onSubmit = useCallback((e) => {
     e.preventDefault()
@@ -39,9 +41,11 @@ export default function Search ({ className, open, setOpen }) {
     return [searchItem(searchHref(lookup.text, router), lookup.text, 'everywhere')]
   }, [lookup, router.pathname, router.query])
 
-  const groups = lookup.mode === 'search'
-    ? [{ value: 'search', items: searchRows }, ...searchGroups]
-    : searchGroups.filter(group => group.value === lookup.type)
+  const groups = lookup.mode === 'browse'
+    ? browseGroups
+    : lookup.mode === 'search'
+      ? [{ value: 'search', items: searchRows }, ...searchGroups]
+      : searchGroups.filter(group => group.value === lookup.type)
 
   // until the first stackers or territories arrive, a search shows searching…
   const searching = loading && searchGroups.length === 0
@@ -51,6 +55,7 @@ export default function Search ({ className, open, setOpen }) {
   return (
     <form onSubmit={onSubmit}>
       <Autocomplete.Root
+        open={open}
         value={query}
         items={groups}
         onValueChange={setQuery}
@@ -73,7 +78,7 @@ export default function Search ({ className, open, setOpen }) {
             <SearchIcon width={16} height={16} aria-hidden />
           </button>
         </div>
-        <AutocompletePopup anchor={barRef} positionMethod='fixed' className='md:min-w-lg'>
+        <AutocompletePopup anchor={barRef} positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg')}>
           <Results searching={searching} loading={loading} onPick={onPick} />
         </AutocompletePopup>
       </Autocomplete.Root>

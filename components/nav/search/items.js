@@ -6,12 +6,18 @@ import { MEDIA_URL } from '@/lib/constants'
 import { cn } from '@/lib/cn'
 import userStyles from '@/components/user-header.module.css'
 import { abbrNum } from '@/lib/format'
+import { searchHref } from '@/lib/search'
 import SubPreviewCard from '@/components/sub-preview-card'
 import styles from './search.module.css'
 
 // a row that runs the search. after is what comes after the text, like 'in ~bitcoin'
 export function searchItem (href, text, after) {
   return { value: href, type: 'search', label: `search ${text} ${after}`.trim(), title: <>search <b>{text}</b> {after}</> }
+}
+
+// a recent search, without the filters of the page we're on
+export function recentItem (q) {
+  return { value: searchHref(q), type: 'recent', label: q }
 }
 
 export function userItem (user) {
@@ -26,13 +32,14 @@ export function userItem (user) {
   }
 }
 
-export function subItem (sub, meta) {
+export function subItem (sub) {
   return {
     value: `/~${sub.name}`,
     type: 'sub',
     name: sub.name,
     label: `~${sub.name}`,
-    meta,
+    // only the top territories come with what they stacked
+    meta: sub.optional?.stacked != null ? `${abbrNum(sub.optional.stacked)} stacked` : '',
     muted: sub.meMuteSub
   }
 }

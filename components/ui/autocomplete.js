@@ -11,7 +11,7 @@ export function AutocompletePopup ({ side = 'bottom', align = 'start', sideOffse
   return (
     <BaseAutocomplete.Portal>
       <BaseAutocomplete.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} positionMethod={positionMethod} className={popoverStyles.positioner}>
-        <BaseAutocomplete.Popup className={popoverClasses({ className: cn('w-(--anchor-width) max-w-none py-1.5 rounded-md text-base', className) })} {...props}>
+        <BaseAutocomplete.Popup className={popoverClasses({ className: cn('w-(--anchor-width) max-w-none py-0.75 rounded-md text-base', className) })} {...props}>
           {children}
         </BaseAutocomplete.Popup>
       </BaseAutocomplete.Positioner>
@@ -23,8 +23,14 @@ export function AutocompleteList ({ className, ...props }) {
   return <BaseAutocomplete.List className={cn('list-none ps-0 mb-0', className)} {...props} />
 }
 
-export function AutocompleteGroupLabel ({ className, ...props }) {
-  return <BaseAutocomplete.GroupLabel className={cn('px-3 pt-1.5 pb-0.5 text-xs text-muted font-bold', className)} {...props} />
+// action is a button or link at the end of the label
+export function AutocompleteGroupLabel ({ className, action, ...props }) {
+  return (
+    <div role='presentation' className='flex items-center gap-2 px-3 pt-1.5 pb-0.5 text-xs text-muted'>
+      <BaseAutocomplete.GroupLabel className={cn('font-bold', className)} {...props} />
+      {action}
+    </div>
+  )
 }
 
 // label on the left, meta on the right. action is a button for the end of the

@@ -1,5 +1,5 @@
 import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
-import { snFetch } from '@/lib/fetch'
+import { snFetchUntrusted } from '@/lib/fetch'
 import { decodeCursor } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
@@ -17,7 +17,7 @@ import {
   HOMEPAGE_POSTS_SATS_FILTER
 } from '@/lib/constants'
 import { msatsToSats, roundedZapAmounts } from '@/lib/format'
-import uu from 'url-unshort'
+import createUnshortener from '@/lib/unshort'
 import { actSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
@@ -601,7 +601,7 @@ export default {
     pageTitleAndUnshorted: async (parent, { url }, { models }) => {
       const res = {}
       try {
-        const response = await snFetch(url, { protocol: 'http', redirect: 'follow', size: 2 * 1024 * 1024 })
+        const response = await snFetchUntrusted(url, { protocol: 'http', redirect: 'follow', size: 2 * 1024 * 1024 })
         const html = await response.text()
         const doc = domino.createWindow(html).document
         const titleRuleSet = {
@@ -619,7 +619,7 @@ export default {
       } catch { }
 
       try {
-        const unshorted = await uu().expand(url)
+        const unshorted = await createUnshortener().expand(url)
         if (unshorted) {
           res.unshorted = unshorted
         }

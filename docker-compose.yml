@@ -88,6 +88,7 @@ services:
     cpu_shares: "${CPU_SHARES_IMPORTANT}"
   capture:
     container_name: capture
+    platform: linux/amd64
     build:
       context: ./capture
     restart: unless-stopped

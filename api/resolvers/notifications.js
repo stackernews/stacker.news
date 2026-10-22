@@ -118,6 +118,14 @@ export default {
           LIMIT ${LIMIT}::INTEGER`
       )
 
+      const itemVisibility = [
+        Prisma.sql`"Item"."deletedAt" IS NULL`,
+        paidItemSql(me),
+        await filterSql(null, null, null, ctx),
+        muteSql(me),
+        activeOrMineSql(me)
+      ]
+
       // Territory subscriptions
       // Gate the time-ordered item scan on a non-empty subscription set and
       // bound it to the oldest possible territory notification.
@@ -146,7 +154,8 @@ export default {
               Prisma.sql`"Item".created_at < ${decodedCursor.time}::TIMESTAMP`,
               Prisma.sql`"Item".created_at >= "TerritorySubscriptionBounds"."oldestCreatedAt"`,
               Prisma.sql`"Item"."userId" <> ${me.id}::INTEGER`,
-              Prisma.sql`"Item"."parentId" IS NULL`
+              Prisma.sql`"Item"."parentId" IS NULL`,
+              ...itemVisibility
             )}
             ORDER BY "Item".created_at DESC
             LIMIT ${LIMIT}::INTEGER
@@ -193,11 +202,7 @@ export default {
           ) as "Item"
           ${whereSql(
             Prisma.sql`"Item".created_at < ${decodedCursor.time}::TIMESTAMP`,
-            Prisma.sql`"Item"."deletedAt" IS NULL`,
-            paidItemSql(me),
-            await filterSql(null, null, null, ctx),
-            muteSql(me),
-            activeOrMineSql(me))}
+            ...itemVisibility)}
           ORDER BY id ASC, CASE
             WHEN type = 'Mention' THEN 1
             WHEN type = 'Reply' THEN 2

@@ -73,6 +73,28 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
   const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args).catch(err => !isAbortError(err) && console.error(err)), DUPES_DEBOUNCE_MS, [getDupes])
 
   useEffect(() => {
+    if (isEditing) return
+
+    // Input restores drafts and invokes onChange itself. Do not replace that
+    // lookup with one for the query-string URL hidden by the restored draft.
+    if (storageKeyPrefix && window.localStorage.getItem(`${storageKeyPrefix}-url`)) return
+
+    const url = getMeaningfulUrl(initial.url)
+    if (!url) return
+
+    const cancelDupes = getDupesDebounce({ variables: { url } })
+    const hasDraftTitle = !!window.localStorage.getItem('link-title')?.trim()
+    const cancelTitle = !currentTitleRef.current.trim() && !hasDraftTitle
+      ? getPageTitleAndUnshortedDebounce({ variables: { url } })
+      : undefined
+
+    return () => {
+      cancelDupes()
+      cancelTitle?.()
+    }
+  }, [initial.url, isEditing, storageKeyPrefix, getDupesDebounce, getPageTitleAndUnshortedDebounce])
+
+  useEffect(() => {
     if (!dupesLoading) {
       setDupes(dupesData?.dupes)
     }

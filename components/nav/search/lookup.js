@@ -1,4 +1,5 @@
 import { MAX_SEARCH_LENGTH } from '@/lib/constants'
+import { SCOPES } from '@/lib/search'
 import { useState, useEffect } from 'react'
 
 // the delay before the lookup is executed
@@ -12,10 +13,26 @@ function toQuery (text) {
   return query.length >= MIN_LENGTH ? query : ''
 }
 
-// what to show in the search panel. there are two modes:
+// the word the caret is in, and where it starts and ends in the text
+export function wordAt (text, caret) {
+  let start = Math.min(caret, text.length)
+  let end = start
+  while (start > 0 && /\S/.test(text[start - 1])) start--
+  while (end < text.length && /\S/.test(text[end])) end++
+  return { start, end, word: text.slice(start, end) }
+}
+
+// what to show in the search panel. there are three modes:
+// name: the caret is in an @nym or ~territory, only stackers or territories show
 // browse: the text is too short to search
 // search: everything else
 export function toLookup (scope, text, caret) {
+  const { start, end, word } = wordAt(text, caret)
+  const type = SCOPES.find(({ prefix }) => prefix === word[0])?.type
+  if (type) {
+    return { mode: 'name', type, prefix: word[0], name: word.slice(1), start, end, key: `name|${word}` }
+  }
+
   const query = toQuery(text)
 
   // if the text is too short to search, return browse mode

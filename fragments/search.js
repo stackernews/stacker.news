@@ -1,6 +1,7 @@
 import { gql } from '@apollo/client'
 
-// the include flags skip empty lookups, subSuggestions returns every territory for ''
+// the include flags pick stackers, territories or both.
+// for '' subSuggestions returns the first territories by name
 export const NAV_SEARCH_NAMES = gql`
   query navSearchNames($q: String!, $withUsers: Boolean!, $withSubs: Boolean!, $limit: Limit) {
     searchUsers(q: $q, limit: $limit) @include(if: $withUsers) {

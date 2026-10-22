@@ -45,4 +45,25 @@
   border: 1px solid var(--sn-border-color-translucent);
 }
 
+.kbd {
+  font-size: inherit;
+  color: var(--sn-nav-link);
+  background-color: transparent;
+  border: 1px solid var(--sn-border-color-translucent);
+}
+
+.footer {
+  background-color: var(--sn-comment-bg);
+  border-top: 1px solid var(--sn-border-color-translucent);
+}
+
+/* a button or link in a group's label or the footer */
+.action {
+  color: inherit;
+}
+
+.action:active {
+  color: var(--sn-nav-link-active);
+}
+
 }

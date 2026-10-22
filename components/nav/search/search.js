@@ -5,12 +5,11 @@ import { useRouter } from 'next/router'
 import styles from './search.module.css'
 import { searchBarClasses, keepFocus } from './bar'
 import { useSearchState } from './state'
-import { Autocomplete } from '@base-ui/react'
 import { searchItem } from './items'
 import { toLookup, useDebouncedLookup } from './lookup'
 import { cn } from '@/lib/cn'
 import CloseIcon from '@/svgs/close-line.svg'
-import { AutocompletePopup } from '@/components/ui/autocomplete'
+import { Autocomplete, AutocompletePopup } from '@/components/ui/autocomplete'
 import { Results, Footer, emptyText } from './results'
 import { useSearchGroups } from './search-groups'
 import { useBrowseGroups } from './browse-groups'
@@ -44,10 +43,9 @@ export default function Search ({ className, open, setOpen }) {
     setCaret(inputRef.current?.selectionStart ?? value.length)
   }
 
-  const searchRows = useMemo(() => {
-    if (lookup.mode !== 'search') return []
-    return [searchItem(searchHref(lookup.text, router), lookup.text, 'everywhere')]
-  }, [lookup, router.pathname, router.query])
+  const searchRows = lookup.mode === 'search'
+    ? [searchItem(searchHref(lookup.text, router), lookup.text, 'everywhere')]
+    : []
 
   const groups = lookup.mode === 'browse'
     ? browseGroups

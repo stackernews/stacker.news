@@ -14,7 +14,7 @@ import { navSubFromPath } from '@/lib/navigation'
 import { useQuery } from '@apollo/client/react'
 import { ACTIVE_SUBS } from '@/fragments/subs'
 import useDesktopSidebar from './use-desktop-sidebar'
-import { SearchStateProvider } from './nav/search'
+import { SearchStateProvider, useRememberHistory } from './nav/search'
 
 export default function Layout ({
   sub, contain = true, twoColumns = false, sidebar = null, footer = true, footerLinks = true,
@@ -23,6 +23,7 @@ export default function Layout ({
   const router = useRouter()
   const { data } = useQuery(ACTIVE_SUBS, { fetchPolicy: 'cache-only' })
   const navSub = navSubFromPath(router.asPath, sub, data?.activeSubs)
+  useRememberHistory(navSub)
   const desktopSidebar = useDesktopSidebar()
   const widthClassName = twoColumns ? 'lg:max-w-[1024px]' : ''
   const hasSidebar = contain && twoColumns

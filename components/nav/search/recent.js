@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import { useMe } from '@/components/me'
-import { joinScope, splitScope } from '@/lib/search'
+import { joinScope, splitScope, SEARCH_PATH } from '@/lib/search'
 
 // how many entries each list keeps, more than the bar shows because
 // visited territories that aren't active anymore get filtered out
@@ -44,14 +45,14 @@ export const useRecentSubs = () => useRecent('recentTerritories')
 // recent search queries, with their ~territory and @stacker
 export const useRecentSearches = () => useRecent('recentSearches')
 
-export function useRememberSub (sub) {
+function useRememberSub (sub) {
   const { addRecent } = useRecentSubs()
   useEffect(() => {
     if (sub) addRecent(sub)
   }, [sub, addRecent])
 }
 
-export function useRememberSearch (q) {
+function useRememberSearch (q) {
   const { addRecent } = useRecentSearches()
   useEffect(() => {
     if (!q) return
@@ -60,4 +61,12 @@ export function useRememberSearch (q) {
     const search = joinScope(scope, text)
     if (search) addRecent(search)
   }, [q, addRecent])
+}
+
+// remembers the territory in the URL and the searches made on /search
+export function useRememberHistory (sub) {
+  const router = useRouter()
+  const q = router.pathname === SEARCH_PATH && typeof router.query.q === 'string' ? router.query.q : undefined
+  useRememberSub(sub)
+  useRememberSearch(q)
 }

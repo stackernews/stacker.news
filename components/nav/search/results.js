@@ -1,5 +1,4 @@
-import { AutocompleteList, AutocompleteGroupLabel, AutocompleteTiles, autocompleteStatusClasses } from '@/components/ui/autocomplete'
-import { Autocomplete } from '@base-ui/react'
+import { Autocomplete, AutocompleteList, AutocompleteGroupLabel, AutocompleteTiles, autocompleteStatusClasses } from '@/components/ui/autocomplete'
 import Link from 'next/link'
 import { cn } from '@/lib/cn'
 import { Row, Tile } from './items'

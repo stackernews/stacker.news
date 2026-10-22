@@ -43,7 +43,7 @@ function useLastData (data, kind) {
 export function useSearchGroups ({ lookup, debounced, open }) {
   const variables = namesQuery(debounced)
 
-  // only the open bar runs the query, there's more than one bar on the page
+  // the query runs only while the bar is open
   const names = useQuery(NAV_SEARCH_NAMES, { variables, skip: !open || !variables })
   const data = useLastData(names.data, variables && (debounced.type ?? 'search'))
 

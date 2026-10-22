@@ -75,11 +75,10 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
   useEffect(() => {
     if (isEditing) return
 
-    // Input restores drafts and invokes onChange itself. Do not replace that
-    // lookup with one for the query-string URL hidden by the restored draft.
-    if (storageKeyPrefix && window.localStorage.getItem(`${storageKeyPrefix}-url`)) return
-
-    const url = getMeaningfulUrl(initial.url)
+    // Match Input's draft precedence. Schedule after the debounce hook's
+    // initialization effect, which can cancel the child's restored lookup.
+    const draftUrl = storageKeyPrefix && window.localStorage.getItem(`${storageKeyPrefix}-url`)
+    const url = getMeaningfulUrl(draftUrl || initial.url)
     if (!url) return
 
     const cancelDupes = getDupesDebounce({ variables: { url } })

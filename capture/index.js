@@ -2,7 +2,7 @@ import express from 'express'
 import puppeteer from 'puppeteer-core'
 import mediaCheck from './media-check.js'
 import cors from 'cors'
-import { resolveCaptureUrl } from './resolve-url.js'
+import { CaptureUrlError, resolveCaptureUrl } from './resolve-url.js'
 
 const captureUrl = process.env.CAPTURE_URL || 'http://host.docker.internal:3000/'
 const captureBaseUrl = new URL(captureUrl)
@@ -370,9 +370,11 @@ app.get('/*', async (req, res) => {
   let url
   try {
     url = await resolveCaptureUrl(req.originalUrl, captureBaseUrl)
-  } catch {
+  } catch (err) {
+    const status = err instanceof CaptureUrlError ? err.status : 503
     res.setHeader('Cache-Control', 'no-store')
-    return res.status(400).end()
+    if (status === 503) res.setHeader('Retry-After', '1')
+    return res.status(status).end()
   }
   const timeLabel = `${Date.now()}-${++captureCount}-${url.href}`
   if (isAssetPath(url.pathname)) {

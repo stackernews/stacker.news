@@ -35,7 +35,7 @@ test('real HTTP lookup does not follow even a same-server redirect', async () =>
       res.end(JSON.stringify({ domain: 'example.com' }))
     }
   }, async base => {
-    await assert.rejects(resolveCaptureUrl('/example.com/items/123', base))
+    await assert.rejects(resolveCaptureUrl('/example.com/items/123', base), { status: 503 })
     assert.equal(redirectedRequests, 0)
   })
 })
@@ -43,7 +43,7 @@ test('real HTTP lookup does not follow even a same-server redirect', async () =>
 test('real inactive-domain and service-error responses reject navigation', async () => {
   for (const status of [404, 503]) {
     await withServer((_req, res) => res.writeHead(status).end(), async base => {
-      await assert.rejects(resolveCaptureUrl('/example.com/items/123', base))
+      await assert.rejects(resolveCaptureUrl('/example.com/items/123', base), { status: status === 404 ? 400 : 503 })
     })
   }
 })

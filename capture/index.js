@@ -2,6 +2,7 @@ import express from 'express'
 import puppeteer from 'puppeteer-core'
 import mediaCheck from './media-check.js'
 import cors from 'cors'
+import { resolveCaptureUrl } from './resolve-url.js'
 
 const captureUrl = process.env.CAPTURE_URL || 'http://host.docker.internal:3000/'
 const captureBaseUrl = new URL(captureUrl)
@@ -253,6 +254,24 @@ async function captureImage (url, timeLabel) {
     captureBrowser = await getBrowser()
     page = await captureBrowser.newPage()
     console.timeLog(timeLabel, 'page created')
+    // A validated custom domain must not redirect the renderer elsewhere.
+    if (url.origin !== captureBaseUrl.origin) {
+      await page.setRequestInterception(true)
+      page.on('request', request => {
+        if (request.isNavigationRequest() && request.frame() === page.mainFrame()) {
+          try {
+            if (new URL(request.url()).origin !== url.origin) {
+              request.abort().catch(console.error)
+              return
+            }
+          } catch {
+            request.abort().catch(console.error)
+            return
+          }
+        }
+        request.continue().catch(console.error)
+      })
+    }
     await addCaptureCleanupScript(page)
     await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }])
     console.timeLog(timeLabel, 'navigating')
@@ -348,12 +367,14 @@ app.get('/media/:url', cors({
 }), mediaCheck)
 
 app.get('/*', async (req, res) => {
-  const url = new URL(req.originalUrl, captureBaseUrl)
-  const timeLabel = `${Date.now()}-${++captureCount}-${url.href}`
-  if (url.origin !== captureBaseUrl.origin) {
+  let url
+  try {
+    url = await resolveCaptureUrl(req.originalUrl, captureBaseUrl)
+  } catch {
     res.setHeader('Cache-Control', 'no-store')
     return res.status(400).end()
   }
+  const timeLabel = `${Date.now()}-${++captureCount}-${url.href}`
   if (isAssetPath(url.pathname)) {
     res.setHeader('Cache-Control', 'no-store')
     return res.status(404).end()

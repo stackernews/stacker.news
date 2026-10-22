@@ -2,13 +2,13 @@ import { AutocompleteItem, AutocompleteTile } from '@/components/ui/autocomplete
 import Link from 'next/link'
 import SearchIcon from '@/svgs/search-line.svg'
 import HistoryIcon from '@/svgs/history-line.svg'
-import { MEDIA_URL } from '@/lib/constants'
 import { cn } from '@/lib/cn'
 import userStyles from '@/components/user-header.module.css'
 import { abbrNum } from '@/lib/format'
 import { searchHref } from '@/lib/search'
 import SubPreviewCard from '@/components/sub-preview-card'
 import styles from './search.module.css'
+import { avatarSrc } from '@/lib/user'
 
 // a row that runs the search. after is what comes after the text, like 'in ~bitcoin'
 export function searchItem (href, text, after) {
@@ -52,7 +52,7 @@ function RowIcon ({ item }) {
     case 'search':
       return <SearchIcon {...iconProps} />
     case 'user': {
-      const src = item.photoId ? `${MEDIA_URL}/${item.photoId}` : '/dorian400.jpg'
+      const src = avatarSrc(item.photoId)
       return <img src={src} alt='' width={16} height={16} className={cn(userStyles.userimg, 'shrink-0 self-center')} />
     }
     default:

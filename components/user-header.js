@@ -29,9 +29,8 @@ import NostrIcon from '@/svgs/nostr.svg'
 import GithubIcon from '@/svgs/github-fill.svg'
 import TwitterIcon from '@/svgs/twitter-fill.svg'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
+import { avatarSrc } from '@/lib/user'
 import ItemPreviewCard from './item-preview-card'
-
-const MEDIA_URL = process.env.NEXT_PUBLIC_MEDIA_URL || `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}`
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
@@ -93,7 +92,7 @@ function HeaderPhoto ({ user, isMe }) {
       }
     }
   )
-  const src = user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'
+  const src = avatarSrc(user.photoId)
 
   return (
     <div className='relative self-start w-fit'>

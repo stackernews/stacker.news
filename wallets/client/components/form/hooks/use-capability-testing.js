@@ -6,7 +6,7 @@ import { useSingleFlight } from '@/components/use-single-flight'
 import { useProtocolStatus, useTestDispatch, useWallet } from './context'
 import { draftHash, draftConfig } from './draft'
 import { validateCapability } from './validation'
-import { firstValidationError, testErrorDetails } from '../test-status'
+import { firstValidationError, testErrorDetails } from '../capability-test-status'
 import { TestStatus } from './tests'
 
 export function useCapabilityTest (protocol) {

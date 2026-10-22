@@ -6,7 +6,7 @@ import AccordianItem from '@/components/accordian-item'
 import { isTemplate, protocolFields, protocolKey, protocolLogName } from '@/wallets/lib/util'
 import { useFormikContext } from 'formik'
 import { useProtocolStatus } from './hooks/context'
-import { hasEmptyRequiredField } from './test-status'
+import { hasEmptyRequiredField } from './capability-test-status'
 import { TestStatus } from './hooks/tests'
 import ClipboardIcon from '@/svgs/clipboard-line.svg'
 const styles = { ...sharedStyles, ...testUiStyles }

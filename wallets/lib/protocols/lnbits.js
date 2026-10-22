@@ -1,5 +1,5 @@
 import { hexValidator, urlValidator } from '@/wallets/lib/validate'
-import { snFetchUntrusted } from '@/lib/fetch'
+import { snFetch } from '@/lib/fetch'
 import { assertContentTypeJson } from '@/lib/url'
 import { assertWalletAuthorized, WalletPermissionsError } from '@/wallets/lib/errors'
 
@@ -73,7 +73,7 @@ export async function lnbitsRequest ({
   headers.append('Content-Type', 'application/json')
   headers.append('X-Api-Key', apiKey)
 
-  const res = await snFetchUntrusted(url, {
+  const res = await snFetch(url, {
     path,
     protocol,
     method,

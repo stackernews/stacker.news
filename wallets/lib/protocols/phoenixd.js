@@ -1,6 +1,6 @@
 import { urlValidator } from '@/wallets/lib/validate'
 import { string } from '@/lib/yup'
-import { snFetchUntrusted } from '@/lib/fetch'
+import { snFetch } from '@/lib/fetch'
 import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 import { assertWalletAuthorized } from '@/wallets/lib/errors'
 
@@ -87,7 +87,7 @@ export async function phoenixdRequest ({
   headers.set('Authorization', 'Basic ' + Buffer.from(':' + apiKey).toString('base64'))
   if (body) headers.set('Content-Type', 'application/x-www-form-urlencoded')
 
-  const res = await snFetchUntrusted(url, {
+  const res = await snFetch(url, {
     path,
     method,
     headers,

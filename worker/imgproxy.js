@@ -2,7 +2,7 @@ import { extractUrls } from '@/lib/md'
 import { isJob } from '@/lib/item'
 import { decodeProxyUrl } from '@/lib/url'
 import { imgProxyEnabled, createImgproxyPath } from '@/lib/imgproxy'
-import { snFetchUntrusted } from '@/lib/fetch'
+import { snFetch } from '@/lib/fetch'
 
 if (!imgProxyEnabled) {
   console.warn('IMGPROXY_* env vars not set, imgproxy calls are no-ops now')
@@ -152,8 +152,7 @@ const isMediaURL = async (url, { forceFetch }) => {
   // fallback: first run HEAD with small timeout
   try {
     // https://stackoverflow.com/a/68118683
-    // node-fetch rewrites HEAD to GET on a 303, so disable decompression here too.
-    const res = await snFetchUntrusted(url, { timeout: 1000, method: 'HEAD' })
+    const res = await snFetch(url, { timeout: 1000, method: 'HEAD' })
     const type = (res.headers.get('content-type') ?? '').toLowerCase()
     isMedia = type.startsWith('image/') || type.startsWith('video/')
   } catch (err) {
@@ -169,7 +168,7 @@ const isMediaURL = async (url, { forceFetch }) => {
 
   // if not known yet, run GET request with longer timeout
   try {
-    const res = await snFetchUntrusted(url, { timeout: 10000 })
+    const res = await snFetch(url, { timeout: 10000 })
     const type = (res.headers.get('content-type') ?? '').toLowerCase()
     res.body?.destroy?.() // we only needed the header; release the socket
     isMedia = type.startsWith('image/') || type.startsWith('video/')

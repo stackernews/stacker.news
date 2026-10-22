@@ -104,12 +104,16 @@ export async function topSubs (parent, { query, cursor, when, from, to, limit, b
 export default {
   Query: {
     sub: getSub,
-    subSuggestions: async (parent, { q, limit }, { models }) => {
+    subSuggestions: async (parent, { q, limit }, { models, me, userLoader }) => {
+      const currentUser = me ? await userLoader.load(me.id) : null
+      const showNsfw = currentUser ? currentUser.nsfwMode : false
+
       let subs = []
       subs = await models.$queryRaw`
           SELECT name
           FROM "Sub"
           WHERE status IN ('ACTIVE', 'GRACE')
+          ${showNsfw ? Prisma.empty : Prisma.sql`AND nsfw = FALSE`}
           ${q ? Prisma.sql`AND SIMILARITY(name, ${q}) > 0.1` : Prisma.empty}
           ${q ? Prisma.sql`ORDER BY SIMILARITY(name, ${q}) DESC` : Prisma.sql`ORDER BY name ASC`}
           LIMIT ${limit}`

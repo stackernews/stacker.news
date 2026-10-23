@@ -1,6 +1,6 @@
 import { Nav, Navbar } from '@/components/ui/nav'
-import { Back, Brand, PostItem, RightCorner, SearchItem, Sorts } from './common'
-import SearchBar from './search'
+import { Back, Brand, PostItem, RightCorner, Sorts } from './common'
+import SearchBar, { MobileSearchBar } from './search'
 import { useBranding } from '@/components/territory-branding'
 import { CommentsNavigator } from '@/components/use-comments-navigator'
 import { cn } from '@/lib/cn'
@@ -15,8 +15,10 @@ export default function NavigationRow ({ prefix, topNavKey, dropNavKey }) {
         <Back className='me-0 shrink-0 md:hidden' />
         <div className='max-md:contents md:flex md:min-w-0 md:flex-1 md:items-center md:gap-1 lg:gap-2'>
           <Brand className={cn('shrink-0', !branding && 'hidden md:block')} />
-          {/* phones link to the search page, the bar takes over from md up */}
-          <SearchItem className='shrink-0 px-1 md:hidden' />
+          {/* mobile opens the search full screen, the bar takes over from md up */}
+          <div className='flex min-w-0 grow md:hidden'>
+            <MobileSearchBar />
+          </div>
           <div className='hidden min-w-0 md:block'>
             <SearchBar className='min-w-8' />
           </div>

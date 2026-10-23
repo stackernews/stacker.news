@@ -66,6 +66,17 @@
   border-top: 1px solid var(--sn-border-color-translucent);
 }
 
+/* the full screen search on phones */
+.dialog {
+  background-color: var(--sn-body-bg);
+  outline: 0;
+}
+
+/* the footer matches the safe area below it */
+.dialog .footer {
+  background-color: var(--sn-body-bg);
+}
+
 /* a button or link in a group's label or the footer */
 .action {
   color: inherit;

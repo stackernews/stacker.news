@@ -81,14 +81,15 @@ export function Results ({ searching, loading, empty, onPick, canScope, onScope 
   )
 }
 
-// what the keys do, and buttons that type ~ or @. tabHint is what tab does
-export function Footer ({ mode, tabHint, onPick, onPrefix, className }) {
+// what the keys do, and buttons that type ~ or @. tabHint is what tab does,
+// keyHints false leaves out what the keys do
+export function Footer ({ mode, tabHint, keyHints = true, onPick, onPrefix, className }) {
   return (
     // side by side when there's room, stacked when not
     <div className={cn(styles.footer, 'flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-xs text-muted', className)}>
       {mode === 'browse' && <Link href='/territory' className={cn(styles.action, 'whitespace-nowrap')} onMouseDown={keepFocus} onClick={() => onPick()}>create a territory</Link>}
-      {mode === 'search' && <span className='whitespace-nowrap'>press <Kbd>↵</Kbd> for all results</span>}
-      {tabHint && <span className='whitespace-nowrap'><Kbd>tab</Kbd> {tabHint}</span>}
+      {keyHints && mode === 'search' && <span className='whitespace-nowrap'>press <Kbd>↵</Kbd> for all results</span>}
+      {keyHints && tabHint && <span className='whitespace-nowrap'><Kbd>tab</Kbd> {tabHint}</span>}
       <span className='ms-auto whitespace-nowrap'>
         <PrefixHint prefix='~' onPrefix={onPrefix}>territories</PrefixHint> <PrefixHint prefix='@' onPrefix={onPrefix}>stackers</PrefixHint>
       </span>

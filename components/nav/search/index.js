@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Search from './search'
 
+export { MobileSearchBar } from './mobile'
 export { SearchStateProvider } from './state'
 export { useRememberHistory } from './recent'
 

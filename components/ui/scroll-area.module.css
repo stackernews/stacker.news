@@ -1,0 +1,26 @@
+@layer components {
+
+/* --scroll-area-overflow-y-end is how far is left to scroll, so the fade
+   shrinks to nothing at the end */
+.fade {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - min(1.5rem, var(--scroll-area-overflow-y-end))), transparent);
+}
+
+/* shows while the pointer is over the box or it scrolls */
+.scrollbar {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease-in-out;
+}
+
+.scrollbar[data-hovering],
+.scrollbar[data-scrolling] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.thumb {
+  background-color: var(--sn-border-color);
+}
+
+}

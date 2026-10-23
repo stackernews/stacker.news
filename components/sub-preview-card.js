@@ -8,7 +8,7 @@ import { TerritoryInfo, TerritoryInfoSkeleton } from './territory-header'
 import { truncateString } from '@/lib/format'
 import { useCallback } from 'react'
 
-export default function SubPreviewCard ({ sub, children }) {
+export default function SubPreviewCard ({ sub, children, side, triggerClassName }) {
   const [execute, { loading, data }] = useLazyQuery(
     SUB_FULL,
     {
@@ -23,6 +23,8 @@ export default function SubPreviewCard ({ sub, children }) {
   return (
     <PreviewCard
       onShow={getSub}
+      side={side}
+      triggerClassName={triggerClassName}
       trigger={children}
       body={!data || loading
         ? <TerritoryInfoSkeleton />

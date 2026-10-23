@@ -7,9 +7,9 @@
 .popup {
   /* anchors the arrow */
   position: relative;
-  background-color: var(--sn-body-bg);
+  background-color: var(--sn-popover-bg, var(--sn-body-bg));
   color: var(--sn-body-color);
-  border: 1px solid var(--sn-border-color);
+  border: 1px solid var(--sn-popover-border-color, var(--sn-border-color));
 }
 
 .header {

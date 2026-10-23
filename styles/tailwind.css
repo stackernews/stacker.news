@@ -77,6 +77,19 @@
   padding-right: max(1rem, env(safe-area-inset-right));
 }
 
+/* makes the clickable area of a small control at least the given size, e.g. hitbox-11 is 44px.
+   use pointer-coarse:hitbox-11 to apply it on touch screens only.
+   the extra area overlaps nearby elements */
+@utility hitbox-* {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: min(0px, (100% - --spacing(--value(number))) / 2);
+  }
+}
+
 /* z-index has no theme namespace, so the ladder steps utilities need are written out */
 @utility z-sticky {
   z-index: var(--sn-z-sticky);

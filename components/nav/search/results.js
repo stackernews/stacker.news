@@ -37,8 +37,9 @@ function PrefixHint ({ prefix, onPrefix, children }) {
   )
 }
 
-// empty is the text shown when the list has no rows
-export function Results ({ searching, loading, empty, onPick }) {
+// empty is the text shown when the list has no rows. the rows and tiles that
+// canScope get an arrow button that calls onScope
+export function Results ({ searching, loading, empty, onPick, canScope, onScope }) {
   return (
     <>
       <Autocomplete.Status>
@@ -47,7 +48,8 @@ export function Results ({ searching, loading, empty, onPick }) {
       <Autocomplete.Empty>
         {empty && !loading && <div className={autocompleteStatusClasses()}>{empty}</div>}
       </Autocomplete.Empty>
-      <AutocompleteList>
+      {/* --scope is the width of the arrow buttons */}
+      <AutocompleteList className='[--scope:--spacing(11)] md:[--scope:--spacing(9)]'>
         {group => (
           <Autocomplete.Group key={group.value} items={group.items} className='not-first:mt-1.5'>
             {group.label && (
@@ -61,15 +63,15 @@ export function Results ({ searching, loading, empty, onPick }) {
             )}
             {group.layout === 'tiles'
               ? (
-                <AutocompleteTiles className='grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(6rem,1fr))]'>
+                <AutocompleteTiles className='grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(6rem,1fr))] md:[--scope:--spacing(8)]'>
                   <Autocomplete.Collection>
-                    {item => <Tile key={item.value} item={item} onPick={onPick} />}
+                    {item => <Tile key={item.value} item={item} onPick={onPick} onScope={canScope(item) ? onScope : undefined} />}
                   </Autocomplete.Collection>
                 </AutocompleteTiles>
                 )
               : (
                 <Autocomplete.Collection>
-                  {item => <Row key={item.value} item={item} onPick={onPick} />}
+                  {item => <Row key={item.value} item={item} onPick={onPick} onScope={canScope(item) ? onScope : undefined} />}
                 </Autocomplete.Collection>
                 )}
           </Autocomplete.Group>
@@ -79,13 +81,14 @@ export function Results ({ searching, loading, empty, onPick }) {
   )
 }
 
-// what the keys do, and buttons that type ~ or @
-export function Footer ({ mode, onPick, onPrefix, className }) {
+// what the keys do, and buttons that type ~ or @. tabHint is what tab does
+export function Footer ({ mode, tabHint, onPick, onPrefix, className }) {
   return (
     // side by side when there's room, stacked when not
     <div className={cn(styles.footer, 'flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-xs text-muted', className)}>
       {mode === 'browse' && <Link href='/territory' className={cn(styles.action, 'whitespace-nowrap')} onMouseDown={keepFocus} onClick={() => onPick()}>create a territory</Link>}
       {mode === 'search' && <span className='whitespace-nowrap'>press <Kbd>↵</Kbd> for all results</span>}
+      {tabHint && <span className='whitespace-nowrap'><Kbd>tab</Kbd> {tabHint}</span>}
       <span className='ms-auto whitespace-nowrap'>
         <PrefixHint prefix='~' onPrefix={onPrefix}>territories</PrefixHint> <PrefixHint prefix='@' onPrefix={onPrefix}>stackers</PrefixHint>
       </span>

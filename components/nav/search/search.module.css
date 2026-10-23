@@ -22,8 +22,14 @@
   background-color: var(--sn-border-color-translucent);
 }
 
-.clear {
+.clear,
+.scope {
   color: var(--sn-grey);
+}
+
+.scope:hover,
+.scope:active {
+  color: var(--sn-nav-link-active);
 }
 
 .chip {

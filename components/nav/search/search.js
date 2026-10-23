@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState } from 'react'
+import { useEffect, useRef, useMemo, useState } from 'react'
 import { joinScope, searchHref, splitScope } from '@/lib/search'
 import { MAX_SEARCH_LENGTH } from '@/lib/constants'
 import { useRouter } from 'next/router'
@@ -40,7 +40,6 @@ export default function Search ({ className, open, setOpen }) {
   const debounced = useDebouncedLookup(lookup)
   const { groups: searchGroups, loading } = useSearchGroups({ lookup, debounced, open })
   const browseGroups = useBrowseGroups({ open })
-  const { addPrefix, removeScope } = useScopeEditing({ setCaret, inputRef })
 
   // the chips and the text as one query
   const q = joinScope(scope, text).slice(0, MAX_SEARCH_LENGTH)
@@ -71,6 +70,16 @@ export default function Search ({ className, open, setOpen }) {
       ? [{ value: 'search', items: toSearchRows({ q, scope, text: lookup.text, router }) }, ...searchGroups]
       : searchGroups
 
+  const {
+    addPrefix, addScope, removeScope, canScope, onKeyDown, tabHint, onItemHighlighted, items
+  } = useScopeEditing({ lookup, groups, open, setCaret, inputRef })
+
+  // puts the caret where setCaret put it, after the text changed from code
+  useEffect(() => {
+    const input = inputRef.current
+    if (caret !== null && input.selectionStart !== caret) input.setSelectionRange(caret, caret)
+  }, [text, caret])
+
   // until the first stackers or territories arrive, searching… shows
   const searching = loading && searchGroups.length === 0
 
@@ -86,9 +95,10 @@ export default function Search ({ className, open, setOpen }) {
       <Autocomplete.Root
         open={open}
         value={text}
-        items={groups}
+        items={items}
         onValueChange={onValueChange}
         onOpenChange={onOpenChange}
+        onItemHighlighted={onItemHighlighted}
         openOnInputClick
         mode='none' // disables base ui filtering
         // highlights the first item, also when the items arrive after typing. nothing in browse mode
@@ -104,6 +114,7 @@ export default function Search ({ className, open, setOpen }) {
             placeholder='search anything'
             // the chips keep their width and the input takes the rest
             className={cn(styles.input, 'text-base grow basis-0 min-w-16')}
+            onKeyDown={onKeyDown}
             onSelect={e => setCaret(e.currentTarget.selectionStart)}
             onBlur={() => setCaret(null)}
           />
@@ -121,9 +132,9 @@ export default function Search ({ className, open, setOpen }) {
             the results scroll and the footer stays at the bottom */}
         <AutocompletePopup anchor={barRef} positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg pb-0 overflow-hidden flex flex-col max-h-[min(24rem,var(--available-height))]')}>
           <ScrollArea fade tabIndex={-1}>
-            <Results searching={searching} loading={loading} empty={emptyText(lookup)} onPick={onPick} />
+            <Results searching={searching} loading={loading} empty={emptyText(lookup)} onPick={onPick} canScope={canScope} onScope={addScope} />
           </ScrollArea>
-          <Footer mode={lookup.mode} onPick={onPick} onPrefix={addPrefix} className='mt-3 shrink-0' />
+          <Footer mode={lookup.mode} tabHint={tabHint} onPick={onPick} onPrefix={addPrefix} className='mt-3 shrink-0' />
         </AutocompletePopup>
       </Autocomplete.Root>
     </form>

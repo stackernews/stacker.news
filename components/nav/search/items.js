@@ -2,6 +2,7 @@ import { AutocompleteItem, AutocompleteTile } from '@/components/ui/autocomplete
 import Link from 'next/link'
 import SearchIcon from '@/svgs/search-line.svg'
 import HistoryIcon from '@/svgs/history-line.svg'
+import ScopeArrow from '@/svgs/arrow-left-up-line.svg'
 import { cn } from '@/lib/cn'
 import userStyles from '@/components/user-header.module.css'
 import { abbrNum } from '@/lib/format'
@@ -9,6 +10,8 @@ import { searchHref } from '@/lib/search'
 import SubPreviewCard from '@/components/sub-preview-card'
 import styles from './search.module.css'
 import { avatarSrc } from '@/lib/user'
+import { keepFocus } from './bar'
+import { scopeHint } from './lookup'
 
 // a row that runs the search. after is what comes after the text, like 'in ~bitcoin'
 export function searchItem (href, text, after) {
@@ -69,12 +72,33 @@ function RowText ({ item }) {
   )
 }
 
-export function Row ({ item, onPick }) {
+// makes the row's stacker or territory a chip. its width is --scope, set on the list
+function ScopeButton ({ item, onScope }) {
+  const label = scopeHint(item)
+  return (
+    <button
+      type='button'
+      tabIndex={-1}
+      aria-label={label}
+      title={label}
+      className={cn(styles.scope, 'absolute inset-y-0 end-0 w-(--scope) flex items-center justify-center')}
+      onMouseDown={keepFocus}
+      onClick={() => onScope(item)}
+    >
+      <ScopeArrow width={16} height={16} aria-hidden />
+    </button>
+  )
+}
+
+// onScope gives the row an arrow button
+export function Row ({ item, onPick, onScope }) {
   return (
     <AutocompleteItem
       value={item}
       render={<Link href={item.value} />}
       onClick={() => onPick(item)}
+      className={onScope && 'pe-(--scope)'}
+      action={onScope && <ScopeButton item={item} onScope={onScope} />}
     >
       <RowIcon item={item} />
       <RowText item={item} />
@@ -82,17 +106,18 @@ export function Row ({ item, onPick }) {
   )
 }
 
-// a territory
-export function Tile ({ item, onPick }) {
+// a territory. onScope gives it an arrow button
+export function Tile ({ item, onPick, onScope }) {
   return (
     <AutocompleteTile
       value={item}
       render={<Link href={item.value} />}
       onClick={() => onPick(item)}
       className={item.muted && styles.muted}
+      action={onScope && <ScopeButton item={item} onScope={onScope} />}
     >
       {/* the padding is on the preview card so hovering anywhere on the tile opens it */}
-      <SubPreviewCard sub={item.name} triggerClassName='flex flex-col gap-0.5 min-w-0 py-2.5 px-3'>
+      <SubPreviewCard sub={item.name} triggerClassName={cn('flex flex-col gap-0.5 min-w-0 py-2.5 px-3', onScope && 'pe-(--scope)')}>
         <span className='truncate text-sm font-bold'>{item.label}</span>
         <span className='text-xs text-muted'>{item.meta}</span>
       </SubPreviewCard>

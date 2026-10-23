@@ -52,6 +52,11 @@ export function scopeWords ({ sub, user }) {
   return [sub && `in ~${sub}`, user && `by @${user}`].filter(Boolean).join(' ')
 }
 
+// what making a stacker or territory a chip does, like 'search in ~bitcoin'
+export function scopeHint (item) {
+  return `search ${scopeWords({ [item.type]: item.name })}`
+}
+
 // the words that could be the name of a stacker or territory
 function nameWords (text) {
   return text.replace(/"/g, '').split(/\s+/).filter(word => word && !/^([@~]|url:)/.test(word)).join(' ')

@@ -26,7 +26,7 @@ export function wordAt (text, caret) {
 // name: the caret is in an @nym or ~territory, only stackers or territories show
 // browse: the text is too short to search
 // search: everything else
-export function toLookup (scope, text, caret) {
+export function toLookup (text, caret) {
   const { start, end, word } = wordAt(text, caret)
   const type = SCOPES.find(({ prefix }) => prefix === word[0])?.type
   if (type) {
@@ -45,6 +45,11 @@ export function toLookup (scope, text, caret) {
     nameQ: nameWords(query),
     key: `search|${query}`
   }
+}
+
+// the chips in words, like 'in ~bitcoin by @k00b'
+export function scopeWords ({ sub, user }) {
+  return [sub && `in ~${sub}`, user && `by @${user}`].filter(Boolean).join(' ')
 }
 
 // the words that could be the name of a stacker or territory

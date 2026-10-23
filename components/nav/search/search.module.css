@@ -26,6 +26,10 @@
   color: var(--sn-grey);
 }
 
+.chip {
+  background-color: var(--sn-toolbar-active);
+}
+
 .submit {
   color: var(--sn-nav-link);
 }

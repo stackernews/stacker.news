@@ -7,9 +7,9 @@ export function appendPrefix (text, prefix) {
   return before ? `${before} ${prefix}` : prefix
 }
 
-// changes to the text that start a ~territory or @nym lookup
+// adds a ~ or @ to the text, and removes chips
 export function useScopeEditing ({ setCaret, inputRef }) {
-  const { text, setText } = useSearchState()
+  const { text, setText, setScope } = useSearchState()
 
   // puts the prefix at the end of the text, with the caret after it
   const addPrefix = prefix => {
@@ -19,5 +19,11 @@ export function useScopeEditing ({ setCaret, inputRef }) {
     inputRef.current?.focus()
   }
 
-  return { addPrefix }
+  // removes a chip and focuses the input
+  const removeScope = type => {
+    setScope({ [type]: undefined })
+    inputRef.current?.focus()
+  }
+
+  return { addPrefix, removeScope }
 }

@@ -1,12 +1,12 @@
-import { useCallback, useRef, useMemo, useState } from 'react'
-import { searchHref } from '@/lib/search'
+import { useRef, useMemo, useState } from 'react'
+import { joinScope, searchHref, splitScope } from '@/lib/search'
 import { MAX_SEARCH_LENGTH } from '@/lib/constants'
 import { useRouter } from 'next/router'
 import styles from './search.module.css'
-import { searchBarClasses, keepFocus } from './bar'
+import { ScopeChips, searchBarClasses, keepFocus } from './bar'
 import { useSearchState } from './state'
 import { searchItem } from './items'
-import { toLookup, useDebouncedLookup } from './lookup'
+import { scopeWords, toLookup, useDebouncedLookup } from './lookup'
 import { cn } from '@/lib/cn'
 import CloseIcon from '@/svgs/close-line.svg'
 import { Autocomplete, AutocompletePopup } from '@/components/ui/autocomplete'
@@ -17,41 +17,58 @@ import { useBrowseGroups } from './browse-groups'
 import { useScopeEditing } from './scope-editing'
 import SearchIcon from '@/svgs/search-line.svg'
 
+// the rows that run the search: with the chips, then with the text alone. the
+// second row says everywhere unless the text has a ~territory or @nym
+function toSearchRows ({ q, scope, text, router }) {
+  const chips = scopeWords(scope)
+  const typed = splitScope(text).scope
+  return [
+    chips && searchItem(searchHref(q, router), text, chips),
+    searchItem(searchHref(text, router), text, typed.sub || typed.user ? '' : 'everywhere')
+  ].filter(Boolean)
+}
+
 export default function Search ({ className, open, setOpen }) {
   const router = useRouter()
   const barRef = useRef(null)
   const inputRef = useRef(null)
-  const { text, setText, reset } = useSearchState()
+  const { scope, text, setText, reset } = useSearchState()
   // where the caret is in the text, null when the input isn't focused
   const [caret, setCaret] = useState(null)
 
-  const lookup = useMemo(() => toLookup(undefined, text, caret ?? text.length), [text, caret])
+  const lookup = useMemo(() => toLookup(text, caret ?? text.length), [text, caret])
   const debounced = useDebouncedLookup(lookup)
   const { groups: searchGroups, loading } = useSearchGroups({ lookup, debounced, open })
   const browseGroups = useBrowseGroups({ open })
-  const { addPrefix } = useScopeEditing({ setCaret, inputRef })
+  const { addPrefix, removeScope } = useScopeEditing({ setCaret, inputRef })
 
-  const onSubmit = useCallback((e) => {
+  // the chips and the text as one query
+  const q = joinScope(scope, text).slice(0, MAX_SEARCH_LENGTH)
+
+  const onSubmit = e => {
     e.preventDefault()
-    const q = text.slice(0, MAX_SEARCH_LENGTH)
     if (!q) return
 
+    setOpen(false)
     router.push(searchHref(q, router))
-  }, [text, router])
+  }
+
+  // a press inside the bar, like on a chip, keeps the popup open
+  const onOpenChange = (nextOpen, details) => {
+    const insideBar = details.reason === 'outside-press' && barRef.current?.contains(details.event.target)
+    if (!nextOpen && insideBar) return
+    setOpen(nextOpen)
+  }
 
   const onValueChange = value => {
     setText(value)
     setCaret(inputRef.current?.selectionStart ?? value.length)
   }
 
-  const searchRows = lookup.mode === 'search'
-    ? [searchItem(searchHref(lookup.text, router), lookup.text, 'everywhere')]
-    : []
-
   const groups = lookup.mode === 'browse'
     ? browseGroups
     : lookup.mode === 'search'
-      ? [{ value: 'search', items: searchRows }, ...searchGroups]
+      ? [{ value: 'search', items: toSearchRows({ q, scope, text: lookup.text, router }) }, ...searchGroups]
       : searchGroups
 
   // until the first stackers or territories arrive, searching… shows
@@ -71,7 +88,7 @@ export default function Search ({ className, open, setOpen }) {
         value={text}
         items={groups}
         onValueChange={onValueChange}
-        onOpenChange={setOpen}
+        onOpenChange={onOpenChange}
         openOnInputClick
         mode='none' // disables base ui filtering
         // highlights the first item, also when the items arrive after typing. nothing in browse mode
@@ -80,11 +97,13 @@ export default function Search ({ className, open, setOpen }) {
       >
         {/* with barRef we're declaring that this is the anchor for the popup (that we're going to pass to Autocomplete.Popup) */}
         <div ref={barRef} className={searchBarClasses({ className })}>
+          <ScopeChips scope={scope} onRemove={removeScope} />
           <Autocomplete.Input
             ref={inputRef}
             name='q'
             placeholder='search anything'
-            className={cn(styles.input, 'text-base grow min-w-0')}
+            // the chips keep their width and the input takes the rest
+            className={cn(styles.input, 'text-base grow basis-0 min-w-16')}
             onSelect={e => setCaret(e.currentTarget.selectionStart)}
             onBlur={() => setCaret(null)}
           />

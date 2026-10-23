@@ -123,7 +123,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef: ou
     </div>
   )
   const results = <Results searching={searching} loading={loading} empty={emptyText(lookup)} onPick={onPick} canScope={canScope} onScope={addScope} />
-  const footer = <Footer mode={lookup.mode} tabHint={tabHint} keyHints={!inline} onPick={onPick} onPrefix={addPrefix} className={inline ? 'mt-auto' : 'mt-3 shrink-0'} />
+  const footer = <Footer mode={lookup.mode} tabHint={tabHint} keyHints={!inline} onPick={onPick} onPrefix={addPrefix} className='mt-3 shrink-0' />
 
   return (
     <form onSubmit={onSubmit} className={inline ? 'flex flex-col h-full' : undefined}>
@@ -150,14 +150,11 @@ export default function Search ({ className, inline, open, setOpen, inputRef: ou
                 </button>
                 {bar}
               </div>
-              {/* only the results scroll, and their end doesn't scroll the page behind */}
-              <div className='grow min-h-0 overflow-y-auto overscroll-contain touch-pan-y'>
-                {/* the footer is at the bottom of the screen, or after the results when they're longer */}
-                <div className='min-h-full flex flex-col gap-3 pt-1.5'>
-                  <div>{results}</div>
-                  {footer}
-                </div>
+              {/* the results scroll and the footer stays at the bottom, above the keyboard */}
+              <div className={cn(styles.results, 'grow min-h-0 pt-1.5 overflow-y-auto overscroll-contain touch-pan-y')}>
+                {results}
               </div>
+              {footer}
             </>
             )
           : (

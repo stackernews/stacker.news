@@ -9,7 +9,9 @@ export function ScrollArea ({ fade, className, children, ...props }) {
   return (
     <BaseScrollArea.Root className={cn('flex flex-col min-h-0', className)}>
       <BaseScrollArea.Viewport className={cn(fade && styles.fade, 'overscroll-contain')} {...props}>
-        {children}
+        <BaseScrollArea.Content>
+          {children}
+        </BaseScrollArea.Content>
       </BaseScrollArea.Viewport>
       <BaseScrollArea.Scrollbar className={cn(styles.scrollbar, 'w-1 m-1')}>
         <BaseScrollArea.Thumb className={cn(styles.thumb, 'rounded-full')} />

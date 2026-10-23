@@ -77,6 +77,14 @@
   background-color: var(--sn-body-bg);
 }
 
+/* the bottom of the full screen results fades, and the padding lets the last
+   ones scroll clear of the fade */
+.results {
+  --fade: 1.5rem;
+  padding-bottom: var(--fade);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--fade)), transparent);
+}
+
 /* a button or link in a group's label or the footer */
 .action {
   color: inherit;

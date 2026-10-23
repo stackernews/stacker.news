@@ -10,6 +10,7 @@ import { toLookup, useDebouncedLookup } from './lookup'
 import { cn } from '@/lib/cn'
 import CloseIcon from '@/svgs/close-line.svg'
 import { Autocomplete, AutocompletePopup } from '@/components/ui/autocomplete'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Results, Footer, emptyText } from './results'
 import { useSearchGroups } from './search-groups'
 import { useBrowseGroups } from './browse-groups'
@@ -97,10 +98,13 @@ export default function Search ({ className, open, setOpen }) {
             <SearchIcon width={16} height={16} aria-hidden />
           </button>
         </div>
-        {/* no bottom padding and overflow hidden so the footer background reaches the edges */}
-        <AutocompletePopup anchor={barRef} positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg pb-0 overflow-hidden')}>
-          <Results searching={searching} loading={loading} empty={emptyText(lookup)} onPick={onPick} />
-          <Footer mode={lookup.mode} onPick={onPick} onPrefix={addPrefix} className='mt-3' />
+        {/* no bottom padding and overflow hidden so the footer background reaches the edges.
+            the results scroll and the footer stays at the bottom */}
+        <AutocompletePopup anchor={barRef} positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg pb-0 overflow-hidden flex flex-col max-h-[min(24rem,var(--available-height))]')}>
+          <ScrollArea fade tabIndex={-1}>
+            <Results searching={searching} loading={loading} empty={emptyText(lookup)} onPick={onPick} />
+          </ScrollArea>
+          <Footer mode={lookup.mode} onPick={onPick} onPrefix={addPrefix} className='mt-3 shrink-0' />
         </AutocompletePopup>
       </Autocomplete.Root>
     </form>

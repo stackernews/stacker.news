@@ -39,28 +39,10 @@
 
 .header {
     background-color: var(--sn-body-bg);
-    box-shadow: 0 1px 0 var(--sn-toolbar-active);
 }
 
-/* Keep the separator visible when scroll-state queries are unavailable. */
-@supports (container-type: scroll-state) {
-    .header {
-        container-type: scroll-state;
-        box-shadow: none;
-    }
-
-    .header::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-    }
-
-    @container scroll-state(stuck: top) {
-        .header::after {
-            box-shadow: 0 1px 0 var(--sn-toolbar-active);
-        }
-    }
+.header[data-scrolled] {
+    box-shadow: 0 1px 0 var(--sn-toolbar-active);
 }
 
 }

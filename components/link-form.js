@@ -73,6 +73,26 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
   const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args).catch(err => !isAbortError(err) && console.error(err)), DUPES_DEBOUNCE_MS, [getDupes])
 
   useEffect(() => {
+    if (isEditing) return
+    if (window.localStorage.getItem('link-url')) return
+
+    const meaningfulUrl = getMeaningfulUrl(shareUrl)
+    if (!meaningfulUrl) return
+
+    const hasTitle = !!initial.title?.trim()?.length
+    const hasDraftTitle = !!window.localStorage.getItem('link-title')?.trim()?.length
+    if (!hasTitle && !hasDraftTitle) {
+      getPageTitleAndUnshortedDebounce({
+        variables: { url: meaningfulUrl }
+      })
+    }
+
+    getDupesDebounce({
+      variables: { url: meaningfulUrl }
+    })
+  }, [isEditing, shareUrl, initial.title, getPageTitleAndUnshortedDebounce, getDupesDebounce])
+
+  useEffect(() => {
     if (!dupesLoading) {
       setDupes(dupesData?.dupes)
     }

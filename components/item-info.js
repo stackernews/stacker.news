@@ -213,7 +213,8 @@ export default function ItemInfo ({
               {me && !item.mine && !item.deletedAt &&
             (item.meDontLikeSats > meSats
               ? <DropdownItemUpVote item={item} />
-              : <DontLikeThisDropdownItem item={item} />)}
+              // downzapping a pinned item can't move it, so don't offer it (#3245)
+              : !item.position && <DontLikeThisDropdownItem item={item} />)}
               {item.mine && item.payIn?.id &&
                 <>
                   <hr className='dropdown-divider' />

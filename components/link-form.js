@@ -101,6 +101,27 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
     }
   }, [data?.pageTitleAndUnshorted?.unshorted, getDupesDebounce])
 
+  // Check for duplicates when the form mounts with a URL already filled in,
+  // e.g. from query params (`/post?type=link&url=...`) or a saved draft.
+  // Without this, the dupe query only runs from the url field's onChange.
+  useEffect(() => {
+    if (isEditing) {
+      return
+    }
+
+    const meaningfulUrl = getMeaningfulUrl(initial.url)
+
+    if (!meaningfulUrl) {
+      return
+    }
+
+    getDupesDebounce({
+      variables: { url: meaningfulUrl }
+    })
+    // run once on mount: the prefilled url never fires the field's onChange
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const postDisabled = !item && (pageTitleLoading || dupesLoading)
 
   return (

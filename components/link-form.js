@@ -74,13 +74,14 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
 
   useEffect(() => {
     if (isEditing) return
+    // Saved drafts are already handled by Input's mount effect in components/form.js
     if (window.localStorage.getItem('link-url')) return
 
     const meaningfulUrl = getMeaningfulUrl(shareUrl)
     if (!meaningfulUrl) return
 
-    const hasTitle = !!initial.title?.trim()?.length
-    const hasDraftTitle = !!window.localStorage.getItem('link-title')?.trim()?.length
+    const hasTitle = (initial.title ?? '').trim().length > 0
+    const hasDraftTitle = (window.localStorage.getItem('link-title') ?? '').trim().length > 0
     if (!hasTitle && !hasDraftTitle) {
       getPageTitleAndUnshortedDebounce({
         variables: { url: meaningfulUrl }
@@ -90,6 +91,11 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
     getDupesDebounce({
       variables: { url: meaningfulUrl }
     })
+
+    return () => {
+      getPageTitleAndUnshortedDebounce.cancel()
+      getDupesDebounce.cancel()
+    }
   }, [isEditing, shareUrl, initial.title, getPageTitleAndUnshortedDebounce, getDupesDebounce])
 
   useEffect(() => {

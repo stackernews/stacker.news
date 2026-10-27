@@ -1,6 +1,6 @@
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { whenToFrom } from '@/lib/time'
-import { getItem, itemQueryWithMeta, SELECT } from './item'
+import { getItem, itemQueryWithMeta, SELECT, muteSql } from './item'
 import { parse } from 'tldts'
 import { searchSchema, validateSchema } from '@/lib/validate'
 import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER, HOMEPAGE_POSTS_SATS_FILTER } from '@/lib/constants'
@@ -729,7 +729,7 @@ const SEARCH_HIGHLIGHT = {
   }
 }
 
-async function hitsToItems (hits, { me, models, orderBy }) {
+async function hitsToItems (hits, { me, models, orderBy, where }) {
   if (hits.length === 0) return []
 
   const values = Prisma.join(hits.map((e, i) => Prisma.sql`(${Number(e._source.id)}::INTEGER, ${i}::INTEGER)`))
@@ -741,7 +741,8 @@ async function hitsToItems (hits, { me, models, orderBy }) {
       WITH r(id, rank) AS (VALUES ${values})
       ${SELECT}, rank
       FROM "Item"
-      JOIN r ON "Item".id = r.id`,
+      JOIN r ON "Item".id = r.id
+      ${where ? Prisma.sql`WHERE ${where}` : Prisma.empty}`,
     orderBy
   })
 }
@@ -834,7 +835,8 @@ export default {
         return { cursor: null, items: [] }
       }
 
-      const items = await hitsToItems(results.body.hits.hits, { me, models, orderBy: Prisma.sql`ORDER BY rank ASC` })
+      // hide posts by users the viewer muted (see #3255)
+      const items = await hitsToItems(results.body.hits.hits, { me, models, orderBy: Prisma.sql`ORDER BY rank ASC`, where: muteSql(me) })
       return {
         cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         items

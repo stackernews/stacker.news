@@ -2,6 +2,7 @@ import { NextSeo } from 'next-seo'
 import { useRouter } from 'next/router'
 import removeMd from 'remove-markdown'
 import { numWithUnits } from '@/lib/format'
+import { captureUrl } from '@/lib/capture'
 import { useBranding } from './territory-branding'
 
 // Resolves the brand/site-name/tagline triple for SEO meta:
@@ -22,19 +23,10 @@ function useSiteSeo () {
   return { branding, brand, siteName, tagline, twitter }
 }
 
-// capture service takes a path and navigates to it on the main domain (stacker.news)
-// to support custom domains, we need to prepend the subname to the path
-function capturePath ({ path, branding }) {
-  if (!branding?.subName) return path
-
-  if (path === '/') return `/~${branding.subName}`
-  return `/~${branding.subName}${path}`
-}
-
 export function SeoSearch ({ sub }) {
   const router = useRouter()
   const { branding, brand, siteName, twitter } = useSiteSeo()
-  const imagePath = capturePath({ path: router.asPath, branding })
+  const image = captureUrl({ path: router.asPath, branding })
 
   const subStr = !branding && sub ? ` ~${sub}` : ''
   const query = router.query.q || ''
@@ -52,7 +44,7 @@ export function SeoSearch ({ sub }) {
         description: desc,
         images: [
           {
-            url: 'https://capture.stacker.news' + imagePath
+            url: image
           }
         ],
         site_name: siteName
@@ -71,7 +63,7 @@ export default function Seo ({ sub, item, user }) {
   const router = useRouter()
   const pathNoQuery = router.asPath.split('?')[0]
   const { branding, brand, siteName, tagline, twitter } = useSiteSeo()
-  const imagePath = capturePath({ path: pathNoQuery, branding })
+  const image = captureUrl({ path: pathNoQuery, branding })
 
   const defaultTitle = pathNoQuery.slice(1)
   const snStr = `${brand}${!branding && sub ? ` ~${sub}` : ''}`
@@ -117,7 +109,7 @@ export default function Seo ({ sub, item, user }) {
         description: desc,
         images: [
           {
-            url: 'https://capture.stacker.news' + imagePath
+            url: image
           }
         ],
         site_name: siteName

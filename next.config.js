@@ -26,27 +26,14 @@ const walletImageCacheHeader = {
   value: 'public, max-age=86400, stale-while-revalidate=604800'
 }
 
-const getGitCommit = (env) => {
-  return env === 'aws'
-    // XXX this fragile ... eb could change the version label location ... it also require we set the label on deploy
-    // eslint-disable-next-line
-    ? Object.keys(require('/opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].slice(0, 6)
-    : require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 6)
-}
-
 let commitHash
 try {
-  if (isProd) {
-    try {
-      commitHash = getGitCommit('aws')
-    } catch (e) {
-      // maybe we're running prod build locally
-      commitHash = getGitCommit()
-      // if above line worked, we're running locally and should not use prod config which configurates CDN
-      isProd = false
-    }
+  if (process.env.SN_BUILD_COMMIT) {
+    commitHash = process.env.SN_BUILD_COMMIT.slice(0, 6)
   } else {
-    commitHash = getGitCommit()
+    commitHash = require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 6)
+    // Local builds use same-origin assets instead of the production CDN.
+    isProd = false
   }
 } catch (e) {
   console.log('could not get commit hash with `git rev-parse HEAD` ... using 0000')
@@ -78,8 +65,7 @@ module.exports = {
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
     NEXT_PUBLIC_LND_CONNECT_ADDRESS: process.env.LND_CONNECT_ADDRESS,
     NEXT_PUBLIC_ASSET_PREFIX: isProd ? 'https://a.stacker.news' : '',
-    // in prod, we build in /var/app/staging and then cp and deploy in /var/app/current
-    // so we need to resolve the relative path to the lightning module
+    // Resolve Lightning protobuf paths relative to the application directory.
     LIGHTNING_MODULE_PATH: require('path').relative(process.cwd(), require.resolve('lightning'))
   },
   transpilePackages: ['next-plausible'],

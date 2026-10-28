@@ -1,0 +1,71 @@
+x-logging: &logging
+  driver: awslogs
+  options:
+    awslogs-region: '${AWS_REGION:?Set AWS_REGION in EB environment configuration}'
+    awslogs-group: '${CONTAINER_LOG_GROUP:?Set CONTAINER_LOG_GROUP in EB environment configuration}'
+    tag: '{{.Name}}/{{.FullID}}'
+    mode: non-blocking
+    max-buffer-size: '4m'
+    # Keep local reads available even if the host disables caching by default.
+    cache-disabled: 'false'
+
+x-app: &app
+  image: '@@APP_IMAGE@@'
+  env_file: [.env]
+  restart: unless-stopped
+  init: true
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+  logging: *logging
+  environment:
+    TOR_PROXY: http://tor:7050/
+    grpc_proxy: http://tor:7050
+    SELF_URL: http://web:8080
+    NEXTAUTH_URL_INTERNAL: http://web:8080/api/auth
+
+services:
+  web:
+    <<: *app
+  worker:
+    <<: *app
+    command: [node_modules/tsx/dist/cli.mjs, --tsconfig, jsconfig.json, --trace-warnings, worker/index.js]
+  nginx:
+    image: '@@NGINX_IMAGE@@'
+    restart: unless-stopped
+    stop_signal: SIGQUIT
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    # Set the limit inherited by the nginx master and workers.
+    ulimits:
+      nofile:
+        soft: 65727
+        hard: 65727
+    tmpfs:
+      - /var/run:rw,noexec,nosuid,nodev,uid=65532,gid=65532,mode=755
+    logging: *logging
+    ports: ['80:8080']
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - /var/cache/sn-nginx:/var/cache/nginx
+      - /var/log/nginx/healthd:/var/log/nginx/healthd
+    depends_on: [web]
+  tor:
+    image: '@@TOR_IMAGE@@'
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev
+    logging: *logging
+    volumes:
+      - /var/lib/sn-onion:/run/sn-onion:ro
+      - /var/lib/sn-tor:/var/lib/tor
+    depends_on:
+      nginx:
+        condition: service_started
+        restart: true

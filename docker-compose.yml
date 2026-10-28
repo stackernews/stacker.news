@@ -71,6 +71,7 @@ services:
       args:
         - UID=${CURRENT_UID}
         - GID=${CURRENT_GID}
+        - NODE_VERSION=${SN_NODE_VERSION:?Use ./sndev or set SN_NODE_VERSION from .node-version}
     restart: unless-stopped
     healthcheck:
       <<: *healthcheck
@@ -117,6 +118,7 @@ services:
       args:
         - UID=${CURRENT_UID}
         - GID=${CURRENT_GID}
+        - NODE_VERSION=${SN_NODE_VERSION:?Use ./sndev or set SN_NODE_VERSION from .node-version}
     restart: unless-stopped
     depends_on:
       <<:

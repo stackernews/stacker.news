@@ -1,0 +1,110 @@
+version: 0.2
+
+eb_codebuild_settings:
+  CodeBuildServiceRole: sn-codebuild
+  ComputeType: BUILD_GENERAL1_LARGE
+  Image: aws/codebuild/standard:7.0
+  Timeout: 60
+
+env:
+  shell: bash
+  variables:
+    PLATFORM: linux/amd64
+    NGINX_IMAGE: dhi.io/nginx:1.30.6-debian13@sha256:8a59b132d68c44e8b4e463a5239eea0ab6d81d4982de07eb921bd1f77ea4b1ee
+    # Public app settings are loaded from .env.production in the image.
+  secrets-manager:
+    DHI_USERNAME: sn/deploy/dhi:username
+    DHI_TOKEN: sn/deploy/dhi:token
+    DOCKERHUB_USERNAME: sn/deploy/dockerhub:username
+    DOCKERHUB_TOKEN: sn/deploy/dockerhub:token
+
+phases:
+  build:
+    commands:
+      - |
+        set -euo pipefail
+        docker info
+        docker buildx version
+        if [[ ! "${CODEBUILD_RESOLVED_SOURCE_VERSION:-}" =~ ^[0-9a-f]{40}$ ]]; then
+          echo 'A source commit is required. Use eb codesource codecommit and deploy a committed release with eb deploy; staged/S3 archive builds are unsupported.' >&2
+          exit 1
+        fi
+        RELEASE_TAG="$CODEBUILD_RESOLVED_SOURCE_VERSION-${CODEBUILD_BUILD_ID##*:}"
+        APP_TAG="node$(cat .node-version)-$RELEASE_TAG"
+        BUILD_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        ECR_REGISTRY="$BUILD_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
+
+        printf '%s' "$DHI_TOKEN" |
+          docker login dhi.io --username "$DHI_USERNAME" --password-stdin
+        printf '%s' "$DOCKERHUB_TOKEN" |
+          docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+        aws ecr get-login-password --region "$AWS_DEFAULT_REGION" |
+          docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+        docker buildx build --platform "$PLATFORM" --load \
+          -f deploy/docker/Dockerfile -t "sn-app:$APP_TAG" \
+          --build-arg SN_BUILD_COMMIT="$CODEBUILD_RESOLVED_SOURCE_VERSION" .
+        docker buildx build --platform "$PLATFORM" --load \
+          -f deploy/docker/tor.Dockerfile -t "sn-tor:$RELEASE_TAG" deploy/docker
+        docker pull --platform "$PLATFORM" "$NGINX_IMAGE"
+        docker tag "$NGINX_IMAGE" "sn-nginx:$RELEASE_TAG"
+
+        test "$(docker run --rm --network none "sn-app:$APP_TAG" --version)" = "v$(cat .node-version)"
+        docker run --rm --network none "sn-app:$APP_TAG" -e '
+          const { PrismaClient } = require("@prisma/client")
+          const prisma = new PrismaClient({ datasourceUrl: "postgresql://build:build@127.0.0.1:1/build?connect_timeout=1" })
+          async function check() {
+            require("fs").readFileSync("contributors.txt", "utf8")
+            require("lightning")
+            await require("sharp")({ create: { width: 1, height: 1, channels: 3, background: "white" } }).png().toBuffer()
+            try {
+              await prisma.$connect()
+              throw new Error("Unexpected database connection in offline smoke test")
+            } catch (error) {
+              if (error.errorCode !== "P1001") throw error
+            } finally {
+              await prisma.$disconnect()
+            }
+            console.log("Contributors and native dependencies checked")
+          }
+          check().catch(error => { console.error(error); process.exitCode = 1 })
+        '
+
+        for image in "sn-app:$APP_TAG" "sn-tor:$RELEASE_TAG" "sn-nginx:$RELEASE_TAG"; do
+          docker tag "$image" "$ECR_REGISTRY/$image"
+          docker push "$ECR_REGISTRY/$image"
+        done
+        APP_DIGEST=$(aws ecr describe-images --region "$AWS_DEFAULT_REGION" \
+          --repository-name sn-app --image-ids imageTag="$APP_TAG" \
+          --query 'imageDetails[0].imageDigest' --output text)
+        TOR_DIGEST=$(aws ecr describe-images --region "$AWS_DEFAULT_REGION" \
+          --repository-name sn-tor --image-ids imageTag="$RELEASE_TAG" \
+          --query 'imageDetails[0].imageDigest' --output text)
+        NGINX_DIGEST=$(aws ecr describe-images --region "$AWS_DEFAULT_REGION" \
+          --repository-name sn-nginx --image-ids imageTag="$RELEASE_TAG" \
+          --query 'imageDetails[0].imageDigest' --output text)
+        [[ "$APP_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+        [[ "$TOR_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+        [[ "$NGINX_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+
+        mkdir -p build/eb
+        cp -R deploy/elasticbeanstalk/. build/eb/
+        python3 - "$ECR_REGISTRY/sn-app@$APP_DIGEST" "$ECR_REGISTRY/sn-tor@$TOR_DIGEST" "$ECR_REGISTRY/sn-nginx@$NGINX_DIGEST" <<'PY'
+        from pathlib import Path
+        import sys
+        path = Path('build/eb/docker-compose.yml')
+        text = path.read_text()
+        for placeholder, image in zip(('@@APP_IMAGE@@', '@@TOR_IMAGE@@', '@@NGINX_IMAGE@@'), sys.argv[1:]):
+            assert placeholder in text, placeholder
+            text = text.replace(placeholder, image)
+        assert '@@' not in text
+        path.write_text(text)
+        PY
+
+artifacts:
+  base-directory: build/eb
+  files:
+    - docker-compose.yml
+    - nginx.conf
+    - .ebextensions/**/*
+    - .platform/**/*

@@ -1,6 +1,7 @@
 const { InjectManifest } = require('workbox-webpack-plugin')
 const CopyPlugin = require('copy-webpack-plugin')
 const webpack = require('webpack')
+const fs = require('node:fs')
 
 let isProd = process.env.NODE_ENV === 'production'
 const corsHeaders = [
@@ -40,6 +41,11 @@ try {
   commitHash = '0000'
 }
 
+const publicBaseCommitPath = require('path').join(__dirname, 'PUBLIC_BASE_COMMIT')
+const publicBaseCommit = fs.existsSync(publicBaseCommitPath)
+  ? fs.readFileSync(publicBaseCommitPath, 'utf8').trim()
+  : commitHash
+
 const getAllowedDevOrigins = () => {
   if (isProd) return undefined
 
@@ -63,6 +69,7 @@ module.exports = {
   allowedDevOrigins: getAllowedDevOrigins(),
   env: {
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
+    NEXT_PUBLIC_BASE_COMMIT: publicBaseCommit,
     NEXT_PUBLIC_LND_CONNECT_ADDRESS: process.env.LND_CONNECT_ADDRESS,
     NEXT_PUBLIC_ASSET_PREFIX: isProd ? 'https://a.stacker.news' : '',
     // Resolve Lightning protobuf paths relative to the application directory.

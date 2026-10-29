@@ -149,7 +149,7 @@ export default function Footer ({ links = true }) {
   const LnIcon = animationEnabled ? No : Bolt
   const LiveIcon = disableLiveComments ? Live : NoLive
 
-  const version = process.env.NEXT_PUBLIC_COMMIT_HASH
+  const version = process.env.NEXT_PUBLIC_BASE_COMMIT
 
   return (
     <footer>
@@ -262,7 +262,7 @@ export default function Footer ({ links = true }) {
         </small>
         {version &&
           <div className={styles.version}>
-            running <a className='text-reset' href={`https://github.com/stackernews/stacker.news/commit/${version}`} target='_blank' rel='noreferrer'>{version}</a>
+            running <a className='text-reset' href={`https://github.com/stackernews/stacker.news/commit/${version}`} target='_blank' rel='noreferrer'>{version.slice(0, 6)}</a>
           </div>}
       </Container>
     </footer>

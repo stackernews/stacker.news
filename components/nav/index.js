@@ -13,7 +13,7 @@ export default function Navigation ({ sub, hideMobileNav = false, containerClass
   return (
     <header data-sn-navigation className={cn(styles.header, 'sticky top-0 z-sticky shrink-0', hideMobileNav && 'hidden md:block')}>
       <Container className={containerClassName}>
-        <NavigationRow prefix={prefix} topNavKey={topNavKey} dropNavKey={dropNavKey} sub={sub} />
+        <NavigationRow prefix={prefix} topNavKey={topNavKey} dropNavKey={dropNavKey} />
       </Container>
     </header>
   )

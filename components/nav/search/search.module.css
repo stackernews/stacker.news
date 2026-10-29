@@ -32,6 +32,17 @@
   color: var(--sn-nav-link-active);
 }
 
+/* a hidden button lets the pointer through to its row, so the row highlights */
+@media (hover: hover) {
+  .scope {
+    visibility: hidden;
+  }
+
+  [data-highlighted] + .scope {
+    visibility: visible;
+  }
+}
+
 .chip {
   background-color: var(--sn-toolbar-active);
 }

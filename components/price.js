@@ -12,7 +12,8 @@ import { usePriceCarousel } from './nav/price-carousel'
 
 export const PriceContext = React.createContext({
   price: null,
-  fiatSymbol: null
+  fiatSymbol: null,
+  bigMacPrice: null
 })
 
 export function usePrice () {
@@ -34,8 +35,9 @@ export function PriceProvider ({ price, children }) {
 
   const contextValue = useMemo(() => ({
     price: data?.price || price,
-    fiatSymbol: CURRENCY_SYMBOLS[fiatCurrency] || '$'
-  }), [data?.price, price, me?.privates?.fiatCurrency])
+    fiatSymbol: CURRENCY_SYMBOLS[fiatCurrency] || '$',
+    bigMacPrice: data?.bigMacPrice || 5.79
+  }), [data?.price, data?.bigMacPrice, price, me?.privates?.fiatCurrency])
 
   return (
     <PriceContext.Provider value={contextValue}>
@@ -56,7 +58,7 @@ function AccessibleButton ({ id, description, children, ...props }) {
 export default function Price ({ className }) {
   const [selection, handleClick] = usePriceCarousel()
 
-  const { price, fiatSymbol } = usePrice()
+  const { price, fiatSymbol, bigMacPrice } = usePrice()
   const { height: blockHeight, halving } = useBlockHeight()
   const { fee: chainFee } = useChainFee()
 
@@ -102,6 +104,15 @@ export default function Price ({ className }) {
     return (
       <AccessibleButton id='chainFee-hint' description='Show time until halving' className={compClassName} onClick={handleClick} variant='link'>
         {chainFee} sat/vB
+      </AccessibleButton>
+    )
+  }
+
+  if (selection === 'bigmac') {
+    if (!price || price < 0 || !bigMacPrice) return null
+    return (
+      <AccessibleButton id='bigmac-hint' description='Show satoshis per Big Mac' className={compClassName} onClick={handleClick} variant='link'>
+        {fixedDecimal(Math.round((bigMacPrice / price) * 100000000), 0)} sats/Big Mac
       </AccessibleButton>
     )
   }

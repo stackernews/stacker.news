@@ -1,21 +1,35 @@
 import { PreviewCard as BasePreviewCard } from '@base-ui/react/preview-card'
+import { cn } from '@/lib/cn'
 import { popoverClasses } from './popover'
 import styles from './popover.module.css'
 import arrowStyles from './arrow.module.css'
 
-export default function PreviewCard ({ trigger, body, onShow }) {
+export const PreviewCardRoot = BasePreviewCard.Root
+export const createPreviewCardHandle = BasePreviewCard.createHandle
+
+// onShow prefetches before the open delay elapses
+export function PreviewCardTrigger ({ handle, payload, onShow, className, children }) {
+  return <BasePreviewCard.Trigger handle={handle} payload={payload} delay={500} render={<span className={className} onPointerEnter={onShow} onFocus={onShow}>{children}</span>} />
+}
+
+export function PreviewCardContent ({ side = 'bottom', anchor, positionMethod, className, children }) {
   return (
-    <BasePreviewCard.Root>
-      {/* onShow prefetches before the open delay elapses */}
-      <BasePreviewCard.Trigger delay={500} render={<span onPointerEnter={onShow} onFocus={onShow}>{trigger}</span>} />
-      <BasePreviewCard.Portal>
-        <BasePreviewCard.Positioner side='bottom' sideOffset={8} className={styles.positioner}>
-          <BasePreviewCard.Popup className={popoverClasses({ className: 'py-2 px-4' })}>
-            <BasePreviewCard.Arrow className={arrowStyles.arrow} />
-            {body}
-          </BasePreviewCard.Popup>
-        </BasePreviewCard.Positioner>
-      </BasePreviewCard.Portal>
-    </BasePreviewCard.Root>
+    <BasePreviewCard.Portal>
+      <BasePreviewCard.Positioner side={side} sideOffset={8} anchor={anchor} positionMethod={positionMethod} className={styles.positioner}>
+        <BasePreviewCard.Popup className={popoverClasses({ className: cn('py-2 px-4', className) })}>
+          <BasePreviewCard.Arrow className={arrowStyles.arrow} />
+          {children}
+        </BasePreviewCard.Popup>
+      </BasePreviewCard.Positioner>
+    </BasePreviewCard.Portal>
+  )
+}
+
+export default function PreviewCard ({ trigger, body, onShow, side, triggerClassName }) {
+  return (
+    <PreviewCardRoot>
+      <PreviewCardTrigger onShow={onShow} className={triggerClassName}>{trigger}</PreviewCardTrigger>
+      <PreviewCardContent side={side}>{body}</PreviewCardContent>
+    </PreviewCardRoot>
   )
 }

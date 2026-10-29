@@ -223,8 +223,9 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
           : (
             <>
               {bar}
-              {/* no bottom padding and overflow hidden so the footer background reaches the edges */}
-              <AutocompletePopup anchor={barRef} positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg pb-0 overflow-hidden flex flex-col max-h-[min(24rem,var(--available-height))]')}>
+              {/* no bottom padding and overflow hidden so the footer background reaches the edges.
+                  both widths leave room for the territory card on its right */}
+              <AutocompletePopup anchor={barRef} positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg lg:min-w-xl pb-0 overflow-hidden flex flex-col max-h-[min(24rem,var(--available-height))]')}>
                 {results}
                 {footer}
               </AutocompletePopup>

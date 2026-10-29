@@ -1,0 +1,26 @@
+@layer components {
+
+.bar {
+  color: var(--sn-body-color);
+  border: 1px solid var(--sn-border-color-translucent);
+  transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+/* no transition on focus, fade out on blur */
+.bar:focus-within {
+  background-color: var(--sn-input-bg);
+  border-color: var(--sn-primary);
+  box-shadow: var(--sn-focus-ring);
+  transition: none;
+}
+
+.clear,
+.scope {
+  color: var(--sn-grey);
+}
+
+.chip {
+  background-color: var(--sn-toolbar-active);
+}
+
+}

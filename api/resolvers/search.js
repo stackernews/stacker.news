@@ -799,8 +799,20 @@ export default {
       const postsSatsFilter = HOMEPAGE_POSTS_SATS_FILTER
       const like = id ? [{ _index: process.env.OPENSEARCH_INDEX, _id: id }] : [title]
 
+      // Mutes live in Postgres, not in the search index, so the related feed has to
+      // carry them into the query explicitly. Without this, posts from stackers you
+      // muted still show up in "related posts" (#3255) even though every SQL feed
+      // filters them out via muteSql.
+      const mutedIds = me
+        ? (await models.mute.findMany({
+            where: { muterId: me.id },
+            select: { mutedId: true }
+          })).map(({ mutedId }) => mutedId)
+        : []
+
       const mustNot = [{ exists: { field: 'parentId' } }]
       if (id) mustNot.push({ term: { id } })
+      if (mutedIds.length) mustNot.push({ terms: { userId: mutedIds } })
 
       const filters = [statusFilter(mustNot)]
       if (postsSatsFilter != null) {

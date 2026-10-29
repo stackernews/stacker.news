@@ -32,4 +32,24 @@
   opacity: 0.5;
 }
 
+.kbd {
+  font-size: inherit;
+  color: var(--sn-nav-link);
+  background-color: transparent;
+  border: 1px solid var(--sn-border-color-translucent);
+}
+
+.footer {
+  background-color: var(--sn-comment-bg);
+  border-top: 1px solid var(--sn-border-color-translucent);
+}
+
+.action {
+  color: inherit;
+}
+
+.action:active {
+  color: var(--sn-nav-link-active);
+}
+
 }

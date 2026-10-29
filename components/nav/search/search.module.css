@@ -19,8 +19,17 @@
   color: var(--sn-grey);
 }
 
+.scope:hover,
+.scope:active {
+  color: var(--sn-nav-link-active);
+}
+
 .chip {
   background-color: var(--sn-toolbar-active);
+}
+
+.muted {
+  opacity: 0.5;
 }
 
 }

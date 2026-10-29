@@ -6,10 +6,6 @@ import styles from '../header.module.css'
 import { useRouter } from 'next/router'
 import BackArrow from '../../svgs/arrow-left-line.svg'
 import { useCallback, useEffect, useState } from 'react'
-import { useApolloClient } from '@apollo/client/react'
-import { ACTIVE_SUBS } from '@/fragments/subs'
-import { territoryHref } from '@/lib/navigation'
-import SubSelect from '../sub-select'
 import { PUBLIC_MEDIA_URL } from '../../lib/constants'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
@@ -68,32 +64,6 @@ export function SearchItem ({ className }) {
     <NavLink href='/search' eventKey='search' className={className}>
       <SearchIcon width={22} height={28} />
     </NavLink>
-  )
-}
-
-const PREPEND_SUBS = ['home']
-const APPEND_SUBS = [{ label: '--------', items: ['create'] }]
-export function NavSelect ({ sub: subName, className }) {
-  const router = useRouter()
-  const client = useApolloClient()
-  const { me } = useMe()
-  const sub = subName || 'home'
-
-  const onChange = (_, e) => {
-    const selected = e.target.value
-    const territory = client.readQuery({ query: ACTIVE_SUBS })?.activeSubs?.find(sub => sub.name === selected)
-    const canEdit = !!me && territory?.userId != null && String(territory.userId) === String(me.id)
-    router.push(territoryHref(router.asPath, selected, { canEdit }))
-  }
-
-  return (
-    <NavItem className={className}>
-      <SubSelect
-        sub={sub} prependSubs={PREPEND_SUBS} appendSubs={APPEND_SUBS}
-        id='nav-sub' aria-label='switch territory' title={sub} onChange={onChange}
-        groupClassName='mb-0 min-w-0' className='min-w-0 w-full md:h-8'
-      />
-    </NavItem>
   )
 }
 

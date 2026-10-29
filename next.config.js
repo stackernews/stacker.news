@@ -1,7 +1,3 @@
-const { InjectManifest } = require('workbox-webpack-plugin')
-const CopyPlugin = require('copy-webpack-plugin')
-const webpack = require('webpack')
-
 let isProd = process.env.NODE_ENV === 'production'
 const corsHeaders = [
   {
@@ -264,8 +260,10 @@ module.exports = {
       }
     ]
   },
-  webpack: (config, { isServer, dev, defaultLoaders }) => {
+  webpack: (config, { isServer, dev, defaultLoaders, webpack }) => {
     if (isServer) {
+      const { InjectManifest } = require('workbox-webpack-plugin')
+      const CopyPlugin = require('copy-webpack-plugin')
       const workboxPlugin = new InjectManifest({
         include: [/\/(icons|maskable|splash)\//, /\.(webp|mp4|woff|woff2)$/],
         swDest: '../../public/sw.js',

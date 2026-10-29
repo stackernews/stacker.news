@@ -14,6 +14,14 @@
   transition: none;
 }
 
+.input {
+  outline: 0;
+}
+
+.divider {
+  background-color: var(--sn-border-color-translucent);
+}
+
 .clear,
 .scope {
   color: var(--sn-grey);
@@ -28,8 +36,22 @@
   background-color: var(--sn-toolbar-active);
 }
 
+.navIcon {
+  color: var(--sn-nav-link);
+}
+
+.navIcon:hover,
+.navIcon:active,
+.bar:focus-within .navIcon {
+  color: var(--sn-nav-link-active);
+}
+
 .muted {
   opacity: 0.5;
+}
+
+.popup {
+  border: 1px solid var(--sn-border-color-translucent);
 }
 
 .kbd {
@@ -42,6 +64,16 @@
 .footer {
   background-color: var(--sn-comment-bg);
   border-top: 1px solid var(--sn-border-color-translucent);
+}
+
+/* the bottom of the results fades, and the padding lets the last ones scroll
+   clear of the fade */
+.results {
+  --fade: 0.75rem;
+  padding-bottom: var(--fade);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--fade)), transparent);
+  scrollbar-width: thin;
+  scrollbar-color: var(--sn-border-color) transparent;
 }
 
 .action {

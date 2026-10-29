@@ -4,7 +4,7 @@ import NavStatic from './nav/static'
 import Container from '@/components/ui/container'
 import Footer from './footer'
 import Seo, { SeoSearch } from './seo'
-import Search from './search'
+import SearchFilters from './search-filters'
 import styles from './layout.module.css'
 import PullToRefresh from './pull-to-refresh'
 import Price from './price'
@@ -62,7 +62,7 @@ export function SearchLayout ({ sub, children, ...props }) {
   return (
     <Layout sub={sub} seo={false} footer={false} {...props}>
       <SeoSearch sub={sub} />
-      <Search sub={sub} />
+      <SearchFilters />
       {children}
     </Layout>
   )

@@ -71,7 +71,7 @@
     "graphql-type-json": "^0.3.2",
     "ipaddr.js": "^2.4.0",
     "isomorphic-ws": "^5.0.0",
-    "katex": "^0.16.22",
+    "katex": "^0.19.0",
     "lexical": "^0.45.0",
     "light-bolt11-decoder": "^3.2.0",
     "linkedom": "^0.18.12",
@@ -86,11 +86,11 @@
     "mdast-util-to-string": "^4.0.0",
     "micromark-extension-gfm": "^3.0.0",
     "micromark-extension-math": "^3.1.0",
-    "next": "^16.4.0",
+    "next": "^16.4.3",
     "next-auth": "^4.24.15",
     "next-plausible": "^4.0.0",
     "next-seo": "^6.6.0",
-    "nodemailer": "^8.0.4",
+    "nodemailer": "^10.3.0",
     "nostr": "^0.2.8",
     "nostr-tools": "^2.8.0",
     "nprogress": "^0.2.0",
@@ -127,13 +127,13 @@
     "web-push": "^3.6.7",
     "webln": "^0.3.2",
     "webpack": "^5.95.0",
-    "workbox-navigation-preload": "^7.1.0",
-    "workbox-precaching": "^7.1.0",
-    "workbox-recipes": "^7.1.0",
-    "workbox-routing": "^7.1.0",
-    "workbox-strategies": "^7.1.0",
-    "workbox-webpack-plugin": "^7.1.0",
-    "workbox-window": "^7.1.0",
+    "workbox-navigation-preload": "^7.4.1",
+    "workbox-precaching": "^7.4.1",
+    "workbox-recipes": "^7.4.1",
+    "workbox-routing": "^7.4.1",
+    "workbox-strategies": "^7.4.1",
+    "workbox-webpack-plugin": "^7.4.1",
+    "workbox-window": "^7.4.1",
     "yup": "^1.4.0"
   },
   "engines": {
@@ -151,14 +151,14 @@
     ]
   },
   "devDependencies": {
-    "@next/eslint-plugin-next": "^16.4.0",
+    "@next/eslint-plugin-next": "^16.4.3",
     "eslint": "^9.12.0",
-    "eslint-config-next": "^16.4.0",
+    "eslint-config-next": "^16.4.3",
     "expect": "^30.5.2",
     "standard": "^17.1.2"
   },
   "overrides": {
-    "happy-dom": "^20.8.7",
+    "happy-dom": "^21.0.4",
     "serialize-javascript": "^7.0.5",
     "glob": ">=13.0.6",
     "form-data": ">=4.0.5",
@@ -170,6 +170,8 @@
     "js-yaml": "^4.3.1",
     "sharp": "^0.35.0",
     "@auth/core": "^0.41.3",
-    "brace-expansion": "^5.0.9"
+    "brace-expansion": "^5.0.9",
+    "katex": "^0.19.0",
+    "nodemailer": "^10.3.0"
   }
 }

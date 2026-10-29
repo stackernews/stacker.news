@@ -23,7 +23,7 @@ docker__compose() {
     ENV_LOCAL='--env-file .env.local'
   fi
 
-  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) command docker compose --env-file .env.development $ENV_LOCAL "$@"
+  SN_NODE_VERSION=$(cat .node-version) CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) command docker compose --env-file .env.development $ENV_LOCAL "$@"
 }
 
 docker__exec() {

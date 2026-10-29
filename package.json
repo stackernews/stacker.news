@@ -137,7 +137,7 @@
     "yup": "^1.4.0"
   },
   "engines": {
-    "node": "22.21.1"
+    "node": "22.x"
   },
   "standard": {
     "plugins": [

@@ -66,6 +66,29 @@
   border-top: 1px solid var(--sn-border-color-translucent);
 }
 
+/* the drawer doesn't slide in: the input is focused as it mounts, and ios
+   would scroll the page to reveal it while it still sat off screen */
+.drawer {
+  /* mobile.js reads the safe area through this property, js can't read env() */
+  --safe-area-bottom: env(safe-area-inset-bottom);
+  background-color: var(--sn-body-bg);
+  outline: 0;
+  /* keeps the results and the footer above the keyboard and the home indicator.
+     --drawer-keyboard-inset comes from base ui's keyboard provider. android
+     chrome drops the safe area to 0 while the keyboard is up but still counts
+     the gesture bar in the visual viewport, so the safe area from before the
+     keyboard is added back */
+  padding-bottom: max(
+    var(--drawer-keyboard-inset, 0px) + var(--safe-area-bottom-seen, 0px) - var(--safe-area-bottom),
+    var(--safe-area-bottom)
+  );
+}
+
+/* the footer matches the safe area below it */
+.drawer .footer {
+  background-color: var(--sn-body-bg);
+}
+
 /* the bottom of the results fades, and the padding lets the last ones scroll
    clear of the fade */
 .results {

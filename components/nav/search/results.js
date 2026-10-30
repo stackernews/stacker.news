@@ -66,10 +66,6 @@ function useScrolling (ref) {
   return scrolling
 }
 
-// the card opens over the other column, so it lets the pointer through to the
-// tiles under it. a tile as wide as the panel leaves no room inside the results,
-// so the card keeps 15rem and opens outside them. it hides while the results
-// scroll, so it doesn't fly off with its tile
 function TilePreviewCard ({ handle, resultsRef }) {
   const scrolling = useScrolling(resultsRef)
 
@@ -81,7 +77,9 @@ function TilePreviewCard ({ handle, resultsRef }) {
           positionMethod='fixed'
           collisionBoundary={resultsRef.current}
           collisionAvoidance={{ side: 'flip', fallbackAxisSide: 'none' }}
+          // the card covers the other column and lets the pointer through to its tiles
           hoverable={false}
+          // 15rem is what pushes the card out of the results when a tile fills the panel
           className={cn('max-w-[clamp(15rem,var(--available-width),20rem)]', scrolling && 'opacity-0 transition-none')}
         >
           <SubPreviewBody sub={payload} />

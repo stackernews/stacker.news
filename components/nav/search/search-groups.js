@@ -19,7 +19,6 @@ function toGroups ({ users = [], subs = [], activeSubs = [], weekSubs = [] }) {
   ].filter(group => group.items.length > 0)
 }
 
-// subscribed territories go first, each part stays in name order
 function pinSubscribed (subs = []) {
   const pinned = sub => sub.meSubscription && !sub.meMuteSub
   return [...subs.filter(pinned), ...subs.filter(sub => !pinned(sub))]

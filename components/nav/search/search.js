@@ -19,7 +19,6 @@ import styles from './search.module.css'
 
 const DEBOUNCE_MS = 500
 
-// the first row searches with the chips, the second with the text alone
 function toSearchRows ({ q, scope, text, router }) {
   const chips = scopeWords(scope)
   const typed = splitScope(text).scope
@@ -147,8 +146,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
 
   const searching = loading && searchGroups.length === 0
 
-  // rows are links and do the navigation. picking a stacker or territory puts
-  // the bar back to the page's text
+  // rows are links and do the navigation
   const onPick = item => {
     setOpen(false)
     if (item?.type === 'user' || item?.type === 'sub') reset()
@@ -208,7 +206,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
         {inline
           ? (
             <>
-              {/* matches the nav row's height and gap. shrink-0 keeps a long list from squeezing it */}
+              {/* matches the nav row's height and gap */}
               <div className='flex items-center gap-1 px-safe-gutter h-(--sn-header-height) shrink-0'>
                 {/* -ms-1 lines the arrow up with the edge of the content */}
                 <Drawer.Close aria-label='close search' className={cn(styles.navIcon, '-ms-1 shrink-0 flex')}>
@@ -225,7 +223,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
               {bar}
               {/* no bottom padding and overflow hidden so the footer background reaches the edges.
                   both widths keep a tile column wide enough for the territory card */}
-              <AutocompletePopup anchor={barRef} positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg lg:min-w-xl pb-0 overflow-hidden flex flex-col max-h-[min(29rem,var(--available-height))]')}>
+              <AutocompletePopup anchor={barRef} positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg lg:min-w-xl pb-0 overflow-hidden flex flex-col max-h-[min(29rem,var(--available-height))] dark:shadow-lg/55')}>
                 {results}
                 {footer}
               </AutocompletePopup>

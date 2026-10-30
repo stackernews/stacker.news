@@ -316,6 +316,7 @@ services:
     build:
       context: ./docker/lnd
       args:
+        - LND_VERSION=${LND_VERSION}
         - LN_NODE_FOR=sn
     container_name: sn_lnd
     restart: unless-stopped
@@ -358,8 +359,6 @@ services:
       - '--maxpendingchannels=10'
       - '--gossip.sub-batch-delay=1s'
       - '--protocol.custom-message=513'
-      - '--protocol.custom-nodeann=39'
-      - '--protocol.custom-init=39'
     expose:
       - "9735"
     ports:
@@ -399,7 +398,6 @@ services:
     restart: unless-stopped
     profiles:
       - lndk
-      - wallets
     depends_on:
       sn_lnd:
         condition: service_healthy
@@ -424,6 +422,7 @@ services:
     build:
       context: ./docker/lnd
       args:
+        - LND_VERSION=${LND_VERSION}
         - LN_NODE_FOR=stacker
     container_name: lnd
     restart: unless-stopped
@@ -664,6 +663,7 @@ services:
     build:
       context: ./docker/lnd
       args:
+        - LND_VERSION=${LND_VERSION}
         - LN_NODE_FOR=router
     container_name: router_lnd
     restart: unless-stopped
@@ -776,7 +776,7 @@ services:
       CONNECT: "localhost:8025"
     cpu_shares: "${CPU_SHARES_LOW}"
   nwc_send:
-    image: ghcr.io/benthecarman/nostr-wallet-connect-lnd:master
+    image: ghcr.io/benthecarman/nostr-wallet-connect-lnd:master@sha256:a1408a40b54ab7e21bb7aa17072820c4166b18051177671058a86f488ea4f794
     container_name: nwc_send
     profiles:
       - nwc
@@ -811,7 +811,7 @@ services:
       - 'keys-file.json'
     cpu_shares: "${CPU_SHARES_LOW}"
   nwc_recv:
-    image: ghcr.io/benthecarman/nostr-wallet-connect-lnd:master
+    image: ghcr.io/benthecarman/nostr-wallet-connect-lnd:master@sha256:a1408a40b54ab7e21bb7aa17072820c4166b18051177671058a86f488ea4f794
     container_name: nwc_recv
     profiles:
       - nwc

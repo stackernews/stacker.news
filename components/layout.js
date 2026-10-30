@@ -4,7 +4,7 @@ import NavStatic from './nav/static'
 import Container from '@/components/ui/container'
 import Footer from './footer'
 import Seo, { SeoSearch } from './seo'
-import Search from './search'
+import SearchFilters from './search-filters'
 import styles from './layout.module.css'
 import PullToRefresh from './pull-to-refresh'
 import Price from './price'
@@ -14,6 +14,7 @@ import { navSubFromPath } from '@/lib/navigation'
 import { useQuery } from '@apollo/client/react'
 import { ACTIVE_SUBS } from '@/fragments/subs'
 import useDesktopSidebar from './use-desktop-sidebar'
+import { SearchStateProvider, useRememberHistory } from './nav/search'
 
 export default function Layout ({
   sub, contain = true, twoColumns = false, sidebar = null, footer = true, footerLinks = true,
@@ -22,12 +23,13 @@ export default function Layout ({
   const router = useRouter()
   const { data } = useQuery(ACTIVE_SUBS, { fetchPolicy: 'cache-only' })
   const navSub = navSubFromPath(router.asPath, sub, data?.activeSubs)
+  useRememberHistory(navSub)
   const desktopSidebar = useDesktopSidebar()
   const widthClassName = twoColumns ? 'lg:max-w-[1024px]' : ''
   const hasSidebar = contain && twoColumns
 
   return (
-    <>
+    <SearchStateProvider sub={navSub} user={user?.name}>
       {seo && <Seo sub={sub} item={item} user={user} />}
       <Navigation sub={navSub} hideMobileNav={hideMobileNav} containerClassName={widthClassName} />
       {hasSidebar
@@ -52,7 +54,7 @@ export default function Layout ({
           : children}
       {footer && !hasSidebar && <Footer sub={navSub} links={footerLinks} />}
       {!hideMobileNav && <NavFooter sub={navSub} />}
-    </>
+    </SearchStateProvider>
   )
 }
 
@@ -60,7 +62,7 @@ export function SearchLayout ({ sub, children, ...props }) {
   return (
     <Layout sub={sub} seo={false} footer={false} {...props}>
       <SeoSearch sub={sub} />
-      <Search sub={sub} />
+      <SearchFilters />
       {children}
     </Layout>
   )

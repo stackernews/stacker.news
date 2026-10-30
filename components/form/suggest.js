@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useId, useState } from 'react'
 import { useLazyQuery } from '@apollo/client/react'
-import textAreaCaret from 'textarea-caret'
 import { USER_SUGGESTIONS } from '@/fragments/users'
-import { SUB_SUGGESTIONS } from '@/fragments/subs'
 import { isAbortError } from '@/lib/error'
 import { cn } from '@/lib/cn'
 import { menuClasses, itemClasses } from '@/components/ui/menu'
@@ -12,9 +10,9 @@ import { InputInner } from './input'
 const INITIAL_SUGGESTIONS = { array: [], index: 0 }
 
 function BaseSuggest ({
-  query, onSelect, dropdownStyle,
+  query, onSelect,
   transformItem = item => item, selectWithTab = true, filterItems = () => true,
-  getSuggestionsQuery, queryName, itemsField,
+  getSuggestionsQuery, itemsField,
   children
 }) {
   const [getSuggestions] = useLazyQuery(getSuggestionsQuery)
@@ -89,12 +87,12 @@ function BaseSuggest ({
     ? `${listboxId}-${suggestions.index}`
     : undefined
 
-  // search passes dropdownStyle to position at the caret, otherwise we anchor to the wrapper after the input
+  // the dropdown is anchored to a wrapper after the input
   return (
     <>
       {children?.({ onKeyDown, resetSuggestions, listboxId, activeOptionId })}
       {suggestions.array.length > 0 && (
-        <div style={dropdownStyle} className={dropdownStyle ? undefined : 'relative'}>
+        <div className='relative'>
           <div
             id={listboxId}
             role='listbox'
@@ -200,190 +198,5 @@ function UserSuggest ({
     >
       {children}
     </BaseSuggest>
-  )
-}
-
-function TerritorySuggest ({
-  transformSub = sub => sub, filterSubs = () => true,
-  children, ...props
-}) {
-  return (
-    <BaseSuggest
-      transformItem={transformSub}
-      filterItems={filterSubs}
-      getSuggestionsQuery={SUB_SUGGESTIONS}
-      itemsField='subSuggestions'
-      {...props}
-    >
-      {children}
-    </BaseSuggest>
-  )
-}
-
-function useEntityAutocomplete ({
-  prefix,
-  meta,
-  helpers,
-  innerRef,
-  setSelectionRange,
-  SuggestComponent
-}) {
-  const [entityData, setEntityData] = useState()
-
-  const handleSelect = useCallback((name) => {
-    if (entityData?.start === undefined || entityData?.end === undefined) return
-    const { start, end } = entityData
-    setEntityData(undefined)
-    const first = `${meta?.value.substring(0, start)}${prefix}${name}`
-    const second = meta?.value.substring(end)
-    const updatedValue = `${first}${second}`
-    helpers.setValue(updatedValue)
-    setSelectionRange({ start: first.length, end: first.length })
-    innerRef.current.focus()
-  }, [entityData, meta?.value, helpers, prefix, setSelectionRange, innerRef])
-
-  const handleTextChange = useCallback((e) => {
-    const { value, selectionStart } = e.target
-    if (!value || selectionStart === undefined) {
-      setEntityData(undefined)
-      return false
-    }
-
-    let priorSpace = -1
-    for (let i = selectionStart - 1; i >= 0; i--) {
-      if (/[^\w@~]/.test(value[i])) {
-        priorSpace = i
-        break
-      }
-    }
-
-    let nextSpace = value.length
-    for (let i = selectionStart; i <= value.length; i++) {
-      if (/[^\w]/.test(value[i])) {
-        nextSpace = i
-        break
-      }
-    }
-
-    const currentSegment = value.substring(priorSpace + 1, nextSpace)
-    const regexPattern = new RegExp(`^\\${prefix}\\w*$`)
-
-    if (regexPattern.test(currentSegment)) {
-      const { top, left } = textAreaCaret(e.target, e.target.selectionStart)
-      setEntityData({
-        query: currentSegment,
-        start: priorSpace + 1,
-        end: nextSpace,
-        style: {
-          position: 'absolute',
-          top: `${top + Number(window.getComputedStyle(e.target).lineHeight.replace('px', ''))}px`,
-          left: `${left}px`
-        }
-      })
-      return true
-    }
-
-    setEntityData(undefined)
-    return false
-  }, [prefix])
-
-  // Return a function that takes a render prop instead of directly returning the component
-  return {
-    entityData,
-    handleSelect,
-    handleTextChange,
-    renderSuggest: (renderProps) => {
-      if (!entityData) return null
-
-      return (
-        <SuggestComponent
-          query={entityData?.query}
-          onSelect={handleSelect}
-          dropdownStyle={entityData?.style}
-        >
-          {renderProps}
-        </SuggestComponent>
-      )
-    }
-  }
-}
-
-export function useDualAutocomplete ({ meta, helpers, innerRef, setSelectionRange }) {
-  const userAutocomplete = useEntityAutocomplete({
-    prefix: '@',
-    meta,
-    helpers,
-    innerRef,
-    setSelectionRange,
-    SuggestComponent: UserSuggest
-  })
-
-  const territoryAutocomplete = useEntityAutocomplete({
-    prefix: '~',
-    meta,
-    helpers,
-    innerRef,
-    setSelectionRange,
-    SuggestComponent: TerritorySuggest
-  })
-
-  const handleTextChange = useCallback((e) => {
-    // Try to match user mentions first, then territories
-    if (!userAutocomplete.handleTextChange(e)) {
-      territoryAutocomplete.handleTextChange(e)
-    }
-  }, [userAutocomplete, territoryAutocomplete])
-
-  const handleKeyDown = useCallback((e, userOnKeyDown, territoryOnKeyDown) => {
-    const metaOrCtrl = e.metaKey || e.ctrlKey
-    if (!metaOrCtrl) {
-      if (userAutocomplete.entityData) {
-        return userOnKeyDown(e)
-      } else if (territoryAutocomplete.entityData) {
-        return territoryOnKeyDown(e)
-      }
-    }
-    return false // Didn't handle the event
-  }, [userAutocomplete.entityData, territoryAutocomplete.entityData])
-
-  const handleBlur = useCallback((resetUserSuggestions, resetTerritorySuggestions) => {
-    setTimeout(resetUserSuggestions, 500)
-    setTimeout(resetTerritorySuggestions, 500)
-  }, [])
-
-  return {
-    userAutocomplete,
-    territoryAutocomplete,
-    handleTextChange,
-    handleKeyDown,
-    handleBlur
-  }
-}
-
-export function DualAutocompleteWrapper ({
-  userAutocomplete,
-  territoryAutocomplete,
-  children
-}) {
-  return (
-    <UserSuggest
-      query={userAutocomplete.entityData?.query}
-      onSelect={userAutocomplete.handleSelect}
-      dropdownStyle={userAutocomplete.entityData?.style}
-    >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions: resetUserSuggestions }) => (
-      <TerritorySuggest
-        query={territoryAutocomplete.entityData?.query}
-        onSelect={territoryAutocomplete.handleSelect}
-        dropdownStyle={territoryAutocomplete.entityData?.style}
-      >{({ onKeyDown: territorySuggestOnKeyDown, resetSuggestions: resetTerritorySuggestions }) =>
-        children({
-          userSuggestOnKeyDown,
-          territorySuggestOnKeyDown,
-          resetUserSuggestions,
-          resetTerritorySuggestions
-        })}
-      </TerritorySuggest>
-    )}
-    </UserSuggest>
   )
 }

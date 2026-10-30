@@ -12,10 +12,17 @@ export function PreviewCardTrigger ({ handle, payload, onShow, className, childr
   return <BasePreviewCard.Trigger handle={handle} payload={payload} delay={500} render={<span className={className} onPointerEnter={onShow} onFocus={onShow}>{children}</span>} />
 }
 
-export function PreviewCardContent ({ side = 'bottom', anchor, positionMethod, className, children }) {
+export function PreviewCardContent ({ side = 'bottom', positionMethod, collisionBoundary, collisionAvoidance, hoverable = true, className, children }) {
   return (
     <BasePreviewCard.Portal>
-      <BasePreviewCard.Positioner side={side} sideOffset={8} anchor={anchor} positionMethod={positionMethod} className={styles.positioner}>
+      <BasePreviewCard.Positioner
+        side={side}
+        sideOffset={8}
+        positionMethod={positionMethod}
+        collisionBoundary={collisionBoundary}
+        collisionAvoidance={collisionAvoidance}
+        className={cn(styles.positioner, !hoverable && 'pointer-events-none')}
+      >
         <BasePreviewCard.Popup className={popoverClasses({ className: cn('py-2 px-4', className) })}>
           <BasePreviewCard.Arrow className={arrowStyles.arrow} />
           {children}

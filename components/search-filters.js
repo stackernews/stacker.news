@@ -9,7 +9,6 @@ const DEFAULTS = { what: 'all', sort: 'relevance', when: 'forever' }
 // next gives a repeated param as an array, which gets '' like a missing one
 const param = value => typeof value === 'string' ? value : ''
 
-// a select that calls onChange with the picked value
 function FilterSelect ({ onChange, ...props }) {
   return <Select noForm groupClassName='mb-0' onChange={(_, e) => onChange(e.target.value)} {...props} />
 }

@@ -38,8 +38,7 @@ function nameWords (text) {
   return text.replace(/"/g, '').split(/\s+/).filter(word => word && !/^([@~]|url:)/.test(word)).join(' ')
 }
 
-// puts @ or ~ at the end of the text as a word of its own. it replaces one
-// that's already there with nothing after it
+// replaces a @ or ~ already at the end, if nothing comes after it
 export function appendPrefix (text, prefix) {
   const before = text.replace(/(^|\s)[@~]?\s*$/, '')
   return before ? `${before} ${prefix}` : prefix

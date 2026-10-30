@@ -29,8 +29,7 @@ export function MobileSearch ({ bar, className }) {
     popup.style.setProperty('--safe-area-bottom-seen', `${safeAreaBottom}px`)
   }, [])
 
-  // renders the drawer and focuses the input within the tap, which is when ios
-  // shows the keyboard. ios would also scroll the page to center the input
+  // renders the drawer and focuses the input within the tap, which is when ios shows the keyboard
   const openNow = () => {
     flushSync(() => setOpen(true))
     inputRef.current?.focus({ preventScroll: true })

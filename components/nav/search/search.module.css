@@ -84,11 +84,9 @@
   --safe-area-bottom: env(safe-area-inset-bottom);
   background-color: var(--sn-body-bg);
   outline: 0;
-  /* keeps the results and the footer above the keyboard and the home indicator.
-     --drawer-keyboard-inset comes from base ui's keyboard provider. android
-     chrome drops the safe area to 0 while the keyboard is up but still counts
-     the gesture bar in the visual viewport, so the safe area from before the
-     keyboard is added back */
+  /* android chrome drops the safe area to 0 while the keyboard is up but still
+     counts the gesture bar in the visual viewport, so the safe area from before
+     the keyboard is added back */
   padding-bottom: max(
     var(--drawer-keyboard-inset, 0px) + var(--safe-area-bottom-seen, 0px) - var(--safe-area-bottom),
     var(--safe-area-bottom)

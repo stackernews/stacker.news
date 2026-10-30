@@ -38,25 +38,6 @@ function PrefixHint ({ prefix, onPrefix, children }) {
   )
 }
 
-// the anchor spans the results' width at the tile's height, so the card opens
-// beside the panel. with the tile as the context element, the card follows it
-// when the results scroll and hides once it's scrolled out
-function besideResults (resultsRef, tileRef) {
-  return () => {
-    const results = resultsRef.current
-    const tile = tileRef.current
-    if (!results || !tile) return null
-    return {
-      contextElement: tile,
-      getBoundingClientRect () {
-        const { x, width } = results.getBoundingClientRect()
-        const { y, height } = tile.getBoundingClientRect()
-        return new window.DOMRect(x, y, width, height)
-      }
-    }
-  }
-}
-
 // listens to wheel too: the scroll event arrives after the hover has
 // already moved the card to the tile under the pointer
 function useScrolling (ref) {
@@ -85,25 +66,25 @@ function useScrolling (ref) {
   return scrolling
 }
 
-// the tiles share one card. a card stays open while the pointer heads toward
-// it, so moving along a row of tiles would open the next card over it. it
-// hides while the results scroll, so it doesn't fly off with its tile
+// the card opens over the other column, so it lets the pointer through to the
+// tiles under it. a tile as wide as the panel leaves no room inside the results,
+// so the card keeps 15rem and opens outside them. it hides while the results
+// scroll, so it doesn't fly off with its tile
 function TilePreviewCard ({ handle, resultsRef }) {
   const scrolling = useScrolling(resultsRef)
 
   return (
     <PreviewCardRoot handle={handle}>
-      {/* base ui reads an anchor function only when the card opens, so the key
-          remounts the card when another tile takes it over */}
       {({ payload }) => payload && (
         <PreviewCardContent
-          key={payload.sub}
           side='right'
-          anchor={besideResults(resultsRef, payload.tileRef)}
           positionMethod='fixed'
-          className={scrolling && 'opacity-0 transition-none'}
+          collisionBoundary={resultsRef.current}
+          collisionAvoidance={{ side: 'flip', fallbackAxisSide: 'none' }}
+          hoverable={false}
+          className={cn('max-w-[clamp(15rem,var(--available-width),20rem)]', scrolling && 'opacity-0 transition-none')}
         >
-          <SubPreviewBody sub={payload.sub} />
+          <SubPreviewBody sub={payload} />
         </PreviewCardContent>
       )}
     </PreviewCardRoot>
@@ -135,7 +116,7 @@ export function Results ({ searching, loading, empty, onPick, canScope, onScope,
             )}
             {group.layout
               ? (
-                <AutocompleteTiles className={cn('grid-cols-1 md:[--scope-width:--spacing(8)]', group.layout === 'tiles' && 'md:grid-cols-[repeat(auto-fit,minmax(6rem,1fr))]')}>
+                <AutocompleteTiles className={cn('grid-cols-1 md:[--scope-width:--spacing(8)]', group.layout === 'tiles' ? 'md:grid-cols-[repeat(auto-fit,minmax(6rem,1fr))]' : 'md:grid-cols-2')}>
                   <Autocomplete.Collection>
                     {item => <Tile key={item.value} item={item} onPick={onPick} onScope={canScope(item) ? onScope : undefined} previewHandle={previews ? previewHandle : undefined} />}
                   </Autocomplete.Collection>

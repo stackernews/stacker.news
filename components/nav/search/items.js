@@ -1,4 +1,3 @@
-import { useRef } from 'react'
 import { AutocompleteItem, AutocompleteTile } from '@/components/ui/autocomplete'
 import Link from 'next/link'
 import SearchIcon from '@/svgs/search-line.svg'
@@ -105,7 +104,6 @@ export function Row ({ item, onPick, onScope }) {
 }
 
 export function Tile ({ item, onPick, onScope, previewHandle }) {
-  const tileRef = useRef(null)
   const textClassName = cn('flex flex-col gap-0.5 min-w-0 py-2.5 px-3', onScope && 'pe-(--scope-width)')
   const text = (
     <>
@@ -116,7 +114,6 @@ export function Tile ({ item, onPick, onScope, previewHandle }) {
 
   return (
     <AutocompleteTile
-      ref={tileRef}
       value={item}
       render={<Link href={item.value} />}
       onClick={() => onPick(item)}
@@ -126,7 +123,7 @@ export function Tile ({ item, onPick, onScope, previewHandle }) {
       {previewHandle
         ? (
           // the padding is on the trigger so hovering anywhere on the tile opens the card
-          <SubPreviewTrigger handle={previewHandle} payload={{ sub: item.name, tileRef }} sub={item.name} className={textClassName}>
+          <SubPreviewTrigger handle={previewHandle} payload={item.name} sub={item.name} className={textClassName}>
             {text}
           </SubPreviewTrigger>
           )

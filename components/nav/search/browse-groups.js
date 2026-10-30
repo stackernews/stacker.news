@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client/react'
-import { ACTIVE_SUBS, TOP_TERRITORIES } from '@/fragments/subs'
-import { recentItem, subItem } from './items'
+import { ACTIVE_SUBS, TERRITORIES_WEEK } from '@/fragments/subs'
+import { recentItem, subItem, weekSubItem } from './items'
 import { useRecentSearches, useRecentSubs } from './recent'
 import { useSearchState } from './state'
 
@@ -11,7 +11,7 @@ const TILES_LIMIT = 4
 
 // activeSubs leaves out stopped territories, and nsfw ones unless nsfw mode is on,
 // so every territory shown has to be in it
-function pickSubs ({ activeSubs = [], topSubs = [], visitedNames, sub }) {
+function pickSubs ({ activeSubs = [], weekSubs = [], visitedNames, sub }) {
   const byName = new Map(activeSubs.map(territory => [territory.name, territory]))
   const visited = visitedNames
     .map(name => byName.get(name))
@@ -19,9 +19,9 @@ function pickSubs ({ activeSubs = [], topSubs = [], visitedNames, sub }) {
     .slice(0, TILES_LIMIT)
 
   const showable = territory => territory && !territory.meMuteSub && territory.name !== sub
-  const top = topSubs.filter(territory => showable(byName.get(territory.name))).slice(0, TILES_LIMIT)
+  const week = weekSubs.filter(territory => territory.nitems > 0 && showable(byName.get(territory.name))).slice(0, TILES_LIMIT)
 
-  return { visited, top }
+  return { visited, week }
 }
 
 export function useBrowseGroups ({ open }) {
@@ -43,15 +43,15 @@ export function useBrowseGroups ({ open }) {
   }, [clearSearches])
 
   const activeSubs = useQuery(ACTIVE_SUBS, { skip: !open, fetchPolicy: 'cache-and-network', nextFetchPolicy: 'cache-first' }).data?.activeSubs
-  const topSubs = useQuery(TOP_TERRITORIES, { skip: !open }).data?.topSubs?.subs
+  const weekSubs = useQuery(TERRITORIES_WEEK, { skip: !open }).data?.topSubs?.subs
 
   return useMemo(() => {
-    const { visited, top } = pickSubs({ activeSubs, topSubs, visitedNames, sub })
+    const { visited, week } = pickSubs({ activeSubs, weekSubs, visitedNames, sub })
 
     return [
       { value: 'recent', label: 'recent', items: searches.slice(0, SEARCHES_LIMIT).map(recentItem), action: { label: 'clear', onClick: onClear } },
       { value: 'visited', label: 'recently visited', layout: 'tiles', items: visited.map(subItem) },
-      { value: 'top', label: 'top territories', layout: 'tiles', items: top.map(subItem), action: { label: 'all territories', href: '/top/territories/day' } }
+      { value: 'week', label: 'active this week', layout: 'tiles', items: week.map(weekSubItem), action: { label: 'all territories', href: '/top/territories/week?by=items' } }
     ].filter(group => group.items.length > 0)
-  }, [activeSubs, topSubs, visitedNames, sub, searches, onClear])
+  }, [activeSubs, weekSubs, visitedNames, sub, searches, onClear])
 }

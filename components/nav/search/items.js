@@ -21,11 +21,6 @@ export function recentItem (q) {
   return { value: searchHref(q), type: 'recent', label: q }
 }
 
-// stackers can hide what they stacked, and only the top territories come with it
-function stackedMeta ({ optional }) {
-  return optional?.stacked != null ? `${abbrNum(optional.stacked)} stacked` : ''
-}
-
 export function userItem (user) {
   return {
     value: `/${user.name}`,
@@ -33,7 +28,8 @@ export function userItem (user) {
     name: user.name,
     label: `@${user.name}`,
     photoId: user.photoId,
-    meta: stackedMeta(user)
+    // stackers can hide what they stacked
+    meta: user.optional.stacked !== null ? `${abbrNum(user.optional.stacked)} stacked` : ''
   }
 }
 
@@ -43,7 +39,6 @@ export function subItem (sub) {
     type: 'sub',
     name: sub.name,
     label: `~${sub.name}`,
-    meta: stackedMeta(sub),
     muted: sub.meMuteSub
   }
 }
@@ -58,6 +53,10 @@ function weekMeta (sub, week) {
 
 export function longSubItem (sub, week) {
   return { ...subItem(sub), meta: weekMeta(sub, week) }
+}
+
+export function weekSubItem (sub) {
+  return { ...subItem(sub), meta: numWithUnits(sub.nitems, { unitSingular: 'item', unitPlural: 'items' }) }
 }
 
 function RowIcon ({ item }) {

@@ -47,6 +47,7 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
   })
 
   const isEditing = !!item
+  const currentUrlRef = useRef(initial.url)
   const [currentTitle, setCurrentTitle] = useState(initial.title || '')
 
   // allows finer control over dupe accordian layout shift
@@ -71,6 +72,18 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
     }`)
   const getPageTitleAndUnshortedDebounce = useDebounceCallback((...args) => getPageTitleAndUnshorted(...args).catch(err => !isAbortError(err) && console.error(err)), LOOKUP_DEBOUNCE_MS, [getPageTitleAndUnshorted])
   const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args).catch(err => !isAbortError(err) && console.error(err)), DUPES_DEBOUNCE_MS, [getDupes])
+
+  useEffect(() => {
+    // Draft restoration calls the URL input's change handler before this effect.
+    if (isEditing) {
+      return
+    }
+
+    const meaningfulUrl = getMeaningfulUrl(currentUrlRef.current)
+    if (meaningfulUrl) {
+      return getDupesDebounce({ variables: { url: meaningfulUrl } })
+    }
+  }, [isEditing, getDupesDebounce])
 
   useEffect(() => {
     if (!dupesLoading) {
@@ -146,6 +159,8 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
             return
           }
 
+          currentUrlRef.current = value
+          getDupesDebounce.cancel()
           const meaningfulUrl = getMeaningfulUrl(value)
 
           if (!meaningfulUrl) {

@@ -72,6 +72,15 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
   const getPageTitleAndUnshortedDebounce = useDebounceCallback((...args) => getPageTitleAndUnshorted(...args).catch(err => !isAbortError(err) && console.error(err)), LOOKUP_DEBOUNCE_MS, [getPageTitleAndUnshorted])
   const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args).catch(err => !isAbortError(err) && console.error(err)), DUPES_DEBOUNCE_MS, [getDupes])
 
+  // Fix #3259: run the dupes + title lookup when the URL is prefilled (e.g. via Web Share Target API)
+  useEffect(() => {
+    if (isEditing) return
+    const prefilled = getMeaningfulUrl(initial?.url)
+    if (!prefilled) return
+    getPageTitleAndUnshortedDebounce({ variables: { url: prefilled } })
+    getDupesDebounce({ variables: { url: prefilled } })
+  }, [initial?.url]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!dupesLoading) {
       setDupes(dupesData?.dupes)

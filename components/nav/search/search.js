@@ -17,7 +17,7 @@ import { useSearchGroups } from './search-groups'
 import { useBrowseGroups } from './browse-groups'
 import styles from './search.module.css'
 
-const DEBOUNCE_MS = 500
+const DEBOUNCE_MS = 150
 
 function toSearchRows ({ q, scope, text, router }) {
   const chips = scopeWords(scope)
@@ -60,7 +60,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
 
   const lookup = useMemo(() => toLookup(text, caret ?? text.length), [text, caret])
   const debounced = useDebouncedLookup(lookup)
-  const { groups: searchGroups, loading } = useSearchGroups({ lookup, debounced, open })
+  const { groups: searchGroups, loading } = useSearchGroups({ lookup, debounced, scope, open })
   const browseGroups = useBrowseGroups({ open })
 
   const q = joinScope(scope, text).slice(0, MAX_SEARCH_LENGTH)
@@ -149,7 +149,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
   // rows are links and do the navigation
   const onPick = item => {
     setOpen(false)
-    if (item?.type === 'user' || item?.type === 'sub') reset()
+    if (['user', 'sub', 'post', 'comment'].includes(item?.type)) reset()
   }
 
   const bar = (
@@ -223,7 +223,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
               {bar}
               {/* overflow hidden so the footer background reaches the edges.
                   both widths keep a tile column wide enough for the territory card */}
-              <AutocompletePopup anchor={barRef} positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg lg:min-w-xl overflow-hidden flex flex-col max-h-[min(29rem,var(--available-height))] dark:shadow-lg/55')}>
+              <AutocompletePopup anchor={barRef} positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg lg:min-w-xl overflow-hidden flex flex-col max-h-[min(80vh,var(--available-height))] dark:shadow-lg/55')}>
                 {results}
                 {footer}
               </AutocompletePopup>

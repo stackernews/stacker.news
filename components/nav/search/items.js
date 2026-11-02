@@ -8,8 +8,10 @@ import userStyles from '@/components/user-header.module.css'
 import { abbrNum, numWithUnits } from '@/lib/format'
 import { searchHref } from '@/lib/search'
 import { SubPreviewTrigger } from '@/components/sub-preview-card'
+import SearchHighlight from '@/components/search-highlight'
 import styles from './search.module.css'
 import { avatarSrc } from '@/lib/user'
+import { timeSince } from '@/lib/time'
 import { keepFocus, scopeHint } from './bar'
 
 export function searchItem (href, text, after) {
@@ -59,6 +61,20 @@ export function weekSubItem (sub) {
   return { ...subItem(sub), meta: numWithUnits(sub.nitems, { unitSingular: 'item', unitPlural: 'items' }) }
 }
 
+export function hitItem (type, hit) {
+  return {
+    value: `/items/${hit.itemId}`,
+    type,
+    label: hit.text.replaceAll('***', ''),
+    marked: hit.text,
+    author: hit.userName,
+    sats: numWithUnits(hit.sats),
+    comments: hit.ncomments > 0 && numWithUnits(hit.ncomments, { abbreviate: false, unitSingular: 'comment', unitPlural: 'comments' }),
+    date: timeSince(new Date(hit.createdAt)),
+    subs: hit.subNames.map(subName => `~${subName}`).join(' ')
+  }
+}
+
 function RowIcon ({ item }) {
   if (item.type === 'user') {
     return <img src={avatarSrc(item.photoId)} alt='' width={16} height={16} className={cn(userStyles.userimg, 'shrink-0 self-center')} />
@@ -84,11 +100,59 @@ function ScopeButton ({ item, onScope }) {
   )
 }
 
-export function Row ({ item, onPick, onScope }) {
+function HitAuthor ({ name }) {
+  return name && <span className={styles.bodySecondary}>@{name} </span>
+}
+
+function PostHit ({ item }) {
+  return (
+    <>
+      <span className='flex items-baseline gap-4'>
+        <span className='grow min-w-0 font-medium max-md:line-clamp-2 md:truncate'><SearchHighlight text={item.marked} /></span>
+        <span className={cn(styles.meta, 'shrink-0 text-xs')}>{item.sats}</span>
+      </span>
+      <span className={cn(styles.meta, 'truncate text-xs')}>
+        <HitAuthor name={item.author} />{item.date} {item.subs}{item.comments && ` \\ ${item.comments}`}
+      </span>
+    </>
+  )
+}
+
+function CommentHit ({ item }) {
+  return (
+    <>
+      <span className={cn(styles.meta, 'flex items-baseline gap-4 text-xs')}>
+        <span className='grow min-w-0 truncate'><HitAuthor name={item.author} />{item.date}</span>
+        <span className='shrink-0'>{item.sats}</span>
+      </span>
+      {/* keeps the text out of the sats column */}
+      <span className={cn(styles.bodySecondary, 'line-clamp-2 md:pe-24')}><SearchHighlight text={item.marked} /></span>
+    </>
+  )
+}
+
+function HitRow ({ item, onPick }) {
+  const Hit = item.type === 'comment' ? CommentHit : PostHit
+
   return (
     <AutocompleteItem
       value={item}
-      render={<Link href={item.value} />}
+      render={<Link href={item.value} prefetch={false} />}
+      onClick={() => onPick(item)}
+      className={cn(styles.hit, 'flex-col items-stretch gap-0 py-1')}
+    >
+      <Hit item={item} />
+    </AutocompleteItem>
+  )
+}
+
+export function Row ({ item, onPick, onScope }) {
+  if (item.marked) return <HitRow item={item} onPick={onPick} />
+
+  return (
+    <AutocompleteItem
+      value={item}
+      render={<Link href={item.value} prefetch={false} />}
       onClick={() => onPick(item)}
       className={onScope && 'pe-(--scope-width)'}
       action={onScope && <ScopeButton item={item} onScope={onScope} />}
@@ -114,7 +178,7 @@ export function Tile ({ item, onPick, onScope, previewHandle }) {
   return (
     <AutocompleteTile
       value={item}
-      render={<Link href={item.value} />}
+      render={<Link href={item.value} prefetch={false} />}
       onClick={() => onPick(item)}
       className={item.muted && styles.muted}
       action={onScope && <ScopeButton item={item} onScope={onScope} />}

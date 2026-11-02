@@ -14,3 +14,30 @@ export const NAV_SEARCH_NAMES = gql`
     }
   }
 `
+
+const QUICK_SEARCH_HIT_FIELDS = gql`
+  fragment QuickSearchHitFields on QuickSearchHit {
+    itemId
+    text
+    userName
+    sats
+    ncomments
+    createdAt
+    subNames
+  }
+`
+
+export const NAV_SEARCH_ITEMS = gql`
+  ${QUICK_SEARCH_HIT_FIELDS}
+
+  query navSearchItems($q: String!) {
+    quickSearch(q: $q) {
+      posts {
+        ...QuickSearchHitFields
+      }
+      comments {
+        ...QuickSearchHitFields
+      }
+    }
+  }
+`

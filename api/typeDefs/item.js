@@ -9,8 +9,25 @@ export default gql`
     dupes(url: String!): [Item!]
     related(cursor: String, title: String, id: ID, minMatch: String, limit: Limit! = ${LIMIT}): Items
     search(q: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items
+    quickSearch(q: String!): QuickSearch!
     itemRepetition(parentId: ID): Int!
     newComments(itemId: ID, after: Date): Comments!
+  }
+
+  type QuickSearch {
+    posts: [QuickSearchHit!]!
+    comments: [QuickSearchHit!]!
+  }
+
+  # no id, so apollo keeps each search's highlighted text in its own cache entry
+  type QuickSearchHit {
+    itemId: ID!
+    text: String!
+    userName: String
+    sats: Int!
+    ncomments: Int!
+    createdAt: Date!
+    subNames: [String!]!
   }
 
   type TitleUnshorted {

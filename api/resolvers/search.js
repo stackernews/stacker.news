@@ -735,6 +735,64 @@ function attachHighlights (items, hits) {
   })
 }
 
+// ---- Quick search ----
+// Keyword search that runs while typing. Hits come straight from the index.
+
+const QUICK_SEARCH_LIMIT = 3
+const QUICK_SEARCH_SNIPPET_LENGTH = 260
+
+function quickTextQueries (query) {
+  return [
+    ...baseTextQueries(query),
+    // the last word is still being typed. titles come first, comments don't have one
+    { match_phrase_prefix: { 'title_text.exact': { query, boost: 10 } } },
+    { match_phrase_prefix: { 'title.exact': { query, boost: 100 } } }
+  ]
+}
+
+function quickHighlight (what, text) {
+  const field = what === 'posts' ? 'title.exact' : 'text.exact'
+  const fragments = what === 'posts'
+    ? { number_of_fragments: 0 }
+    : { number_of_fragments: 1, fragment_size: QUICK_SEARCH_SNIPPET_LENGTH, no_match_size: QUICK_SEARCH_SNIPPET_LENGTH }
+  return {
+    pre_tags: ['***'],
+    post_tags: ['***'],
+    fields: {
+      [field]: { highlight_query: { match_bool_prefix: { [field]: text } }, ...fragments }
+    }
+  }
+}
+
+function quickSearchBody ({ should, filters, highlight }) {
+  return {
+    size: QUICK_SEARCH_LIMIT,
+    _source: ['id', 'title', 'user.name', 'sats', 'boost', 'cost', 'ncomments', 'createdAt', 'subNames'],
+    query: {
+      function_score: {
+        query: { bool: { should, minimum_should_match: 1, filter: filters } },
+        functions: [ranktopFunction()],
+        boost_mode: 'multiply'
+      }
+    },
+    highlight
+  }
+}
+
+function toQuickSearchHit ({ _source: source, highlight = {} }) {
+  const [text] = highlight['title.exact'] ?? highlight['text.exact'] ?? [source.title ?? '']
+  return {
+    itemId: source.id,
+    text,
+    userName: source.user?.name,
+    // only bulk indexing stores the cost, and older docs can miss any of these
+    sats: (source.sats ?? 0) + (source.boost ?? 0) + (source.cost ?? 0),
+    ncomments: source.ncomments ?? 0,
+    createdAt: source.createdAt,
+    subNames: source.subNames ?? []
+  }
+}
+
 // ---- Resolvers ----
 
 export default {
@@ -946,6 +1004,44 @@ export default {
         cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         items,
         searchSuggestion
+      }
+    },
+
+    quickSearch: async (parent, { q }, { me, search, userLoader }) => {
+      await validateSchema(searchSchema, { q })
+
+      const { query, quotes, nym, territory } = queryParts(q)
+      const quoteParts = quoteClauses(quotes)
+      const should = [...quoteParts.queries, ...(query.length ? quickTextQueries(query) : [])]
+      if (should.length === 0) return { posts: [], comments: [] }
+
+      const { postsSatsFilter, commentsSatsFilter } = await loadSatsFilters(me, userLoader)
+      const filtersFor = what => [
+        typeFilter(what, me?.id),
+        statusFilter(),
+        satsInvestmentFilter({ what, postsSatsFilter, commentsSatsFilter, meId: me?.id }),
+        ...nymClauses(nym).filters,
+        ...territoryClauses(territory).filters,
+        ...quoteParts.filters
+      ].filter(Boolean)
+
+      const highlightText = [query, ...quotes].join(' ').trim()
+      const bodyFor = what => quickSearchBody({ should, filters: filtersFor(what), highlight: quickHighlight(what, highlightText) })
+
+      try {
+        const { body } = await search.msearch({
+          index: process.env.OPENSEARCH_INDEX,
+          // msearch takes a header line before each search
+          body: [{}, bodyFor('posts'), {}, bodyFor('comments')]
+        })
+        const [posts, comments] = body.responses.map(response => {
+          if (response.error) throw response.error
+          return response.hits.hits.map(toQuickSearchHit)
+        })
+        return { posts, comments }
+      } catch (e) {
+        console.error('[QUICK SEARCH ERROR]', e?.meta?.body ? JSON.stringify(e.meta.body, null, 2) : (e?.message || e))
+        return { posts: [], comments: [] }
       }
     }
   }

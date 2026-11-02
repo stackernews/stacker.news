@@ -61,6 +61,10 @@
   opacity: 0.5;
 }
 
+.bodySecondary {
+  color: var(--sn-body-secondary-color);
+}
+
 .meta {
   color: var(--sn-muted);
 }
@@ -68,6 +72,12 @@
 /* the muted color is too faint to read on the highlight */
 [data-highlighted] .meta {
   color: var(--sn-body-secondary-color);
+}
+
+.hit mark {
+  background-color: var(--sn-mark-bg);
+  border-radius: .25rem;
+  padding: 0 .25rem;
 }
 
 .popup {

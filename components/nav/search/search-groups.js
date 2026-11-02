@@ -1,19 +1,23 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client/react'
-import { NAV_SEARCH_NAMES } from '@/fragments/search'
+import { NAV_SEARCH_ITEMS, NAV_SEARCH_NAMES } from '@/fragments/search'
 import { ACTIVE_SUBS, TERRITORIES_WEEK } from '@/fragments/subs'
-import { userItem, longSubItem } from './items'
+import { MAX_SEARCH_LENGTH } from '@/lib/constants'
+import { joinScope } from '@/lib/search'
+import { userItem, longSubItem, hitItem } from './items'
 
 const SEARCH_LIMIT = 4
 const NAMES_LIMIT = 8
 
 // territories found by name come with just their name, the rest is in the full
 // list. a territory missing from the week's list had a quiet week
-function toGroups ({ users = [], subs = [], activeSubs = [], weekSubs = [] }) {
+function toGroups ({ users = [], subs = [], posts = [], comments = [], activeSubs = [], weekSubs = [] }) {
   const byName = new Map(activeSubs.map(sub => [sub.name, sub]))
   const weekByName = new Map(weekSubs.map(sub => [sub.name, sub]))
   const toItem = sub => longSubItem(byName.get(sub.name) ?? sub, weekByName.get(sub.name))
   return [
+    { value: 'post', label: 'posts', items: posts.map(post => hitItem('post', post)) },
+    { value: 'comment', label: 'comments', items: comments.map(comment => hitItem('comment', comment)) },
     { value: 'user', label: 'stackers', items: users.map(userItem) },
     { value: 'sub', label: 'territories', layout: 'long-tiles', items: subs.map(toItem) }
   ].filter(group => group.items.length > 0)
@@ -34,6 +38,10 @@ function namesQuery (lookup) {
   }
 }
 
+function itemsQuery (lookup, scope) {
+  if (lookup.mode === 'search') return { q: joinScope(scope, lookup.text).slice(0, MAX_SEARCH_LENGTH) }
+}
+
 // keeps the last results while the next ones load, as long as they are for the
 // same kind of lookup. apollo's previousData doesn't work here: it survives
 // skip, so results from before the input was cleared would show up again
@@ -48,17 +56,21 @@ function useLastData (data, kind) {
   return current
 }
 
-export function useSearchGroups ({ lookup, debounced, open }) {
+export function useSearchGroups ({ lookup, debounced, scope, open }) {
   const variables = namesQuery(debounced)
+  const itemVariables = itemsQuery(debounced, scope)
 
   const names = useQuery(NAV_SEARCH_NAMES, { variables, skip: !open || !variables })
   const data = useLastData(names.data, variables && (debounced.type ?? 'search'))
+  const items = useQuery(NAV_SEARCH_ITEMS, { variables: itemVariables, skip: !open || !itemVariables })
+  const itemData = useLastData(items.data, itemVariables && 'search')
   const subs = useQuery(ACTIVE_SUBS, { skip: !open, fetchPolicy: 'cache-and-network', nextFetchPolicy: 'cache-first' })
   const week = useQuery(TERRITORIES_WEEK, { skip: !open })
 
   // stackers looked up by name don't belong under a search, and the other way around
   const sameLookup = debounced.mode === lookup.mode && debounced.type === lookup.type
   const matches = sameLookup ? data : undefined
+  const hits = sameLookup ? itemData?.quickSearch : undefined
   // a ~ alone shows every territory, and so does a ~name until its matches arrive
   const allSubs = lookup.type === 'sub' && (!lookup.name || !matches)
 
@@ -66,11 +78,18 @@ export function useSearchGroups ({ lookup, debounced, open }) {
   const weekSubs = week.data?.topSubs?.subs
   const groups = useMemo(() => {
     if (allSubs) return toGroups({ subs: pinSubscribed(activeSubs), activeSubs, weekSubs })
-    return toGroups({ users: matches?.searchUsers, subs: matches?.subSuggestions, activeSubs, weekSubs })
-  }, [allSubs, activeSubs, weekSubs, matches])
+    return toGroups({
+      users: matches?.searchUsers,
+      subs: matches?.subSuggestions,
+      posts: hits?.posts,
+      comments: hits?.comments,
+      activeSubs,
+      weekSubs
+    })
+  }, [allSubs, activeSubs, weekSubs, matches, hits])
 
   // the pause in typing before the query counts as loading too
   const loadingNames = !!namesQuery(lookup) && (names.loading || lookup.key !== debounced.key)
-  const loading = loadingNames || (allSubs && subs.loading)
+  const loading = loadingNames || items.loading || (allSubs && subs.loading)
   return { groups, loading }
 }

@@ -1,6 +1,6 @@
 import { HeadingNode } from '@lexical/rich-text'
 import { slug } from 'github-slugger'
-import { setNodeIndentFromDOM, $applyNodeReplacement, $createParagraphNode, $isTextNode, $isLineBreakNode } from 'lexical'
+import { setNodeIndentFromDOM, $applyNodeReplacement, $isTextNode, $isLineBreakNode } from 'lexical'
 
 const HEADING_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']
 // identifies the decorative anchor link; the sn-heading__link class is styling only
@@ -119,32 +119,6 @@ export class SNHeadingNode extends HeadingNode {
     const link = createHeadingAnchorLink(element, headingId)
     element.appendChild(link)
     return { element, append: (fragment) => link.append(fragment) }
-  }
-
-  // override
-  insertNewAfter (selection, restoreSelection = true) {
-    const anchorOffset = selection ? selection.anchor.offset : 0
-    const lastDesc = this.getLastDescendant()
-    const isAtEnd = !lastDesc || (selection && selection.anchor.key === lastDesc.getKey() && anchorOffset === lastDesc.getTextContentSize())
-    const newElement = isAtEnd || !selection ? $createParagraphNode() : $createSNHeadingNode(this.getTag())
-    const direction = this.getDirection()
-    newElement.setDirection(direction)
-    this.insertAfter(newElement, restoreSelection)
-    if (anchorOffset === 0 && !this.isEmpty() && selection) {
-      const paragraph = $createParagraphNode()
-      paragraph.select()
-      this.replace(paragraph, true)
-    }
-    return newElement
-  }
-
-  // override
-  collapseAtStart () {
-    const newElement = !this.isEmpty() ? $createSNHeadingNode(this.getTag()) : $createParagraphNode()
-    const children = this.getChildren()
-    children.forEach(child => newElement.append(child))
-    this.replace(newElement)
-    return true
   }
 
   // override

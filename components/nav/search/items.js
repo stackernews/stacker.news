@@ -97,17 +97,17 @@ export function Row ({ item, onPick, onScope }) {
       <span className='grow min-w-0 truncate'>
         {item.type === 'search' ? <>search <b>{item.text}</b> {item.after}</> : item.label}
       </span>
-      {item.meta && <span className='shrink-0 text-xs text-muted'>{item.meta}</span>}
+      {item.meta && <span className={cn(styles.meta, 'shrink-0 text-xs')}>{item.meta}</span>}
     </AutocompleteItem>
   )
 }
 
 export function Tile ({ item, onPick, onScope, previewHandle }) {
-  const textClassName = cn('flex flex-col gap-0.5 min-w-0 py-2.5 px-3', onScope && 'pe-(--scope-width)')
+  const textClassName = cn('flex flex-col min-w-0 py-2 px-3', onScope && 'pe-(--scope-width)')
   const text = (
     <>
-      <span className='truncate text-sm font-bold'>{item.label}</span>
-      <span className='text-xs text-muted'>{item.meta}</span>
+      <span className='truncate font-medium'>{item.label}</span>
+      <span className={cn(styles.meta, 'text-xs')}>{item.meta}</span>
     </>
   )
 

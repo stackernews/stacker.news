@@ -177,7 +177,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
     </div>
   )
   const results = (
-    <div ref={resultsRef} className={cn(styles.results, 'grow min-h-0 overflow-y-auto overscroll-contain touch-pan-y', inline && 'pt-1.5')}>
+    <div ref={resultsRef} className={cn(styles.results, 'grow min-h-0 overflow-y-auto overscroll-contain touch-pan-y')}>
       {/* on touch screens the results always scroll by at least 1px, so a drag
           on a short list stays in the box instead of scrolling the page */}
       <div className='pointer-coarse:min-h-[calc(100%+1px)]'>
@@ -221,9 +221,9 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
           : (
             <>
               {bar}
-              {/* no bottom padding and overflow hidden so the footer background reaches the edges.
+              {/* overflow hidden so the footer background reaches the edges.
                   both widths keep a tile column wide enough for the territory card */}
-              <AutocompletePopup anchor={barRef} positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg lg:min-w-xl pb-0 overflow-hidden flex flex-col max-h-[min(29rem,var(--available-height))] dark:shadow-lg/55')}>
+              <AutocompletePopup anchor={barRef} positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg lg:min-w-xl overflow-hidden flex flex-col max-h-[min(29rem,var(--available-height))] dark:shadow-lg/55')}>
                 {results}
                 {footer}
               </AutocompletePopup>

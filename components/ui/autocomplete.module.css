@@ -13,12 +13,7 @@
 }
 
 .tile {
-  border: 1px solid var(--sn-toolbar-active);
-}
-
-.tile[data-highlighted],
-.tile:active {
-  border-color: var(--sn-border-color-translucent);
+  background-color: var(--sn-tile-bg);
 }
 
 }

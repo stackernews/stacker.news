@@ -910,7 +910,7 @@ services:
       TORDIR: "/app/.tor"
     cpu_shares: "${CPU_SHARES_LOW}"
   lnpub:
-    image: ghcr.io/shocknet/lightning-pub@sha256:cd7bb9298d09a2cdaf1b6456ef6154e3ba24f7b902ad29cda2c08c2a4fa2af6e
+    image: ghcr.io/shocknet/lightning-pub:0.0.41@sha256:40de8312362fb804dfc73e23dbae389e8844fff33ebf1ace7b5a185695b9bb31
     container_name: lnpub
     profiles:
       - lnpub

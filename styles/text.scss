@@ -955,14 +955,6 @@ span + .sn-link {
   content: '\00a0';
 }
 
-/*
-  lexical dev notes:
-  A firefox workaround to allow scrolling of overflowing table cell
-  ref: https://bugzilla.mozilla.org/show_bug.cgi?id=1904159
-*/
-.sn-table__cell > * {
-  overflow: inherit;
-}
 .sn-table__cell-resizer {
   position: absolute;
   right: -4px;

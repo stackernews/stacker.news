@@ -102,7 +102,7 @@ export function Results ({ searching, loading, empty, onPick, canScope, onScope,
       </Autocomplete.Empty>
       <AutocompleteList className='[--scope-width:--spacing(11)] md:[--scope-width:--spacing(9)]'>
         {group => (
-          <Autocomplete.Group key={group.value} items={group.items} className='not-first:mt-1.5'>
+          <Autocomplete.Group key={group.value} items={group.items} className={group.label && 'mt-3'}>
             {group.label && (
               <AutocompleteGroupLabel
                 className='flex items-center gap-2'
@@ -135,7 +135,7 @@ export function Results ({ searching, loading, empty, onPick, canScope, onScope,
 
 export function Footer ({ mode, tabHint, keyHints = true, onPick, onPrefix, className }) {
   return (
-    <div className={cn(styles.footer, 'flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-xs text-muted', className)}>
+    <div className={cn(styles.footer, 'flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 text-xs text-muted', className)}>
       {mode === 'browse' && <Link href='/territory' className={cn(styles.action, 'whitespace-nowrap')} onMouseDown={keepFocus} onClick={() => onPick()}>create a territory</Link>}
       {keyHints && mode === 'search' && <span className='whitespace-nowrap'>press <Kbd>↵</Kbd> for all results</span>}
       {keyHints && tabHint && <span className='whitespace-nowrap'><Kbd>tab</Kbd> {tabHint}</span>}

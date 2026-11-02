@@ -61,6 +61,15 @@
   opacity: 0.5;
 }
 
+.meta {
+  color: var(--sn-muted);
+}
+
+/* the muted color is too faint to read on the highlight */
+[data-highlighted] .meta {
+  color: var(--sn-body-secondary-color);
+}
+
 .popup {
   border: 1px solid var(--sn-border-color-translucent);
 }

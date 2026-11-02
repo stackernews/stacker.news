@@ -51,6 +51,17 @@
   margin-top: 0 !important;
 }
 
+// lexical adds a hidden img next to block decorators
+.sn-text > div > [data-lexical-decorator-boundary]:first-child + * {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+.sn-text > div >*:has(+ [data-lexical-decorator-boundary]:last-child) {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+
 .sn-text blockquote {
   padding-top: 0 !important;
   padding-bottom: 0 !important;

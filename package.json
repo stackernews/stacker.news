@@ -47,7 +47,7 @@
     "@opensearch-project/opensearch": "^2.12.0",
     "@prisma/client": "^5.20.0",
     "@scure/bip39": "^1.6.0",
-    "@shocknet/clink-sdk": "^1.4.0",
+    "@shocknet/clink-sdk": "1.6.1",
     "@svgr/webpack": "^8.1.0",
     "@yudiel/react-qr-scanner": "^2.5.1",
     "async-mutex": "^0.5.0",
@@ -152,7 +152,7 @@
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^16.4.3",
-    "eslint": "^9.12.0",
+    "eslint": "^9.39.5",
     "eslint-config-next": "^16.4.3",
     "expect": "^30.5.2",
     "standard": "^17.1.2"
@@ -160,7 +160,7 @@
   "overrides": {
     "happy-dom": "^21.0.4",
     "serialize-javascript": "^7.0.5",
-    "glob": ">=13.0.6",
+    "glob": "^14.0.3",
     "form-data": ">=4.0.5",
     "bn.js": ">=4.12.3",
     "react-is": "19.2.6",
@@ -170,8 +170,11 @@
     "js-yaml": "^4.3.1",
     "sharp": "^0.35.0",
     "@auth/core": "^0.41.3",
-    "brace-expansion": "^5.0.9",
+    "brace-expansion@^1.0.0": "1.1.21",
+    "brace-expansion@^2.0.0": "2.1.7",
+    "brace-expansion@^5.0.0": "5.0.12",
     "katex": "^0.19.0",
-    "nodemailer": "^10.3.0"
+    "nodemailer": "^10.3.0",
+    "@isaacs/nonrecursive-glob-match": "1.0.3"
   }
 }

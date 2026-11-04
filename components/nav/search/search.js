@@ -100,6 +100,8 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
     const next = appendPrefix(text, prefix)
     setText(next)
     setCaret(next.length)
+    // the rows change but the box keeps its scroll
+    resultsRef.current?.scrollTo(0, 0)
     focusInput()
   }
 
@@ -181,7 +183,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
       {/* on touch screens the results always scroll by at least 1px, so a drag
           on a short list stays in the box instead of scrolling the page */}
       <div className='pointer-coarse:min-h-[calc(100%+1px)]'>
-        <Results searching={searching} loading={loading} empty={emptyText(lookup)} onPick={onPick} canScope={canScope} onScope={addScope} previews={!inline} resultsRef={resultsRef} />
+        <Results searching={searching} loading={loading} empty={emptyText(lookup)} onPick={onPick} onPrefix={addPrefix} canScope={canScope} onScope={addScope} previews={!inline} resultsRef={resultsRef} />
       </div>
     </div>
   )

@@ -23,12 +23,13 @@ function useSiteSeo () {
 }
 
 // capture service takes a path and navigates to it on the main domain (stacker.news)
-// to support custom domains, we need to prepend the subname to the path
-function capturePath ({ path, branding }) {
-  if (!branding?.subName) return path
+// or on the active custom domain when domainName is present in branding
+export function capturePath ({ path, branding }) {
+  const prefix = branding?.domainName || (branding?.subName && `~${branding.subName}`)
+  if (!prefix) return path
 
-  if (path === '/') return `/~${branding.subName}`
-  return `/~${branding.subName}${path}`
+  if (path === '/') return `/${prefix}`
+  return `/${prefix}${path}`
 }
 
 export function SeoSearch ({ sub }) {

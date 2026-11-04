@@ -62,6 +62,7 @@ let browserResetPromise
 let activeCaptures = 0
 let captureCount = 0
 const inflightCaptures = new Map()
+const customDomainCache = new Map()
 const app = express()
 const retryLaterResult = {
   status: 503,
@@ -197,6 +198,58 @@ function isAssetPath (pathname) {
     pathname === '/site.webmanifest' ||
     pathname === '/api/site.webmanifest' ||
     /\/(?:favicon[^/]*|apple-touch-icon[^/]*)$/.test(pathname)
+}
+
+async function isAllowedCustomDomain (domain) {
+  const key = domain.toLowerCase()
+  const now = Date.now()
+  const cached = customDomainCache.get(key)
+  if (cached && now - cached.checkedAt < Number(cache)) {
+    return cached.allowed
+  }
+
+  try {
+    const endpoint = new URL('/api/domains', captureBaseUrl)
+    endpoint.searchParams.set('domain', key)
+    const res = await fetch(endpoint.href, { signal: AbortSignal.timeout(timeout) })
+    const allowed = res.status === 200
+    customDomainCache.set(key, { allowed, checkedAt: now })
+    return allowed
+  } catch (err) {
+    console.error('[capture] custom domain check failed', key, err)
+    return false
+  }
+}
+
+async function resolveCaptureTarget (originalUrl) {
+  const url = new URL(originalUrl, captureBaseUrl)
+  if (url.origin !== captureBaseUrl.origin) {
+    return { errorStatus: 400 }
+  }
+  if (isAssetPath(url.pathname)) {
+    return { errorStatus: 404 }
+  }
+
+  const domainMatch = url.pathname.match(/^\/([^/]+\.[^/]+)(\/.*)?$/)
+  if (domainMatch) {
+    const candidateDomain = domainMatch[1].toLowerCase()
+    const remainingPath = domainMatch[2] || '/'
+    if (isAssetPath(remainingPath)) {
+      return { errorStatus: 404 }
+    }
+    const allowed = await isAllowedCustomDomain(candidateDomain)
+    if (!allowed) {
+      return { errorStatus: 404 }
+    }
+    const portSuffix = captureBaseUrl.port ? `:${captureBaseUrl.port}` : ''
+    const targetUrl = new URL(
+      remainingPath + url.search,
+      `${captureBaseUrl.protocol}//${candidateDomain}${portSuffix}`
+    )
+    return { url: targetUrl }
+  }
+
+  return { url }
 }
 
 async function addCaptureCleanupScript (page) {
@@ -348,16 +401,12 @@ app.get('/media/:url', cors({
 }), mediaCheck)
 
 app.get('/*', async (req, res) => {
-  const url = new URL(req.originalUrl, captureBaseUrl)
+  const { url, errorStatus } = await resolveCaptureTarget(req.originalUrl)
+  if (errorStatus) {
+    res.setHeader('Cache-Control', 'no-store')
+    return res.status(errorStatus).end()
+  }
   const timeLabel = `${Date.now()}-${++captureCount}-${url.href}`
-  if (url.origin !== captureBaseUrl.origin) {
-    res.setHeader('Cache-Control', 'no-store')
-    return res.status(400).end()
-  }
-  if (isAssetPath(url.pathname)) {
-    res.setHeader('Cache-Control', 'no-store')
-    return res.status(404).end()
-  }
 
   const cacheKey = url.href
   let joined = false

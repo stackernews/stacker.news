@@ -14,7 +14,7 @@ export default function Navigation ({ sub, hideMobileNav = false, containerClass
   return (
     <StickyHeader className={hideMobileNav && 'hidden md:block'}>
       <Container className={containerClassName}>
-        <NavigationRow prefix={prefix} topNavKey={topNavKey} dropNavKey={dropNavKey} sub={sub} />
+        <NavigationRow prefix={prefix} topNavKey={topNavKey} dropNavKey={dropNavKey} />
       </Container>
     </StickyHeader>
   )

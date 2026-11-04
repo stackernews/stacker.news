@@ -57,6 +57,8 @@
   --sn-link: #007cbe;
   --sn-toolbar-active: rgba(0, 0, 0, 0.10);
   --sn-toolbar-hover: rgba(0, 0, 0, 0.20);
+  --sn-tile-bg: rgba(0, 0, 0, 0.05);
+  --sn-mark-bg: hsl(48, 100%, 88%);
   --sn-quote-bar: rgb(206, 208, 212);
   --sn-link-hover: #004a72;
   --sn-link-visited: #53758e;
@@ -102,6 +104,8 @@
   --sn-link: #2e99d1;
   --sn-toolbar-active: rgba(255, 255, 255, 0.10);
   --sn-toolbar-hover: rgba(255, 255, 255, 0.20);
+  --sn-tile-bg: rgba(255, 255, 255, 0.05);
+  --sn-mark-bg: hsl(48, 50%, 24%);
   --sn-quote-bar: rgb(158, 159, 163);
   --sn-link-hover: #007cbe;
   --sn-link-visited: #56798E;

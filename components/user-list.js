@@ -8,7 +8,7 @@ import MoreFooter from './more-footer'
 import { useData } from './use-data'
 import Badges from './badge'
 import { useMe } from './me'
-import { MEDIA_URL } from '@/lib/constants'
+import { avatarSrc } from '@/lib/user'
 import { NymActionDropdown } from '@/components/user-header'
 import classNames from 'classnames'
 import CheckCircle from '@/svgs/checkbox-circle-fill.svg'
@@ -38,7 +38,7 @@ export function UserListRow ({ user, stats, className, onNymClick, showHat = tru
     <div className={`${styles.item} mb-2`} key={user.name}>
       <Link href={`/${user.name}`}>
         <img
-          src={user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
+          src={avatarSrc(user.photoId)} width='32' height='32'
           className={`${userStyles.userimg} me-2`}
         />
       </Link>
@@ -66,7 +66,7 @@ export function UserBase ({ user, className, children, nymActionDropdown }) {
     <div className={classNames(styles.item, className)}>
       <Link href={`/${user.name}`}>
         <img
-          src={user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
+          src={avatarSrc(user.photoId)} width='32' height='32'
           className={`${userStyles.userimg} me-2`}
         />
       </Link>

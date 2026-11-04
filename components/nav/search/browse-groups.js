@@ -51,7 +51,7 @@ export function useBrowseGroups ({ open }) {
     return [
       { value: 'recent', label: 'recent', items: searches.slice(0, SEARCHES_LIMIT).map(recentItem), action: { label: 'clear', onClick: onClear } },
       { value: 'visited', label: 'recently visited', layout: 'tiles', items: visited.map(subItem) },
-      { value: 'week', label: 'active this week', layout: 'tiles', items: week.map(weekSubItem), action: { label: 'all territories', href: '/top/territories/week?by=items' } }
+      { value: 'week', label: 'active this week', href: '/top/territories/week?by=items', layout: 'tiles', items: week.map(weekSubItem), action: { label: 'all territories', prefix: '~' } }
     ].filter(group => group.items.length > 0)
   }, [activeSubs, weekSubs, visitedNames, sub, searches, onClear])
 }

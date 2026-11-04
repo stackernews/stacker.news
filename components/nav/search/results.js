@@ -6,6 +6,7 @@ import { PreviewCardContent, PreviewCardRoot, createPreviewCardHandle } from '@/
 import { SubPreviewBody } from '@/components/sub-preview-card'
 import { Row, Tile } from './items'
 import { keepFocus } from './bar'
+import ArrowRight from '@/svgs/arrow-right-line.svg'
 import Moon from '@/svgs/moon-fill.svg'
 import styles from './search.module.css'
 
@@ -18,10 +19,19 @@ export function emptyText (lookup) {
   return lookup.name ? `no ${many} match ${lookup.prefix}${lookup.name}` : `type the name of a ${one}`
 }
 
-function GroupAction ({ label, onClick, href, onPick }) {
+function GroupLink ({ href, onPick, children }) {
+  return <Link href={href} className={cn(styles.action, 'pointer-coarse:hitbox-11')} onMouseDown={keepFocus} onClick={() => onPick()}>{children}</Link>
+}
+
+function GroupAction ({ label, onClick, prefix, onPrefix }) {
   const className = cn(styles.action, 'ms-auto pointer-coarse:hitbox-11')
-  if (href) {
-    return <Link href={href} className={className} onMouseDown={keepFocus} onClick={() => onPick()}>{label}</Link>
+  if (prefix) {
+    return (
+      <button type='button' className={cn(className, 'flex items-center gap-0.5')} onMouseDown={keepFocus} onClick={() => onPrefix(prefix)}>
+        {label}
+        <ArrowRight width={12} height={12} aria-hidden />
+      </button>
+    )
   }
   return <button type='button' className={className} onMouseDown={keepFocus} onClick={onClick}>{label}</button>
 }
@@ -89,7 +99,7 @@ function TilePreviewCard ({ handle, resultsRef }) {
   )
 }
 
-export function Results ({ searching, loading, empty, onPick, canScope, onScope, previews, resultsRef }) {
+export function Results ({ searching, loading, empty, onPick, onPrefix, canScope, onScope, previews, resultsRef }) {
   const [previewHandle] = useState(createPreviewCardHandle)
 
   return (
@@ -106,9 +116,9 @@ export function Results ({ searching, loading, empty, onPick, canScope, onScope,
             {group.label && (
               <AutocompleteGroupLabel
                 className='flex items-center gap-2'
-                action={group.action && <GroupAction {...group.action} onPick={onPick} />}
+                action={group.action && <GroupAction {...group.action} onPrefix={onPrefix} />}
               >
-                {group.label}
+                {group.href ? <GroupLink href={group.href} onPick={onPick}>{group.label}</GroupLink> : group.label}
                 {loading && <Moon className='spin shrink-0' width={12} height={12} aria-hidden />}
               </AutocompleteGroupLabel>
             )}

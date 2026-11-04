@@ -802,6 +802,25 @@ export default {
       const mustNot = [{ exists: { field: 'parentId' } }]
       if (id) mustNot.push({ term: { id } })
 
+      if (me) {
+        const [mutes, muteSubs] = await Promise.all([
+          models.mute.findMany({
+            where: { muterId: me.id },
+            select: { mutedId: true }
+          }),
+          models.muteSub.findMany({
+            where: { userId: me.id },
+            select: { subName: true }
+          })
+        ])
+        if (mutes.length > 0) {
+          mustNot.push({ terms: { userId: mutes.map(m => m.mutedId) } })
+        }
+        if (muteSubs.length > 0) {
+          mustNot.push({ terms: { subNames: muteSubs.map(s => s.subName) } })
+        }
+      }
+
       const filters = [statusFilter(mustNot)]
       if (postsSatsFilter != null) {
         filters.push({ range: { ranktop: { gte: minMatch ? 0 : postsSatsFilter * 1000 } } })
@@ -834,7 +853,8 @@ export default {
         return { cursor: null, items: [] }
       }
 
-      const items = await hitsToItems(results.body.hits.hits, { me, models, orderBy: Prisma.sql`ORDER BY rank ASC` })
+      const rawItems = await hitsToItems(results.body.hits.hits, { me, models, orderBy: Prisma.sql`ORDER BY rank ASC` })
+      const items = me ? rawItems.filter(item => !item.user?.meMute && !item.subs?.some(s => s.meMuteSub)) : rawItems
       return {
         cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         items

@@ -90,6 +90,8 @@ export function useSearchGroups ({ lookup, debounced, scope, open }) {
 
   // the pause in typing before the query counts as loading too
   const loadingNames = !!namesQuery(lookup) && (names.loading || lookup.key !== debounced.key)
-  const loading = loadingNames || items.loading || (allSubs && subs.loading)
+  // a query skipped while its request is running stays loading until it's used again
+  const loadingItems = lookup.mode === 'search' && items.loading
+  const loading = loadingNames || loadingItems || (allSubs && subs.loading)
   return { groups, loading }
 }

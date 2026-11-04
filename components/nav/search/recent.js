@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useMe } from '@/components/me'
 import { joinScope, splitScope, SEARCH_PATH } from '@/lib/search'
@@ -37,9 +37,34 @@ function useRecent (name) {
   return { getRecent, addRecent, clearRecent }
 }
 
-export const useRecentSubs = () => useRecent('recentTerritories')
+const SUBS = 'recentTerritories'
+const SEARCHES = 'recentSearches'
 
-export const useRecentSearches = () => useRecent('recentSearches')
+const useRecentSubs = () => useRecent(SUBS)
+
+const useRecentSearches = () => useRecent(SEARCHES)
+
+// visiting territories or search URLs contribute to the recent list
+// so it's read again on every open
+function useRecentEntries (name, open) {
+  const { getRecent, clearRecent } = useRecent(name)
+  const [entries, setEntries] = useState([])
+
+  useEffect(() => {
+    if (open) setEntries(getRecent())
+  }, [open, getRecent])
+
+  const clear = useCallback(() => {
+    clearRecent()
+    setEntries([])
+  }, [clearRecent])
+
+  return [entries, clear]
+}
+
+export const useRecentSubEntries = open => useRecentEntries(SUBS, open)
+
+export const useRecentSearchEntries = open => useRecentEntries(SEARCHES, open)
 
 function useRememberSub (sub) {
   const { addRecent } = useRecentSubs()

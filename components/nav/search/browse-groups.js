@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useQuery } from '@apollo/client/react'
 import { ACTIVE_SUBS, TERRITORIES_WEEK } from '@/fragments/subs'
 import { recentItem, subItem, weekSubItem } from './items'
-import { useRecentSearches, useRecentSubs } from './recent'
+import { useRecentSearchEntries, useRecentSubEntries } from './recent'
 import { useSearchState } from './state'
 
 const SEARCHES_LIMIT = 3
@@ -26,21 +26,8 @@ function pickSubs ({ activeSubs = [], weekSubs = [], visitedNames, sub }) {
 
 export function useBrowseGroups ({ open }) {
   const { sub } = useSearchState()
-  const { getRecent: getSearches, clearRecent: clearSearches } = useRecentSearches()
-  const { getRecent: getVisited } = useRecentSubs()
-  const [searches, setSearches] = useState([])
-  const [visitedNames, setVisitedNames] = useState([])
-
-  useEffect(() => {
-    if (!open) return
-    setSearches(getSearches())
-    setVisitedNames(getVisited())
-  }, [open, getSearches, getVisited])
-
-  const onClear = useCallback(() => {
-    clearSearches()
-    setSearches([])
-  }, [clearSearches])
+  const [searches, clearSearches] = useRecentSearchEntries(open)
+  const [visitedNames, clearVisited] = useRecentSubEntries(open)
 
   const activeSubs = useQuery(ACTIVE_SUBS, { skip: !open, fetchPolicy: 'cache-and-network', nextFetchPolicy: 'cache-first' }).data?.activeSubs
   const weekSubs = useQuery(TERRITORIES_WEEK, { skip: !open }).data?.topSubs?.subs
@@ -49,9 +36,9 @@ export function useBrowseGroups ({ open }) {
     const { visited, week } = pickSubs({ activeSubs, weekSubs, visitedNames, sub })
 
     return [
-      { value: 'recent', label: 'recent', items: searches.slice(0, SEARCHES_LIMIT).map(recentItem), action: { label: 'clear', onClick: onClear } },
-      { value: 'visited', label: 'recently visited', layout: 'tiles', items: visited.map(subItem) },
+      { value: 'recent', label: 'recent', items: searches.slice(0, SEARCHES_LIMIT).map(recentItem), action: { label: 'clear', onClick: clearSearches } },
+      { value: 'visited', label: 'recently visited', layout: 'tiles', items: visited.map(subItem), action: { label: 'clear', onClick: clearVisited } },
       { value: 'week', label: 'active this week', href: '/top/territories/week?by=items', layout: 'tiles', items: week.map(weekSubItem), action: { label: 'all territories', prefix: '~' } }
     ].filter(group => group.items.length > 0)
-  }, [activeSubs, weekSubs, visitedNames, sub, searches, onClear])
+  }, [activeSubs, weekSubs, visitedNames, sub, searches, clearSearches, clearVisited])
 }

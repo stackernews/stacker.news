@@ -200,7 +200,7 @@ export function CommentsNavigator () {
   if (!context) return null
 
   return (
-    <div className={cn('w-14 shrink-0', !commentCount && 'invisible')}>
+    <div className={cn('w-14 shrink-0', !commentCount && 'invisible md:hidden')}>
       <LongPressable onShortPress={scrollToComment} onLongPress={clearCommentRefs}>
         <button
           type='button'

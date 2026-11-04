@@ -225,7 +225,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
               {bar}
               {/* overflow hidden so the footer background reaches the edges.
                   both widths keep a tile column wide enough for the territory card */}
-              <AutocompletePopup anchor={barRef} positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg lg:min-w-xl overflow-hidden flex flex-col max-h-[min(80vh,var(--available-height))] dark:shadow-lg/55')}>
+              <AutocompletePopup anchor={barRef} align='center' positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg lg:min-w-xl overflow-hidden flex flex-col max-h-[min(80vh,var(--available-height))] dark:shadow-lg/55')}>
                 {results}
                 {footer}
               </AutocompletePopup>

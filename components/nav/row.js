@@ -18,17 +18,17 @@ export default function NavigationRow ({ prefix, topNavKey, dropNavKey }) {
       <Nav className={cn(styles.navbarNav, 'min-w-0 gap-1 md:gap-3 lg:gap-6')} activeKey={topNavKey}>
         {/* -ms-1 lines the arrow up with the edge of the content */}
         <Back className='-ms-1 me-0 flex shrink-0 md:hidden' />
-        <div className='max-md:contents md:flex md:min-w-0 md:flex-1 md:items-center md:gap-1 lg:gap-2'>
+        <div className='max-md:contents md:flex md:shrink-0 md:items-center md:gap-1 lg:gap-2'>
           <Brand className={cn('shrink-0', !branding && 'hidden md:block')} />
-          <div className='hidden min-w-0 md:block'>
-            <SearchBar className='min-w-8' />
-          </div>
           {/* on search pages phones show the search bar in place of the sorts */}
           <div className={cn('flex shrink-0 max-md:me-auto', searchPage && 'max-md:hidden')}>
             <Sorts prefix={prefix} linkClassName='px-1 md:px-1.5' />
           </div>
         </div>
-        <div className='max-md:contents md:ms-auto md:flex md:min-w-0 md:items-center md:gap-2 lg:gap-3'>
+        <div className='hidden min-w-0 flex-1 md:block'>
+          <SearchBar className='mx-auto max-w-xl' />
+        </div>
+        <div className='max-md:contents md:flex md:min-w-0 md:items-center md:gap-2 lg:gap-3'>
           <CommentsNavigator />
           <MobileSearch bar={searchPage} className='md:hidden' />
           <PostItem prefix={prefix} className='hidden h-8 shrink-0 items-center justify-center whitespace-nowrap px-3 text-sm md:inline-flex' />

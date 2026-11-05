@@ -916,7 +916,7 @@ model SubSubscription {
 model PushSubscription {
   id        Int      @id @default(autoincrement())
   userId    Int
-  endpoint  String
+  endpoint  String   @unique
   p256dh    String
   auth      String
   createdAt DateTime @default(now()) @map("created_at")

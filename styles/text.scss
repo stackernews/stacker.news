@@ -51,6 +51,17 @@
   margin-top: 0 !important;
 }
 
+// lexical adds a hidden img next to block decorators
+.sn-text > div > [data-lexical-decorator-boundary]:first-child + * {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+.sn-text > div >*:has(+ [data-lexical-decorator-boundary]:last-child) {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+
 .sn-text blockquote {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
@@ -944,14 +955,6 @@ span + .sn-link {
   content: '\00a0';
 }
 
-/*
-  lexical dev notes:
-  A firefox workaround to allow scrolling of overflowing table cell
-  ref: https://bugzilla.mozilla.org/show_bug.cgi?id=1904159
-*/
-.sn-table__cell > * {
-  overflow: inherit;
-}
 .sn-table__cell-resizer {
   position: absolute;
   right: -4px;

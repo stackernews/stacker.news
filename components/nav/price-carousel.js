@@ -9,7 +9,8 @@ const carousel = [
   '1btc',
   'blockHeight',
   'chainFee',
-  'halving'
+  'halving',
+  'bigmac'
 ]
 
 export const PriceCarouselContext = createContext({

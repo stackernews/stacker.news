@@ -457,6 +457,25 @@ export default {
     }
   },
   Mutation: {
+    movePushSubscription: async (parent, { endpoint, p256dh, auth }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      await validateSchema(pushSubscriptionSchema, { endpoint, p256dh, auth })
+
+      const subscription = await models.pushSubscription.findFirst({ where: { endpoint, p256dh, auth } })
+      if (!subscription) {
+        throw new GqlInputError('subscription not found')
+      }
+
+      const dbPushSubscription = await models.pushSubscription.update({
+        data: { userId: me.id },
+        where: { id: subscription.id }
+      })
+
+      return dbPushSubscription
+    },
     savePushSubscription: async (parent, { endpoint, p256dh, auth, oldEndpoint }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
@@ -466,8 +485,14 @@ export default {
 
       let dbPushSubscription
       if (oldEndpoint) {
+        const subscription = await models.pushSubscription.findFirst({
+          where: { endpoint: oldEndpoint, userId: Number(me.id) }
+        })
+        if (!subscription) {
+          throw new GqlInputError('endpoint not found')
+        }
         dbPushSubscription = await models.pushSubscription.update({
-          data: { userId: me.id, endpoint, p256dh, auth }, where: { endpoint: oldEndpoint }
+          data: { endpoint, p256dh, auth }, where: { id: subscription.id }
         })
         console.log(`[webPush] updated subscription of user ${me.id}: old=${oldEndpoint} new=${endpoint}`)
       } else {

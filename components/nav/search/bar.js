@@ -7,7 +7,7 @@ import styles from './search.module.css'
 export const keepFocus = event => event.preventDefault()
 
 export const searchBarClasses = ({ className } = {}) =>
-  cn(styles.bar, 'grow min-w-0 flex items-center gap-2 px-2 rounded-md', className)
+  cn(styles.bar, 'grow min-w-0 h-8 flex items-center gap-2 px-2 rounded-md', className)
 
 export const PLACEHOLDER = 'search anything'
 

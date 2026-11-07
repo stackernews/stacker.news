@@ -20,8 +20,8 @@ export default function NavigationRow ({ prefix, topNavKey, dropNavKey }) {
         <Back className='-ms-1 me-0 flex shrink-0 md:hidden' />
         <div className='max-md:contents md:flex md:shrink-0 md:items-center md:gap-1 lg:gap-2'>
           <Brand className={cn('shrink-0', !branding && 'hidden md:block')} />
-          {/* on search pages phones show the search bar in place of the sorts */}
-          <div className={cn('flex shrink-0 max-md:me-auto', searchPage && 'max-md:hidden')}>
+          {/* on search pages phones show the search bar in place of the sorts. */}
+          <div className={cn('flex shrink-0 max-md:me-auto md:-me-1.5', searchPage && 'max-md:hidden')}>
             <Sorts prefix={prefix} linkClassName='px-1 md:px-1.5' />
           </div>
         </div>

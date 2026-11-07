@@ -457,25 +457,6 @@ export default {
     }
   },
   Mutation: {
-    movePushSubscription: async (parent, { endpoint, p256dh, auth }, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      await validateSchema(pushSubscriptionSchema, { endpoint, p256dh, auth })
-
-      const subscription = await models.pushSubscription.findFirst({ where: { endpoint, p256dh, auth } })
-      if (!subscription) {
-        throw new GqlInputError('subscription not found')
-      }
-
-      const dbPushSubscription = await models.pushSubscription.update({
-        data: { userId: me.id },
-        where: { id: subscription.id }
-      })
-
-      return dbPushSubscription
-    },
     savePushSubscription: async (parent, { endpoint, p256dh, auth, oldEndpoint }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
@@ -483,28 +464,34 @@ export default {
 
       await validateSchema(pushSubscriptionSchema, { endpoint, p256dh, auth })
 
-      let dbPushSubscription
-      if (oldEndpoint) {
-        const subscription = await models.pushSubscription.findFirst({
-          where: { endpoint: oldEndpoint, userId: Number(me.id) }
-        })
-        if (!subscription) {
-          throw new GqlInputError('endpoint not found')
+      let subscription = await models.pushSubscription.findUnique({ where: { endpoint } })
+      if (subscription) {
+        // only the device that has the keys can claim the push subscription
+        if (subscription.p256dh !== p256dh || subscription.auth !== auth) {
+          throw new GqlInputError('subscription not found')
         }
-        dbPushSubscription = await models.pushSubscription.update({
-          data: { endpoint, p256dh, auth }, where: { id: subscription.id }
+        // update the owner of the push subscription
+        subscription = await models.pushSubscription.update({
+          data: { userId: me.id },
+          where: { id: subscription.id }
         })
-        console.log(`[webPush] updated subscription of user ${me.id}: old=${oldEndpoint} new=${endpoint}`)
       } else {
-        dbPushSubscription = await models.pushSubscription.create({
+        // create new subscription
+        subscription = await models.pushSubscription.create({
           data: { userId: me.id, endpoint, p256dh, auth }
         })
         console.log(`[webPush] created subscription for user ${me.id}: endpoint=${endpoint}`)
+        await sendPushSubscriptionReply(subscription)
       }
 
-      await sendPushSubscriptionReply(dbPushSubscription)
+      // if the browser is replacing the subscription, we delete the old one
+      if (oldEndpoint && oldEndpoint !== endpoint) {
+        await models.pushSubscription.deleteMany({
+          where: { endpoint: oldEndpoint, userId: Number(me.id) }
+        })
+      }
 
-      return dbPushSubscription
+      return subscription
     },
     deletePushSubscription: async (parent, { endpoint }, { me, models }) => {
       if (!me) {

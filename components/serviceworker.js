@@ -7,7 +7,8 @@ import { useMe } from './me'
 
 const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBKEY
 
-const PUSH_SUBSCRIPTION_OWNER_KEY = 'pushSubscriptionOwnerId'
+const SAVED_PUSH_SUBSCRIPTION_KEY = 'savedPushSubscription'
+const savedPushSubscriptionValue = (userId, endpoint) => `${userId} ${endpoint}`
 
 const ServiceWorkerContext = createContext()
 
@@ -32,14 +33,6 @@ export const ServiceWorkerProvider = ({ children }) => {
           p256dh: $p256dh
           auth: $auth
         ) {
-          id
-        }
-      }
-    `)
-  const [movePushSubscription] = useMutation(
-    gql`
-      mutation movePushSubscription($endpoint: String!, $p256dh: String!, $auth: String!) {
-        movePushSubscription(endpoint: $endpoint, p256dh: $p256dh, auth: $auth) {
           id
         }
       }
@@ -103,12 +96,12 @@ export const ServiceWorkerProvider = ({ children }) => {
       auth: pushSubscription.keys.auth
     }
     await savePushSubscription({ variables })
-    window.localStorage.setItem(PUSH_SUBSCRIPTION_OWNER_KEY, String(me.id))
+    window.localStorage.setItem(SAVED_PUSH_SUBSCRIPTION_KEY, savedPushSubscriptionValue(me.id, endpoint))
   }
 
   const unsubscribeFromPushNotifications = async (subscription) => {
     await subscription.unsubscribe()
-    window.localStorage.removeItem(PUSH_SUBSCRIPTION_OWNER_KEY)
+    window.localStorage.removeItem(SAVED_PUSH_SUBSCRIPTION_KEY)
     const { endpoint } = subscription
     await deletePushSubscription({ variables: { endpoint } })
     navigator.serviceWorker.controller.postMessage({ action: DELETE_SUBSCRIPTION })
@@ -143,18 +136,20 @@ export const ServiceWorkerProvider = ({ children }) => {
   useEffect(() => {
     if (!registration || !me) return
 
-    // moves the push subscription to the current account
-    const moveToCurrentAccount = async () => {
+    // saves the push subscription again if the account or the subscription changed since the last save
+    const saveIfChanged = async () => {
       const subscription = await registration.pushManager.getSubscription()
       if (!subscription) return
-      if (window.localStorage.getItem(PUSH_SUBSCRIPTION_OWNER_KEY) === String(me.id)) return
+
+      const saved = savedPushSubscriptionValue(me.id, subscription.endpoint)
+      if (window.localStorage.getItem(SAVED_PUSH_SUBSCRIPTION_KEY) === saved) return
 
       const { endpoint, keys: { p256dh, auth } } = subscription.toJSON()
-      await movePushSubscription({ variables: { endpoint, p256dh, auth } })
-      window.localStorage.setItem(PUSH_SUBSCRIPTION_OWNER_KEY, String(me.id))
+      await savePushSubscription({ variables: { endpoint, p256dh, auth } })
+      window.localStorage.setItem(SAVED_PUSH_SUBSCRIPTION_KEY, saved)
     }
 
-    moveToCurrentAccount().catch(console.error)
+    saveIfChanged().catch(console.error)
   }, [registration, me?.id])
 
   const contextValue = useMemo(() => ({

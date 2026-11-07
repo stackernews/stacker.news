@@ -6,7 +6,6 @@ export default gql`
   }
 
   extend type Mutation {
-    movePushSubscription(endpoint: String!, p256dh: String!, auth: String!): PushSubscription
     savePushSubscription(endpoint: String!, p256dh: String!, auth: String!, oldEndpoint: String): PushSubscription
     deletePushSubscription(endpoint: String!): PushSubscription
   }

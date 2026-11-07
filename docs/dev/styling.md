@@ -151,7 +151,9 @@ so inputs and adjacent addons inherit the same value.
 
 `inputClasses()` and `buttonClasses()` provide matching sizes. Use the same size
 for controls in an input group so their heights align. Keep mobile input text at
-least 1rem to prevent automatic zoom on iOS.
+least 1rem to prevent automatic zoom on iOS. Selects keep their small text, since
+iOS doesn't zoom them, and are as wide as their longest option; add `w-full` to
+fill a row.
 
 ## Transitions
 

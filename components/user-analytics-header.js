@@ -29,7 +29,6 @@ export function UserAnalyticsHeader ({ pathname = null, label = 'for' }) {
         {label}
         <Select
           groupClassName={label ? 'mb-0 mx-2' : 'mb-0 me-2'}
-          className='w-auto'
           name='when'
           aria-label='time range'
           items={WHENS}

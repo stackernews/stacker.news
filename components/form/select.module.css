@@ -3,7 +3,6 @@
 .select {
   appearance: none;
   display: inline-block;
-  width: 100%;
   background-color: var(--sn-click-to-context-color);
   color: var(--sn-dropdown-item-color);
   font-weight: bold;

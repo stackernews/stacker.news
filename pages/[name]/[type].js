@@ -66,34 +66,38 @@ function UserItemsHeader ({ type, name }) {
       initial={{ type, by, when, from: '', to: '' }}
       onSubmit={select}
     >
-      <div className='text-muted font-bold flex items-center flex-wrap'>
-        <div className='text-muted font-bold mb-2 flex items-center'>
+      <div className='text-muted font-bold flex items-center flex-wrap gap-x-2'>
+        <div className='text-muted font-bold mb-2 flex flex-wrap items-center gap-x-1.5 gap-y-2'>
           <Select
-            groupClassName='mb-0 me-2'
+            groupClassName='mb-0'
             name='type'
             overrideValue={type}
             items={ITEM_TYPES_USER}
             onChange={(formik, e) => select({ ...formik?.values, type: e.target.value })}
           />
-          by
-          <Select
-            groupClassName='mb-0 mx-2'
-            name='by'
-            overrideValue={by}
-            items={['new', ...ITEM_SORTS]}
-            onChange={(formik, e) => select({ ...formik?.values, by: e.target.value })}
-          />
-          for
-          <Select
-            groupClassName='mb-0 mx-2'
-            name='when'
-            items={WHENS}
-            overrideValue={when}
-            onChange={(formik, e) => {
-              const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: Date.now() } : {}
-              select({ ...formik?.values, when: e.target.value, ...range })
-            }}
-          />
+          <div className='flex items-center gap-1.5'>
+            by
+            <Select
+              groupClassName='mb-0'
+              name='by'
+              overrideValue={by}
+              items={['new', ...ITEM_SORTS]}
+              onChange={(formik, e) => select({ ...formik?.values, by: e.target.value })}
+            />
+          </div>
+          <div className='flex items-center gap-1.5'>
+            for
+            <Select
+              groupClassName='mb-0'
+              name='when'
+              items={WHENS}
+              overrideValue={when}
+              onChange={(formik, e) => {
+                const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: Date.now() } : {}
+                select({ ...formik?.values, when: e.target.value, ...range })
+              }}
+            />
+          </div>
         </div>
         {when === 'custom' &&
           <DatePicker

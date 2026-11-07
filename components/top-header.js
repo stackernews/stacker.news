@@ -46,10 +46,10 @@ export default function TopHeader ({ sub, cat }) {
         initial={{ what, by, when, from: '', to: '' }}
         onSubmit={top}
       >
-        <div className='text-muted font-bold my-1 flex items-center flex-wrap'>
-          <div className='text-muted font-bold mb-2 flex items-center'>
+        <div className='text-muted font-bold my-1 flex items-center flex-wrap gap-x-2'>
+          <div className='text-muted font-bold mb-2 flex flex-wrap items-center gap-x-1.5 gap-y-2'>
             <Select
-              groupClassName='me-2 mb-0'
+              groupClassName='mb-0'
               onChange={(formik, e) => top({ ...formik?.values, what: e.target.value })}
               name='what'
               overrideValue={what}
@@ -57,25 +57,29 @@ export default function TopHeader ({ sub, cat }) {
             />
             {cat !== 'cowboys' &&
               <>
-                by
-                <Select
-                  groupClassName='mx-2 mb-0'
-                  onChange={(formik, e) => top({ ...formik?.values, by: e.target.value })}
-                  name='by'
-                  overrideValue={by}
-                  items={sortItemsForCategory(cat)}
-                />
-                for
-                <Select
-                  groupClassName='mb-0 mx-2'
-                  onChange={(formik, e) => {
-                    const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: Date.now() } : {}
-                    top({ ...formik?.values, when: e.target.value, ...range })
-                  }}
-                  name='when'
-                  overrideValue={when}
-                  items={WHENS}
-                />
+                <div className='flex items-center gap-1.5'>
+                  by
+                  <Select
+                    groupClassName='mb-0'
+                    onChange={(formik, e) => top({ ...formik?.values, by: e.target.value })}
+                    name='by'
+                    overrideValue={by}
+                    items={sortItemsForCategory(cat)}
+                  />
+                </div>
+                <div className='flex items-center gap-1.5'>
+                  for
+                  <Select
+                    groupClassName='mb-0'
+                    onChange={(formik, e) => {
+                      const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: Date.now() } : {}
+                      top({ ...formik?.values, when: e.target.value, ...range })
+                    }}
+                    name='when'
+                    overrideValue={when}
+                    items={WHENS}
+                  />
+                </div>
               </>}
 
           </div>

@@ -22,7 +22,7 @@ export function Select ({ label, items, info, groupClassName, onChange, noForm, 
           id={props.id || props.name}
           aria-invalid={!!invalid}
           data-invalid={invalid ? '' : undefined}
-          className={cn(styles.select, 'max-md:text-touch', className)}
+          className={cn(styles.select, className)}
           onChange={(e) => {
             if (field?.onChange) {
               field.onChange(e)

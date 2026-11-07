@@ -66,7 +66,6 @@ export default function Referrals ({ ssrData }) {
           {numWithUnits(totalSats, { abbreviate: false })} in the last
           <Select
             groupClassName='mb-0 mx-2'
-            className='w-auto'
             name='when'
             items={WHENS}
             value={router.query.when || 'day'}

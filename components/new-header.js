@@ -42,7 +42,6 @@ export default function NewHeader ({ type, sub }) {
       <div className='text-muted font-bold my-1 flex justify-start items-center'>
         <Select
           groupClassName='mb-2'
-          className='w-auto'
           name='type'
           value={type}
           items={items}

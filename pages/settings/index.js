@@ -229,7 +229,7 @@ export default function Settings ({ ssrData }) {
             name='fiatCurrency'
             items={SUPPORTED_CURRENCIES}
             required
-            className='mb-2'
+            className='mb-2 w-full'
           />
           <div className={labelClasses()}>notify me when ...</div>
           <Checkbox

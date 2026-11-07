@@ -22,7 +22,6 @@ export function SubscriptionLayout ({ subType, children }) {
         <SettingsHeader />
         <Select
           name='subscriptionType'
-          className='w-auto'
           noForm
           items={['stackers', 'territories']}
           value={subType}

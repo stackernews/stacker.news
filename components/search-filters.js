@@ -45,7 +45,7 @@ export default function SearchFilters () {
 
   return (
     <div className='flex flex-wrap items-center gap-x-2 my-2 text-muted font-bold'>
-      <div className='flex items-center gap-2 mb-2'>
+      <div className='flex flex-wrap items-center gap-x-1.5 gap-y-2 mb-2'>
         <FilterSelect
           name='what'
           value={filters.what}
@@ -54,20 +54,24 @@ export default function SearchFilters () {
         />
         {filters.what !== 'stackers' && (
           <>
-            by
-            <FilterSelect
-              name='sort'
-              value={filters.sort}
-              items={['relevance', 'sats', 'new', 'comments']}
-              onChange={sort => applyFilters({ sort })}
-            />
-            for
-            <FilterSelect
-              name='when'
-              value={filters.when}
-              items={['custom', 'forever', 'day', 'week', 'month', 'year']}
-              onChange={when => applyFilters({ when })}
-            />
+            <div className='flex items-center gap-1.5'>
+              by
+              <FilterSelect
+                name='sort'
+                value={filters.sort}
+                items={['relevance', 'sats', 'new', 'comments']}
+                onChange={sort => applyFilters({ sort })}
+              />
+            </div>
+            <div className='flex items-center gap-1.5'>
+              for
+              <FilterSelect
+                name='when'
+                value={filters.when}
+                items={['custom', 'forever', 'day', 'week', 'month', 'year']}
+                onChange={when => applyFilters({ when })}
+              />
+            </div>
           </>
         )}
       </div>

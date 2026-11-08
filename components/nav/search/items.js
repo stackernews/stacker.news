@@ -5,6 +5,7 @@ import HistoryIcon from '@/svgs/history-line.svg'
 import ScopeArrow from '@/svgs/arrow-left-up-line.svg'
 import { cn } from '@/lib/cn'
 import userStyles from '@/components/user-header.module.css'
+import removeMd from 'remove-markdown'
 import { abbrNum, numWithUnits } from '@/lib/format'
 import { searchHref } from '@/lib/search'
 import { SubPreviewTrigger } from '@/components/sub-preview-card'
@@ -45,16 +46,21 @@ export function subItem (sub) {
   }
 }
 
+// a description of just an image or a link reference has no text left
+function plainDesc (sub) {
+  return sub.desc ? removeMd(sub.desc).trim() : ''
+}
+
 // a quiet week still fills the line so every long tile has the same height
-function weekMeta (sub, week) {
-  const activity = week?.nitems > 0
+function weekActivity (week) {
+  return week?.nitems > 0
     ? `${numWithUnits(week.nitems, { unitSingular: 'item', unitPlural: 'items' })} this week`
     : 'quiet this week'
-  return sub.meSubscription ? `subscribed \\ ${activity}` : activity
 }
 
 export function longSubItem (sub, week) {
-  return { ...subItem(sub), meta: weekMeta(sub, week) }
+  const about = plainDesc(sub) || weekActivity(week)
+  return { ...subItem(sub), meta: sub.meSubscription ? `subscribed \\ ${about}` : about }
 }
 
 export function weekSubItem (sub) {
@@ -171,7 +177,7 @@ export function Tile ({ item, onPick, onScope, previewHandle }) {
   const text = (
     <>
       <span className='truncate font-medium'>{item.label}</span>
-      <span className={cn(styles.meta, 'text-xs')}>{item.meta}</span>
+      <span className={cn(styles.meta, 'truncate text-xs')}>{item.meta}</span>
     </>
   )
 

@@ -1,6 +1,6 @@
 import styles from './text.module.css'
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react'
-import reactStringReplace from 'react-string-replace'
+import SearchHighlight from './search-highlight'
 import Button from '@/components/ui/button'
 import { useRouter } from 'next/router'
 import classNames from 'classnames'
@@ -10,11 +10,7 @@ import { SNReader } from './editor'
 export function SearchText ({ text }) {
   return (
     <div className={styles.text}>
-      <p className={styles.p}>
-        {reactStringReplace(text, /\*\*\*([^*]+)\*\*\*/g, (match, i) => {
-          return <mark key={`strong-${match}-${i}`}>{match}</mark>
-        })}
-      </p>
+      <p className={styles.p}><SearchHighlight text={text} /></p>
     </div>
   )
 }

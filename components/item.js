@@ -4,7 +4,7 @@ import UpVote from './upvote'
 import { useRef } from 'react'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import Pin from '@/svgs/pushpin-fill.svg'
-import reactStringReplace from 'react-string-replace'
+import SearchHighlight from './search-highlight'
 import PollIcon from '@/svgs/bar-chart-horizontal-fill.svg'
 import BountyIcon from '@/svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
@@ -41,12 +41,6 @@ function onItemClick (e, router, item) {
         `/items/${item.id}`)
     }
   }
-}
-
-export function SearchTitle ({ title }) {
-  return reactStringReplace(title, /\*\*\*([^*]+)\*\*\*/g, (match, i) => {
-    return <mark key={`strong-${match}-${i}`}>{match}</mark>
-  })
 }
 
 function mediaType ({ url, imgproxyUrls }) {
@@ -118,7 +112,7 @@ export default function Item ({
               ref={titleRef}
               className={classNames(styles.title, 'me-2')}
             >
-              {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
+              {item.searchTitle ? <SearchHighlight text={item.searchTitle} /> : item.title}
               {item.pollCost && <PollIndicator item={item} />}
               {item.bounty > 0 &&
                 <span className={styles.icon}>

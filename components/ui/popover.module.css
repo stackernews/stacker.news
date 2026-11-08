@@ -4,6 +4,11 @@
   z-index: var(--sn-z-popover);
 }
 
+/* the anchor scrolled out of its scroll box, so the popup would point at nothing */
+.positioner[data-anchor-hidden] {
+  visibility: hidden;
+}
+
 .popup {
   /* anchors the arrow */
   position: relative;

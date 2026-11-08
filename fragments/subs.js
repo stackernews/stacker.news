@@ -177,6 +177,18 @@ export const TOP_TERRITORIES = gql`
   }
 `
 
+// the when on nitems keeps the week's count apart from other ranges in the cache
+export const TERRITORIES_WEEK = gql`
+  query TerritoriesWeek {
+    topSubs(when: "week", by: "items", limit: null) {
+      subs {
+        name
+        nitems(when: "week")
+      }
+    }
+  }
+`
+
 export const TOP_SUBS = gql`
   ${SUB_FULL_FIELDS}
   query TopSubs($cursor: String, $when: String, $from: String, $to: String, $by: String, ) {

@@ -1,6 +1,6 @@
 import { string } from 'yup'
 import { buttonClasses } from '@/components/ui/button'
-import { SearchTitle } from './item'
+import SearchHighlight from './search-highlight'
 import styles from './item.module.css'
 import Link from 'next/link'
 import { timeSince } from '@/lib/time'
@@ -56,7 +56,7 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
           <div className={classNames(styles.main, 'flex-wrap inline')}>
             <Link href={`/items/${item.id}`} className={classNames(styles.title, 'me-2')}>
               {item.searchTitle
-                ? <SearchTitle title={item.searchTitle} />
+                ? <SearchHighlight text={item.searchTitle} />
                 : (
                   <>{item.title}</>)}
             </Link>

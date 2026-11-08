@@ -7,57 +7,7 @@ import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER, HOMEPAGE_POSTS
 import { resolveOpensearchModelId } from '../search/model-id'
 import removeMd from 'remove-markdown'
 import { Prisma } from '@prisma/client'
-
-const DOUBLE_QUOTE_VARIANTS = [
-  '\u201C', // left double quotation mark
-  '\u201D', // right double quotation mark
-  '\u201E', // double low-9 quotation mark
-  '\u201F', // double high-reversed-9 quotation mark
-  '\u00AB', // left-pointing double angle quotation mark
-  '\u00BB', // right-pointing double angle quotation mark
-  '\uFF02', // fullwidth quotation mark
-  '\u300C', // left corner bracket
-  '\u300D', // right corner bracket
-  '\u300E', // left white corner bracket
-  '\u300F', // right white corner bracket
-  '\u301D', // reversed double prime quotation mark
-  '\u301E', // double prime quotation mark
-  '\u301F' // low double prime quotation mark
-]
-
-const SMART_DOUBLE_QUOTES_REGEX = new RegExp(`[${DOUBLE_QUOTE_VARIANTS.join('')}]`, 'g')
-
-function phraseRegex () {
-  return /"([^"]*)"/gm
-}
-
-function normalizeSearchQuery (q = '') {
-  if (typeof q !== 'string') return ''
-  // Normalize common Unicode double-quote variants so phrase parsing can
-  // treat them all like ASCII double quotes.
-  return q.replace(SMART_DOUBLE_QUOTES_REGEX, '"')
-}
-
-function queryParts (q = '') {
-  const normalized = normalizeSearchQuery(q)
-  const quotes = [...normalized.matchAll(phraseRegex())]
-    .map(m => m[1])
-    .filter(quote => quote.trim().length > 0)
-  const queryArr = normalized.replace(phraseRegex(), ' ').trim().split(/\s+/).filter(Boolean)
-  const url = queryArr.find(word => word.startsWith('url:'))
-  const nym = queryArr.find(word => word.startsWith('@'))
-  const territory = queryArr.find(word => word.startsWith('~'))
-  const exclude = [url, nym, territory]
-  const query = queryArr.filter(word => !exclude.includes(word)).join(' ')
-
-  return {
-    quotes,
-    nym,
-    url,
-    territory,
-    query
-  }
-}
+import { queryParts } from '@/lib/search'
 
 function rebuildSearchSuggestion ({ suggestion, quotes = [], nym, territory, url }) {
   if (!suggestion) return null
@@ -785,6 +735,64 @@ function attachHighlights (items, hits) {
   })
 }
 
+// ---- Quick search ----
+// Keyword search that runs while typing. Hits come straight from the index.
+
+const QUICK_SEARCH_LIMIT = 3
+const QUICK_SEARCH_SNIPPET_LENGTH = 260
+
+function quickTextQueries (query) {
+  return [
+    ...baseTextQueries(query),
+    // the last word is still being typed. titles come first, comments don't have one
+    { match_phrase_prefix: { 'title_text.exact': { query, boost: 10 } } },
+    { match_phrase_prefix: { 'title.exact': { query, boost: 100 } } }
+  ]
+}
+
+function quickHighlight (what, text) {
+  const field = what === 'posts' ? 'title.exact' : 'text.exact'
+  const fragments = what === 'posts'
+    ? { number_of_fragments: 0 }
+    : { number_of_fragments: 1, fragment_size: QUICK_SEARCH_SNIPPET_LENGTH, no_match_size: QUICK_SEARCH_SNIPPET_LENGTH }
+  return {
+    pre_tags: ['***'],
+    post_tags: ['***'],
+    fields: {
+      [field]: { highlight_query: { match_bool_prefix: { [field]: text } }, ...fragments }
+    }
+  }
+}
+
+function quickSearchBody ({ should, filters, highlight }) {
+  return {
+    size: QUICK_SEARCH_LIMIT,
+    _source: ['id', 'title', 'user.name', 'sats', 'boost', 'cost', 'ncomments', 'createdAt', 'subNames'],
+    query: {
+      function_score: {
+        query: { bool: { should, minimum_should_match: 1, filter: filters } },
+        functions: [ranktopFunction()],
+        boost_mode: 'multiply'
+      }
+    },
+    highlight
+  }
+}
+
+function toQuickSearchHit ({ _source: source, highlight = {} }) {
+  const [text] = highlight['title.exact'] ?? highlight['text.exact'] ?? [source.title ?? '']
+  return {
+    itemId: source.id,
+    text,
+    userName: source.user?.name,
+    // only bulk indexing stores the cost, and older docs can miss any of these
+    sats: (source.sats ?? 0) + (source.boost ?? 0) + (source.cost ?? 0),
+    ncomments: source.ncomments ?? 0,
+    createdAt: source.createdAt,
+    subNames: source.subNames ?? []
+  }
+}
+
 // ---- Resolvers ----
 
 export default {
@@ -996,6 +1004,44 @@ export default {
         cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         items,
         searchSuggestion
+      }
+    },
+
+    quickSearch: async (parent, { q }, { me, search, userLoader }) => {
+      await validateSchema(searchSchema, { q })
+
+      const { query, quotes, nym, territory } = queryParts(q)
+      const quoteParts = quoteClauses(quotes)
+      const should = [...quoteParts.queries, ...(query.length ? quickTextQueries(query) : [])]
+      if (should.length === 0) return { posts: [], comments: [] }
+
+      const { postsSatsFilter, commentsSatsFilter } = await loadSatsFilters(me, userLoader)
+      const filtersFor = what => [
+        typeFilter(what, me?.id),
+        statusFilter(),
+        satsInvestmentFilter({ what, postsSatsFilter, commentsSatsFilter, meId: me?.id }),
+        ...nymClauses(nym).filters,
+        ...territoryClauses(territory).filters,
+        ...quoteParts.filters
+      ].filter(Boolean)
+
+      const highlightText = [query, ...quotes].join(' ').trim()
+      const bodyFor = what => quickSearchBody({ should, filters: filtersFor(what), highlight: quickHighlight(what, highlightText) })
+
+      try {
+        const { body } = await search.msearch({
+          index: process.env.OPENSEARCH_INDEX,
+          // msearch takes a header line before each search
+          body: [{}, bodyFor('posts'), {}, bodyFor('comments')]
+        })
+        const [posts, comments] = body.responses.map(response => {
+          if (response.error) throw response.error
+          return response.hits.hits.map(toQuickSearchHit)
+        })
+        return { posts, comments }
+      } catch (e) {
+        console.error('[QUICK SEARCH ERROR]', e?.meta?.body ? JSON.stringify(e.meta.body, null, 2) : (e?.message || e))
+        return { posts: [], comments: [] }
       }
     }
   }

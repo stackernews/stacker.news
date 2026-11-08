@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Drawer, DrawerHeader, DrawerTitle, DrawerBody } from '@/components/ui/drawer'
 import { MenuSeparator, itemClasses } from '@/components/ui/menu'
-import { MEDIA_URL } from '@/lib/constants'
+import { avatarSrc } from '@/lib/user'
 import { cn } from '@/lib/cn'
 import Link from 'next/link'
 import { Indicator, LoginButtons, LogoutDropdownItem, NavWalletSummary } from '../common'
@@ -13,7 +13,6 @@ const drawerItemClasses = (opts = {}) =>
   itemClasses({ ...opts, className: cn('px-0 py-2', opts.className) })
 
 function MeImage ({ me }) {
-  const src = useMemo(() => me?.photoId ? `${MEDIA_URL}/${me.photoId}` : '/dorian400.jpg', [me?.photoId])
   if (!me) {
     return (
       <span className='text-muted'>
@@ -23,7 +22,7 @@ function MeImage ({ me }) {
   }
   return (
     <img
-      src={src} width='28' height='28'
+      src={avatarSrc(me.photoId)} width='28' height='28'
       className={styles.meimg}
     />
   )

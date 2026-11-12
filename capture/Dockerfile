@@ -1,4 +1,4 @@
-FROM node:24.22.1-bookworm@sha256:5630d96570d4ca4a8523fda3d169d0114554d0f48293e1ae3db6be7c79b42a17 AS patched_node
+FROM node:24.22.3-bookworm@sha256:1f442b36c20ffab5e7bb8eb833faef0eb61c2716bcb7b9a68b1edf19551dab2e AS patched_node
 
 FROM ghcr.io/puppeteer/puppeteer:25.16.0@sha256:956a72e3d523c76606efaad23392fbe33950370189f749715222c7427f57392b
 
@@ -9,8 +9,8 @@ WORKDIR /home/pptruser
 
 # Pin node
 COPY --from=patched_node /usr/local/bin/node /usr/local/bin/node
-ENV NODE_VERSION=24.22.1
-RUN node -e "require('node:assert/strict').equal(process.version, 'v24.22.1')"
+ENV NODE_VERSION=24.22.3
+RUN node -e "require('node:assert/strict').equal(process.version, 'v24.22.3')"
 
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 COPY ./package*.json ./

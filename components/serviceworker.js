@@ -3,8 +3,12 @@ import { Workbox } from 'workbox-window'
 import { gql } from '@apollo/client'
 import { useMutation } from '@apollo/client/react'
 import { requestPersistentStorage } from './use-indexeddb'
+import { useMe } from './me'
 
 const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBKEY
+
+const SAVED_PUSH_SUBSCRIPTION_KEY = 'savedPushSubscription'
+const savedPushSubscriptionValue = (userId, endpoint) => `${userId} ${endpoint}`
 
 const ServiceWorkerContext = createContext()
 
@@ -41,6 +45,8 @@ export const ServiceWorkerProvider = ({ children }) => {
         }
       }
     `)
+
+  const { me } = useMe()
 
   // I am not entirely sure if this is needed since at least in Brave,
   // using `registration.pushManager.subscribe` also prompts the user.
@@ -90,10 +96,12 @@ export const ServiceWorkerProvider = ({ children }) => {
       auth: pushSubscription.keys.auth
     }
     await savePushSubscription({ variables })
+    window.localStorage.setItem(SAVED_PUSH_SUBSCRIPTION_KEY, savedPushSubscriptionValue(me.id, endpoint))
   }
 
   const unsubscribeFromPushNotifications = async (subscription) => {
     await subscription.unsubscribe()
+    window.localStorage.removeItem(SAVED_PUSH_SUBSCRIPTION_KEY)
     const { endpoint } = subscription
     await deletePushSubscription({ variables: { endpoint } })
     navigator.serviceWorker.controller.postMessage({ action: DELETE_SUBSCRIPTION })
@@ -124,6 +132,25 @@ export const ServiceWorkerProvider = ({ children }) => {
       setRegistration(registration)
     })
   }, [])
+
+  useEffect(() => {
+    if (!registration || !me) return
+
+    // saves the push subscription again if the account or the subscription changed since the last save
+    const saveIfChanged = async () => {
+      const subscription = await registration.pushManager.getSubscription()
+      if (!subscription) return
+
+      const saved = savedPushSubscriptionValue(me.id, subscription.endpoint)
+      if (window.localStorage.getItem(SAVED_PUSH_SUBSCRIPTION_KEY) === saved) return
+
+      const { endpoint, keys: { p256dh, auth } } = subscription.toJSON()
+      await savePushSubscription({ variables: { endpoint, p256dh, auth } })
+      window.localStorage.setItem(SAVED_PUSH_SUBSCRIPTION_KEY, saved)
+    }
+
+    saveIfChanged().catch(console.error)
+  }, [registration, me?.id])
 
   const contextValue = useMemo(() => ({
     registration,

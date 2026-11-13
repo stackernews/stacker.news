@@ -117,7 +117,7 @@ function UserHidden ({ rank, user, Embellish }) {
       <div className={`${styles.item} mb-2`}>
         <span>
           <img
-            src='/dorian400.jpg' width='32' height='32'
+            src={avatarSrc()} width='32' height='32'
             className={`${userStyles.userimg} me-2 opacity-50`}
           />
         </span>

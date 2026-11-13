@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Autocomplete, AutocompleteList, AutocompleteGroupLabel, AutocompleteTiles, autocompleteStatusClasses } from '@/components/ui/autocomplete'
+import { Autocomplete, AutocompleteGroupLabel } from '@/components/ui/autocomplete'
 import Link from 'next/link'
 import { cn } from '@/lib/cn'
 import { PreviewCardContent, PreviewCardRoot, createPreviewCardHandle } from '@/components/ui/preview-card'
@@ -11,6 +11,9 @@ import Moon from '@/svgs/moon-fill.svg'
 import styles from './search.module.css'
 
 const SCROLL_END_MS = 200
+
+// Status and Empty always render for screen readers, so they're padded only when they have text
+const STATUS_CLASSES = 'not-empty:px-4 not-empty:pt-3 not-empty:pb-1 text-xs text-muted'
 
 export function emptyText (lookup) {
   if (lookup.mode === 'browse') return 'search posts, comments, stackers and territories'
@@ -104,13 +107,13 @@ export function Results ({ searching, loading, empty, onPick, onPrefix, canScope
 
   return (
     <>
-      <Autocomplete.Status>
-        {searching && <div className={autocompleteStatusClasses()}>searching…</div>}
+      <Autocomplete.Status className={STATUS_CLASSES}>
+        {searching && 'searching…'}
       </Autocomplete.Status>
-      <Autocomplete.Empty>
-        {empty && !loading && <div className={autocompleteStatusClasses()}>{empty}</div>}
+      <Autocomplete.Empty className={STATUS_CLASSES}>
+        {!loading && empty}
       </Autocomplete.Empty>
-      <AutocompleteList className='[--scope-width:--spacing(11)] md:[--scope-width:--spacing(9)]'>
+      <Autocomplete.List className='[--scope-width:--spacing(11)] md:[--scope-width:--spacing(9)]'>
         {group => (
           <Autocomplete.Group key={group.value} items={group.items} className={group.label && 'mt-3'}>
             {group.label && (
@@ -124,11 +127,11 @@ export function Results ({ searching, loading, empty, onPick, onPrefix, canScope
             )}
             {group.layout
               ? (
-                <AutocompleteTiles className={cn('grid-cols-1 md:[--scope-width:--spacing(8)]', group.layout === 'tiles' ? 'md:grid-cols-[repeat(auto-fit,minmax(6rem,1fr))]' : 'md:grid-cols-2')}>
+                <div role='presentation' className={cn('grid gap-2 px-4 pt-1 grid-cols-1 md:[--scope-width:--spacing(8)]', group.layout === 'tiles' ? 'md:grid-cols-[repeat(auto-fit,minmax(6rem,1fr))]' : 'md:grid-cols-2')}>
                   <Autocomplete.Collection>
                     {item => <Tile key={item.value} item={item} onPick={onPick} onScope={canScope(item) ? onScope : undefined} previewHandle={previews ? previewHandle : undefined} />}
                   </Autocomplete.Collection>
-                </AutocompleteTiles>
+                </div>
                 )
               : (
                 <Autocomplete.Collection>
@@ -137,7 +140,7 @@ export function Results ({ searching, loading, empty, onPick, onPrefix, canScope
                 )}
           </Autocomplete.Group>
         )}
-      </AutocompleteList>
+      </Autocomplete.List>
       {previews && <TilePreviewCard handle={previewHandle} resultsRef={resultsRef} />}
     </>
   )

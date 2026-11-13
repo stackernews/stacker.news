@@ -192,7 +192,7 @@ export function Tile ({ item, onPick, onScope, previewHandle }) {
       {previewHandle
         ? (
           // the padding is on the trigger so hovering anywhere on the tile opens the card
-          <SubPreviewTrigger handle={previewHandle} payload={item.name} sub={item.name} className={textClassName}>
+          <SubPreviewTrigger handle={previewHandle} sub={item.name} className={textClassName}>
             {text}
           </SubPreviewTrigger>
           )

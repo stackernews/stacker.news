@@ -18,10 +18,6 @@ export function AutocompletePopup ({ side = 'bottom', align = 'start', sideOffse
   )
 }
 
-export function AutocompleteList ({ className, ...props }) {
-  return <BaseAutocomplete.List className={cn('list-none ps-0 mb-0', className)} {...props} />
-}
-
 export function AutocompleteGroupLabel ({ action, ...props }) {
   return (
     <div role='presentation' className='flex items-center gap-2 px-4 text-xs text-muted'>
@@ -41,11 +37,6 @@ export function AutocompleteItem ({ className, action, ...props }) {
   )
 }
 
-// goes around a group's Collection to lay its items out as cards
-export function AutocompleteTiles ({ className, ...props }) {
-  return <div role='presentation' className={cn('grid gap-2 px-4 pt-1', className)} {...props} />
-}
-
 // has no padding, what's inside sets it
 export function AutocompleteTile ({ className, action, ...props }) {
   return (
@@ -55,7 +46,3 @@ export function AutocompleteTile ({ className, action, ...props }) {
     </div>
   )
 }
-
-// Status and Empty always render for screen readers, so padding them would show an empty box
-export const autocompleteStatusClasses = ({ className } = {}) =>
-  cn('px-4 pt-3 pb-1 text-xs text-muted', className)

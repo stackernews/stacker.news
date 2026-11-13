@@ -1,21 +1,19 @@
 import { SUB_FULL } from '@/fragments/subs'
-import { isAbortError } from '@/lib/error'
 import errorStyles from '@/styles/error.module.css'
-import { useLazyQuery, useQuery } from '@apollo/client/react'
+import { useApolloClient, useQuery } from '@apollo/client/react'
 import classNames from 'classnames'
 import { PreviewCardRoot, PreviewCardTrigger, PreviewCardContent } from './ui/preview-card'
 import { TerritoryInfo, TerritoryInfoSkeleton } from './territory-header'
 import { truncateString } from '@/lib/format'
-import { useCallback } from 'react'
 
 export function SubPreviewTrigger ({ sub, ...props }) {
-  const [execute] = useLazyQuery(SUB_FULL, { fetchPolicy: 'cache-first' })
+  const client = useApolloClient()
 
-  const getSub = useCallback(() => {
-    execute({ variables: { sub } }).catch(err => !isAbortError(err) && console.error(err))
-  }, [execute, sub])
+  const getSub = () => {
+    client.query({ query: SUB_FULL, variables: { sub }, fetchPolicy: 'cache-first' }).catch(console.error)
+  }
 
-  return <PreviewCardTrigger {...props} onShow={getSub} />
+  return <PreviewCardTrigger {...props} payload={sub} onShow={getSub} />
 }
 
 export function SubPreviewBody ({ sub }) {

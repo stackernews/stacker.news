@@ -14,7 +14,6 @@ import { useServiceWorker } from '../serviceworker'
 import { signOut } from 'next-auth/react'
 import Badges from '../badge'
 import LightningIcon from '../../svgs/bolt.svg'
-import SearchIcon from '../../svgs/search-line.svg'
 import { cn } from '@/lib/cn'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
@@ -55,14 +54,6 @@ export function Back ({ className, fallback = null }) {
       onClick={() => router.back()}
     >
       <BackArrow width={24} height={24} />
-    </NavLink>
-  )
-}
-
-export function SearchItem ({ className }) {
-  return (
-    <NavLink href='/search' eventKey='search' className={className}>
-      <SearchIcon width={22} height={28} />
     </NavLink>
   )
 }

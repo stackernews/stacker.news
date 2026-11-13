@@ -187,7 +187,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
       </div>
     </div>
   )
-  const footer = <Footer mode={lookup.mode} tabHint={tabItem && scopeHint(tabItem)} keyHints={!inline} onPick={onPick} onPrefix={addPrefix} className='shrink-0' />
+  const footer = <Footer mode={lookup.mode} tabHint={tabItem && scopeHint(tabItem)} keyHints={!inline} onPick={onPick} onPrefix={addPrefix} />
 
   return (
     <form onSubmit={onSubmit} className={inline ? 'flex flex-col h-full' : undefined}>

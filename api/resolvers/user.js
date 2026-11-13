@@ -1054,7 +1054,6 @@ export default {
         AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
         AND "AggPayOut"."slice" = 'USER_BY_TYPE'
         AND "AggPayOut"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT', 'BUY_CREDITS')
-        GROUP BY "AggPayOut"."userId"
       `
       return (stacked && msatsToSats(stacked)) || 0
     },
@@ -1078,7 +1077,6 @@ export default {
         AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
         AND "AggPayIn"."slice" = 'USER_BY_TYPE'
         AND "AggPayIn"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT', 'BUY_CREDITS')
-        GROUP BY "AggPayIn"."userId"
       `
 
       return (spent && msatsToSats(spent)) || 0

@@ -47,3 +47,10 @@ export function appendPrefix (text, prefix) {
 export function cutWord (text, start, end) {
   return { text: text.slice(0, start) + text.slice(end).trimStart(), caret: start }
 }
+
+export function emptyText (lookup) {
+  if (lookup.mode === 'browse') return 'search posts, comments, stackers and territories'
+  if (lookup.mode !== 'name') return
+  const [one, many] = lookup.type === 'user' ? ['stacker', 'stackers'] : ['territory', 'territories']
+  return lookup.name ? `no ${many} match ${lookup.prefix}${lookup.name}` : `type the name of a ${one}`
+}

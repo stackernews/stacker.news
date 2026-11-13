@@ -15,13 +15,6 @@ const SCROLL_END_MS = 200
 // Status and Empty always render for screen readers, so they're padded only when they have text
 const STATUS_CLASSES = 'not-empty:px-4 not-empty:pt-3 not-empty:pb-1 text-xs text-muted'
 
-export function emptyText (lookup) {
-  if (lookup.mode === 'browse') return 'search posts, comments, stackers and territories'
-  if (lookup.mode !== 'name') return
-  const [one, many] = lookup.type === 'user' ? ['stacker', 'stackers'] : ['territory', 'territories']
-  return lookup.name ? `no ${many} match ${lookup.prefix}${lookup.name}` : `type the name of a ${one}`
-}
-
 function GroupLink ({ href, onPick, children }) {
   return <Link href={href} className={cn(styles.action, 'pointer-coarse:hitbox-11')} onMouseDown={keepFocus} onClick={() => onPick()}>{children}</Link>
 }

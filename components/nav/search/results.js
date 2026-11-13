@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/cn'
 import { PreviewCardContent, PreviewCardRoot, createPreviewCardHandle } from '@/components/ui/preview-card'
 import { SubPreviewBody } from '@/components/sub-preview-card'
+import { debounce } from '@/components/use-debounce-callback'
 import { Row, Tile } from './items'
 import { keepFocus } from './bar'
 import ArrowRight from '@/svgs/arrow-right-line.svg'
@@ -20,16 +21,17 @@ function GroupLink ({ href, onPick, children }) {
 }
 
 function GroupAction ({ label, onClick, prefix, onPrefix }) {
-  const className = cn(styles.action, 'ms-auto pointer-coarse:hitbox-11')
-  if (prefix) {
-    return (
-      <button type='button' className={cn(className, 'flex items-center gap-0.5')} onMouseDown={keepFocus} onClick={() => onPrefix(prefix)}>
-        {label}
-        <ArrowRight width={12} height={12} aria-hidden />
-      </button>
-    )
-  }
-  return <button type='button' className={className} onMouseDown={keepFocus} onClick={onClick}>{label}</button>
+  return (
+    <button
+      type='button'
+      className={cn(styles.action, 'ms-auto pointer-coarse:hitbox-11', prefix && 'flex items-center gap-0.5')}
+      onMouseDown={keepFocus}
+      onClick={prefix ? () => onPrefix(prefix) : onClick}
+    >
+      {label}
+      {prefix && <ArrowRight width={12} height={12} aria-hidden />}
+    </button>
+  )
 }
 
 function Kbd ({ children }) {
@@ -53,11 +55,10 @@ function useScrolling (ref) {
     const element = ref.current
     if (!element) return
 
-    let timeout
+    const end = debounce(() => setScrolling(false), SCROLL_END_MS)
     const onScroll = () => {
       setScrolling(true)
-      clearTimeout(timeout)
-      timeout = setTimeout(() => setScrolling(false), SCROLL_END_MS)
+      end()
     }
 
     element.addEventListener('wheel', onScroll, { passive: true })
@@ -65,7 +66,7 @@ function useScrolling (ref) {
     return () => {
       element.removeEventListener('wheel', onScroll)
       element.removeEventListener('scroll', onScroll)
-      clearTimeout(timeout)
+      end.cancel()
     }
   }, [ref])
 
@@ -139,9 +140,9 @@ export function Results ({ searching, loading, empty, onPick, onPrefix, canScope
   )
 }
 
-export function Footer ({ mode, tabHint, keyHints = true, onPick, onPrefix, className }) {
+export function Footer ({ mode, tabHint, keyHints, onPick, onPrefix }) {
   return (
-    <div className={cn(styles.footer, 'flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 text-xs text-muted', className)}>
+    <div className={cn(styles.footer, 'flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 text-xs text-muted')}>
       {mode === 'browse' && <Link href='/territory' className={cn(styles.action, 'whitespace-nowrap')} onMouseDown={keepFocus} onClick={() => onPick()}>create a territory</Link>}
       {keyHints && mode === 'search' && <span className='whitespace-nowrap'>press <Kbd>↵</Kbd> for all results</span>}
       {keyHints && tabHint && <span className='whitespace-nowrap'><Kbd>tab</Kbd> {tabHint}</span>}

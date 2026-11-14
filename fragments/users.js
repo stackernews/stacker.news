@@ -149,6 +149,7 @@ ${STREAK_FIELDS}
       id
       name
       photoId
+      nitems
 
       optional {
         stacked

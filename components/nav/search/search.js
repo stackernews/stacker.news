@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
 import { Drawer } from '@base-ui/react/drawer'
 import { cn } from '@/lib/cn'
@@ -58,7 +58,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
     if (resetHighlight) setResetHighlight(false)
   }, [resetHighlight])
 
-  const lookup = useMemo(() => toLookup(text, caret ?? text.length), [text, caret])
+  const lookup = toLookup(text, caret ?? text.length)
   const debounced = useDebouncedLookup(lookup)
   const { groups: searchGroups, loading } = useSearchGroups({ lookup, debounced, scope, open })
   const browseGroups = useBrowseGroups({ open })
@@ -162,7 +162,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
         name='q'
         placeholder={PLACEHOLDER}
         enterKeyHint='search'
-        className={cn(styles.input, 'text-base grow basis-0 min-w-16')}
+        className='text-base grow basis-0 min-w-16 outline-none'
         onKeyDown={onKeyDown}
         onSelect={e => setCaret(e.currentTarget.selectionStart)}
         onBlur={() => setCaret(null)}

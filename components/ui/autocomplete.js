@@ -6,11 +6,11 @@ import styles from './autocomplete.module.css'
 
 export const Autocomplete = BaseAutocomplete
 
-export function AutocompletePopup ({ side = 'bottom', align = 'start', sideOffset = 6, anchor, positionMethod, className, children, ...props }) {
+export function AutocompletePopup ({ className, children, ...props }) {
   return (
     <BaseAutocomplete.Portal>
-      <BaseAutocomplete.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} positionMethod={positionMethod} className={popoverStyles.positioner}>
-        <BaseAutocomplete.Popup className={popoverClasses({ className: cn('w-(--anchor-width) max-w-none rounded-md', className) })} {...props}>
+      <BaseAutocomplete.Positioner sideOffset={6} {...props} className={popoverStyles.positioner}>
+        <BaseAutocomplete.Popup className={popoverClasses({ className: cn('w-(--anchor-width) max-w-none rounded-md', className) })}>
           {children}
         </BaseAutocomplete.Popup>
       </BaseAutocomplete.Positioner>

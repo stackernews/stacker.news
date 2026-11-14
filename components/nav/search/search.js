@@ -43,7 +43,6 @@ function useDebouncedLookup (lookup) {
 
 export default function Search ({ className, inline, open, setOpen, inputRef }) {
   const router = useRouter()
-  const barRef = useRef(null)
   const resultsRef = useRef(null)
   const { scope, text, setText, setScope, reset } = useSearchState()
   // where the caret is in the text, null when the input isn't focused
@@ -71,12 +70,9 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
     router.push(searchHref(q, router))
   }
 
-  // inline, open is the drawer's, so only escape closes it. base ui counts a
-  // press on the bar outside the input, like on a chip, as an outside press
+  // inline, open is the drawer's, so only escape closes it
   const onOpenChange = (nextOpen, details) => {
     if (inline && details.reason !== 'escape-key') return
-    const insideBar = details.reason === 'outside-press' && barRef.current?.contains(details.event.target)
-    if (!nextOpen && insideBar) return
     setOpen(nextOpen)
   }
 
@@ -151,7 +147,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
   }
 
   const bar = (
-    <div ref={barRef} className={searchBarClasses({ className })}>
+    <Autocomplete.InputGroup className={searchBarClasses({ className })}>
       <ScopeChips scope={scope} onRemove={removeScope} />
       <Autocomplete.Input
         ref={inputRef}
@@ -172,7 +168,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
       <button type='submit' aria-label='search' className={cn(styles.navIcon, 'shrink-0 flex')} onMouseDown={keepFocus}>
         <SearchIcon width={16} height={16} aria-hidden />
       </button>
-    </div>
+    </Autocomplete.InputGroup>
   )
   const results = (
     <div ref={resultsRef} className={cn(styles.results, 'grow min-h-0 overflow-y-auto overscroll-contain touch-pan-y')}>
@@ -221,7 +217,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
               {bar}
               {/* overflow hidden so the footer background reaches the edges.
                   both widths keep a tile column wide enough for the territory card */}
-              <AutocompletePopup anchor={barRef} align='center' positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg lg:min-w-xl overflow-hidden flex flex-col max-h-[min(80vh,var(--available-height))] dark:shadow-lg/55')}>
+              <AutocompletePopup positionMethod='fixed' className={cn(styles.popup, 'md:min-w-lg lg:min-w-xl overflow-hidden flex flex-col max-h-[min(80vh,var(--available-height))] dark:shadow-lg/55')}>
                 {results}
                 {footer}
               </AutocompletePopup>

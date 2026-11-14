@@ -1045,7 +1045,7 @@ export default {
 
       const [fromDate, toDate] = whenRange(when, from, to)
       const granularity = timeUnitForRange([fromDate, toDate]).toUpperCase()
-      const [{ stacked }] = await models.$queryRaw`
+      const [{ stacked } = {}] = await models.$queryRaw`
         SELECT sum("AggPayOut"."sumMtokens") as stacked
         FROM "AggPayOut"
         WHERE "AggPayOut"."userId" = ${user.id}
@@ -1069,7 +1069,7 @@ export default {
 
       const [fromDate, toDate] = whenRange(when, from, to)
       const granularity = timeUnitForRange([fromDate, toDate]).toUpperCase()
-      const [{ spent }] = await models.$queryRaw`
+      const [{ spent } = {}] = await models.$queryRaw`
         SELECT sum("AggPayIn"."sumMcost") as spent
         FROM "AggPayIn"
         WHERE "AggPayIn"."userId" = ${user.id}

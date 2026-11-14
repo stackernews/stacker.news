@@ -4,10 +4,34 @@ import { NAV_SEARCH_ITEMS, NAV_SEARCH_NAMES } from '@/fragments/search'
 import { ACTIVE_SUBS, TERRITORIES_WEEK } from '@/fragments/subs'
 import { MAX_SEARCH_LENGTH } from '@/lib/constants'
 import { joinScope } from '@/lib/search'
-import { userItem, longSubItem, hitItem } from './items'
+import { userItem, subItem, longSubItem, weekSubItem, hitItem, recentItem } from './items'
+import { useRecentSearchEntries, useRecentSubEntries } from './recent'
+import { useSearchState } from './state'
 
 const SEARCH_LIMIT = 4
 const NAMES_LIMIT = 8
+const RECENT_LIMIT = 3
+// one row of tiles on desktop
+const TILES_LIMIT = 4
+
+// activeSubs leaves out stopped territories, and nsfw ones unless nsfw mode is on,
+// so every territory shown has to be in it
+function toBrowseGroups ({ activeSubs = [], weekSubs = [], searches, visitedNames, sub, clearSearches, clearVisited }) {
+  const byName = new Map(activeSubs.map(territory => [territory.name, territory]))
+  const visited = visitedNames
+    .map(name => byName.get(name))
+    .filter(territory => territory && territory.name !== sub)
+    .slice(0, TILES_LIMIT)
+
+  const showable = territory => territory && !territory.meMuteSub && territory.name !== sub
+  const week = weekSubs.filter(territory => territory.nitems > 0 && showable(byName.get(territory.name))).slice(0, TILES_LIMIT)
+
+  return [
+    { value: 'recent', label: 'recent', items: searches.slice(0, RECENT_LIMIT).map(recentItem), action: { label: 'clear', onClick: clearSearches } },
+    { value: 'visited', label: 'recently visited', layout: 'tiles', items: visited.map(subItem), action: { label: 'clear', onClick: clearVisited } },
+    { value: 'week', label: 'active this week', href: '/top/territories/week?by=items', layout: 'tiles', items: week.map(weekSubItem), action: { label: 'all territories', prefix: '~' } }
+  ].filter(group => group.items.length > 0)
+}
 
 // territories found by name come with just their name, the rest is in the full
 // list. a territory missing from the week's list had a quiet week
@@ -56,7 +80,10 @@ function useLastData (data, kind) {
   return current
 }
 
-export function useSearchGroups ({ lookup, debounced, scope, open }) {
+export function useSearchGroups ({ lookup, debounced, open }) {
+  const { scope, sub } = useSearchState()
+  const [searches, clearSearches] = useRecentSearchEntries(open)
+  const [visitedNames, clearVisited] = useRecentSubEntries(open)
   const variables = namesQuery(debounced)
   const itemVariables = itemsQuery(debounced, scope)
 
@@ -76,7 +103,9 @@ export function useSearchGroups ({ lookup, debounced, scope, open }) {
 
   const activeSubs = subs.data?.activeSubs
   const weekSubs = week.data?.topSubs?.subs
+  const browse = lookup.mode === 'browse'
   const groups = useMemo(() => {
+    if (browse) return toBrowseGroups({ activeSubs, weekSubs, searches, visitedNames, sub, clearSearches, clearVisited })
     if (allSubs) return toGroups({ subs: pinSubscribed(activeSubs), activeSubs, weekSubs })
     return toGroups({
       users: matches?.searchUsers,
@@ -86,7 +115,7 @@ export function useSearchGroups ({ lookup, debounced, scope, open }) {
       activeSubs,
       weekSubs
     })
-  }, [allSubs, activeSubs, weekSubs, matches, hits])
+  }, [browse, allSubs, activeSubs, weekSubs, matches, hits, searches, visitedNames, sub, clearSearches, clearVisited])
 
   // the pause in typing before the query counts as loading too
   const loadingNames = !!namesQuery(lookup) && (names.loading || lookup.key !== debounced.key)

@@ -14,7 +14,6 @@ import { toLookup, appendPrefix, cutWord, emptyText } from './lookup'
 import { searchItem } from './items'
 import { Results, Footer } from './results'
 import { useSearchGroups } from './search-groups'
-import { useBrowseGroups } from './browse-groups'
 import styles from './search.module.css'
 
 const DEBOUNCE_MS = 150
@@ -60,8 +59,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
 
   const lookup = toLookup(text, caret ?? text.length)
   const debounced = useDebouncedLookup(lookup)
-  const { groups: searchGroups, loading } = useSearchGroups({ lookup, debounced, scope, open })
-  const browseGroups = useBrowseGroups({ open })
+  const { groups: searchGroups, loading } = useSearchGroups({ lookup, debounced, open })
 
   const q = joinScope(scope, text).slice(0, MAX_SEARCH_LENGTH)
 
@@ -87,11 +85,9 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
     setCaret(inputRef.current?.selectionStart ?? value.length)
   }
 
-  const groups = lookup.mode === 'browse'
-    ? browseGroups
-    : lookup.mode === 'search'
-      ? [{ value: 'search', items: toSearchRows({ q, scope, text: lookup.text, router }) }, ...searchGroups]
-      : searchGroups
+  const groups = lookup.mode === 'search'
+    ? [{ value: 'search', items: toSearchRows({ q, scope, text: lookup.text, router }) }, ...searchGroups]
+    : searchGroups
 
   // ios scrolls the page to center a focused input, even one in view
   const focusInput = () => inputRef.current?.focus({ preventScroll: true })

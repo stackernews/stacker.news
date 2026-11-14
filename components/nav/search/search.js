@@ -70,12 +70,6 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
     router.push(searchHref(q, router))
   }
 
-  // inline, open is the drawer's, so only escape closes it
-  const onOpenChange = (nextOpen, details) => {
-    if (inline && details.reason !== 'escape-key') return
-    setOpen(nextOpen)
-  }
-
   const onValueChange = value => {
     setText(value)
     setCaret(inputRef.current?.selectionStart ?? value.length)
@@ -189,7 +183,7 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
         value={text}
         items={resetHighlight ? [] : groups}
         onValueChange={onValueChange}
-        onOpenChange={onOpenChange}
+        onOpenChange={inline ? undefined : setOpen}
         onItemHighlighted={item => setHighlighted(item?.value)}
         openOnInputClick
         mode='none' // disables base ui filtering

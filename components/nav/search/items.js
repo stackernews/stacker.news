@@ -137,37 +137,30 @@ function CommentHit ({ item }) {
   )
 }
 
-function HitRow ({ item, onPick }) {
-  const Hit = item.type === 'comment' ? CommentHit : PostHit
-
-  return (
-    <AutocompleteItem
-      value={item}
-      render={<Link href={item.value} prefetch={false} />}
-      onClick={() => onPick(item)}
-      className={cn(styles.hit, 'flex-col items-stretch gap-0 py-1')}
-    >
-      <Hit item={item} />
-    </AutocompleteItem>
-  )
-}
+const HITS = { post: PostHit, comment: CommentHit }
 
 export function Row ({ item, onPick, onScope }) {
-  if (item.marked) return <HitRow item={item} onPick={onPick} />
+  const Hit = HITS[item.type]
 
   return (
     <AutocompleteItem
       value={item}
       render={<Link href={item.value} prefetch={false} />}
       onClick={() => onPick(item)}
-      className={onScope && 'pe-(--scope-width)'}
+      className={cn(Hit && styles.hit, Hit && 'flex-col items-stretch gap-0 py-1', onScope && 'pe-(--scope-width)')}
       action={onScope && <ScopeButton item={item} onScope={onScope} />}
     >
-      <RowIcon item={item} />
-      <span className='grow min-w-0 truncate'>
-        {item.type === 'search' ? <>search <b>{item.text}</b> {item.after}</> : item.label}
-      </span>
-      {item.meta && <span className={cn(styles.meta, 'shrink-0 text-xs')}>{item.meta}</span>}
+      {Hit
+        ? <Hit item={item} />
+        : (
+          <>
+            <RowIcon item={item} />
+            <span className='grow min-w-0 truncate'>
+              {item.type === 'search' ? <>search <b>{item.text}</b> {item.after}</> : item.label}
+            </span>
+            {item.meta && <span className={cn(styles.meta, 'shrink-0 text-xs')}>{item.meta}</span>}
+          </>
+          )}
     </AutocompleteItem>
   )
 }

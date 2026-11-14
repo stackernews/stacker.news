@@ -14,10 +14,6 @@
   transition: none;
 }
 
-.input {
-  outline: 0;
-}
-
 .divider {
   background-color: var(--sn-border-color-translucent);
 }

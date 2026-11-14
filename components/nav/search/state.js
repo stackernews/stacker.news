@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import { isSearchPath, splitScope } from '@/lib/search'
+import { useRememberHistory } from './recent'
 
 const SearchStateContext = createContext()
 
 export function SearchStateProvider ({ sub, user, children }) {
   const router = useRouter()
+  useRememberHistory(sub)
   const q = isSearchPath(router.pathname) && typeof router.query.q === 'string' ? router.query.q : undefined
 
   const page = useMemo(() => q === undefined ? { scope: { sub, user }, text: '' } : splitScope(q), [q, sub, user])

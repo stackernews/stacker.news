@@ -3,7 +3,6 @@ import Search from './search'
 
 export { MobileSearch } from './mobile'
 export { SearchStateProvider } from './state'
-export { useRememberHistory } from './recent'
 
 export default function SearchBar ({ className }) {
   const [open, setOpen] = useState(false)

@@ -40,10 +40,6 @@ function useRecent (name) {
 const SUBS = 'recentTerritories'
 const SEARCHES = 'recentSearches'
 
-const useRecentSubs = () => useRecent(SUBS)
-
-const useRecentSearches = () => useRecent(SEARCHES)
-
 // visiting territories or search URLs contribute to the recent list
 // so it's read again on every open
 function useRecentEntries (name, open) {
@@ -66,27 +62,21 @@ export const useRecentSubEntries = open => useRecentEntries(SUBS, open)
 
 export const useRecentSearchEntries = open => useRecentEntries(SEARCHES, open)
 
-function useRememberSub (sub) {
-  const { addRecent } = useRecentSubs()
-  useEffect(() => {
-    if (sub) addRecent(sub)
-  }, [sub, addRecent])
-}
+export function useRememberHistory (sub) {
+  const router = useRouter()
+  const q = router.pathname === SEARCH_PATH && typeof router.query.q === 'string' ? router.query.q : undefined
+  const { addRecent: addSub } = useRecent(SUBS)
+  const { addRecent: addSearch } = useRecent(SEARCHES)
 
-function useRememberSearch (q) {
-  const { addRecent } = useRecentSearches()
+  useEffect(() => {
+    if (sub) addSub(sub)
+  }, [sub, addSub])
+
   useEffect(() => {
     if (!q) return
     // ~territory and @stacker go first, so 'btc ~bitcoin' and '~bitcoin btc' are one entry
     const { scope, text } = splitScope(q)
     const search = joinScope(scope, text)
-    if (search) addRecent(search)
-  }, [q, addRecent])
-}
-
-export function useRememberHistory (sub) {
-  const router = useRouter()
-  const q = router.pathname === SEARCH_PATH && typeof router.query.q === 'string' ? router.query.q : undefined
-  useRememberSub(sub)
-  useRememberSearch(q)
+    if (search) addSearch(search)
+  }, [q, addSearch])
 }

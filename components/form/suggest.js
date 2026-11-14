@@ -9,13 +9,8 @@ import { InputInner } from './input'
 
 const INITIAL_SUGGESTIONS = { array: [], index: 0 }
 
-function BaseSuggest ({
-  query, onSelect,
-  transformItem = item => item, selectWithTab = true, filterItems = () => true,
-  getSuggestionsQuery, itemsField,
-  children
-}) {
-  const [getSuggestions] = useLazyQuery(getSuggestionsQuery)
+function BaseSuggest ({ query, onSelect, children }) {
+  const [getSuggestions] = useLazyQuery(USER_SUGGESTIONS)
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
   const listboxId = useId()
   const resetSuggestions = useCallback(() => setSuggestions(INITIAL_SUGGESTIONS), [])
@@ -25,12 +20,7 @@ function BaseSuggest ({
       const q = query?.replace(/^[@ ~]+|[ ]+$/g, '').replace(/@[^\s]*$/, '').replace(/~[^\s]*$/, '')
       getSuggestions({ variables: { q, limit: 5 } })
         .then(({ data }) => {
-          query !== undefined && setSuggestions({
-            array: data[itemsField]
-              .filter((...args) => filterItems(query, ...args))
-              .map(transformItem),
-            index: 0
-          })
+          query !== undefined && setSuggestions({ array: data.userSuggestions, index: 0 })
         })
         .catch(err => !isAbortError(err) && console.error(err))
     } else {
@@ -64,9 +54,6 @@ function BaseSuggest ({
         break
       case 'Tab':
       case 'Enter':
-        if (e.code === 'Tab' && !selectWithTab) {
-          break
-        }
         if (suggestions.array?.length === 0) {
           break
         }
@@ -120,25 +107,12 @@ function BaseSuggest ({
   )
 }
 
-function BaseInputSuggest ({
-  label, groupClassName, transformItem, filterItems,
-  selectWithTab, onChange, transformQuery, SuggestComponent, prefixRegex, ...props
-}) {
+export function InputUserSuggest ({ label, groupClassName, ...props }) {
   const [ovalue, setOValue] = useState()
   const [query, setQuery] = useState()
   return (
     <FormGroup label={label} htmlFor={props.id || props.name} className={groupClassName}>
-      <SuggestComponent
-        transformItem={transformItem}
-        filterItems={filterItems}
-        selectWithTab={selectWithTab}
-        onSelect={(v) => {
-          // HACK ... ovalue does not trigger onChange
-          onChange && onChange(undefined, { target: { value: v } })
-          setOValue(v)
-        }}
-        query={query}
-      >
+      <BaseSuggest onSelect={setOValue} query={query}>
         {({ onKeyDown, resetSuggestions, listboxId, activeOptionId }) => (
           <InputInner
             {...props}
@@ -149,7 +123,6 @@ function BaseInputSuggest ({
             aria-activedescendant={activeOptionId}
             autoComplete='off'
             onChange={(formik, e) => {
-              onChange && onChange(formik, e)
               if (e.target.value === ovalue) {
                 // we don't need to set the ovalue or query if the value is the same
                 return
@@ -157,7 +130,7 @@ function BaseInputSuggest ({
               setOValue(e.target.value)
               // only open suggestions for interactive edits, not draft restore or ovalue
               if (e.target === document.activeElement) {
-                setQuery(e.target.value.replace(prefixRegex, ''))
+                setQuery(e.target.value.replace(/^[@ ]+|[ ]+$/g, ''))
               }
             }}
             overrideValue={ovalue}
@@ -165,38 +138,7 @@ function BaseInputSuggest ({
             onBlur={() => setTimeout(resetSuggestions, 500)}
           />
         )}
-      </SuggestComponent>
+      </BaseSuggest>
     </FormGroup>
-  )
-}
-
-export function InputUserSuggest ({
-  transformUser, filterUsers, ...props
-}) {
-  return (
-    <BaseInputSuggest
-      transformItem={transformUser}
-      filterItems={filterUsers}
-      SuggestComponent={UserSuggest}
-      prefixRegex={/^[@ ]+|[ ]+$/g}
-      {...props}
-    />
-  )
-}
-
-function UserSuggest ({
-  transformUser = user => user, filterUsers = () => true,
-  children, ...props
-}) {
-  return (
-    <BaseSuggest
-      transformItem={transformUser}
-      filterItems={filterUsers}
-      getSuggestionsQuery={USER_SUGGESTIONS}
-      itemsField='userSuggestions'
-      {...props}
-    >
-      {children}
-    </BaseSuggest>
   )
 }

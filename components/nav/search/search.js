@@ -8,7 +8,7 @@ import { Autocomplete, AutocompletePopup } from '@/components/ui/autocomplete'
 import CloseIcon from '@/svgs/close-line.svg'
 import SearchIcon from '@/svgs/search-line.svg'
 import BackArrow from '@/svgs/arrow-left-line.svg'
-import { PLACEHOLDER, ScopeChips, searchBarClasses, keepFocus, scopeHint, scopeWords } from './bar'
+import { filterWords, PLACEHOLDER, ScopeChips, searchBarClasses, keepFocus, scopeHint, scopeWords } from './bar'
 import { useSearchState } from './state'
 import { toLookup, appendPrefix, cutWord, emptyText } from './lookup'
 import { searchItem } from './items'
@@ -19,11 +19,11 @@ import styles from './search.module.css'
 const DEBOUNCE_MS = 150
 
 function toSearchRows ({ q, scope, text, router }) {
-  const chips = scopeWords(scope)
+  const where = [filterWords(router), scopeWords(scope)].filter(Boolean).join(' ')
   const typed = splitScope(text).scope
   return [
-    chips && searchItem(searchHref(q, router), text, chips),
-    searchItem(searchHref(text, router), text, typed.sub || typed.user ? '' : 'everywhere')
+    where && searchItem(searchHref(q, router), text, where),
+    searchItem(searchHref(text, router, { everywhere: true }), text, typed.sub || typed.user ? '' : 'everywhere')
   ].filter(Boolean)
 }
 

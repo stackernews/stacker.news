@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { isEncryptedField, isWallet, protocolRelationName } from '@/wallets/lib/util'
+import { isEncryptedField, isWallet, protocolKey, protocolRelationName } from '@/wallets/lib/util'
 import { useApolloClient, useMutation } from '@apollo/client/react'
 import { ME } from '@/fragments/users'
 import { SAVE_WALLET_PROTOCOLS, WALLETS } from '@/wallets/client/fragments'
@@ -8,6 +8,7 @@ import { requestPersistentStorage } from '@/components/use-indexeddb'
 import { clearWalletBalanceCache } from '@/wallets/client/balance'
 import { useTestStore, useWallet } from './context'
 import { protocolStatuses, summarize } from './status'
+import { draftConfig, isSavedProtocol } from './draft'
 import { WalletStaleConfigError } from '@/wallets/client/errors'
 
 // Re-runs the status builder + summarize gate on the submitted snapshot (not the
@@ -30,10 +31,23 @@ export function useSaveWallet () {
     // the server inside a single transaction. Each config is wrapped in a
     // @oneOf branch keyed by the protocol's relation name so the server knows
     // which protocol it is without us having to send name/send separately.
-    const upserts = await Promise.all(saveable.map(async ({ protocol, enabled, config }) => ({
-      enabled: enabled ?? false,
-      config: await buildProtocolConfigBranch(encrypt, protocol, config)
-    })))
+    //
+    // Disabling a saved connection must not persist unsaved edits: a password
+    // manager can autofill credentials into the form, and a disabled connection
+    // is never tested before saving. Use the persisted config in that case so
+    // disabling only flips `enabled` and leaves the stored credentials intact.
+    const upserts = await Promise.all(saveable.map(async ({ protocol, enabled, config }) => {
+      let configToSave = config
+      if (enabled === false && isSavedProtocol(protocol)) {
+        const saved = wallet.protocols?.find(p => protocolKey(p) === protocolKey(protocol))
+        if (saved) configToSave = draftConfig(protocol, saved.config)
+      }
+
+      return {
+        enabled: enabled ?? false,
+        config: await buildProtocolConfigBranch(encrypt, protocol, configToSave)
+      }
+    }))
 
     const variables = {
       upserts,

@@ -44,7 +44,7 @@ function useDebouncedLookup (lookup) {
 export default function Search ({ className, inline, open, setOpen, inputRef }) {
   const router = useRouter()
   const resultsRef = useRef(null)
-  const { scope, text, setText, setScope, reset } = useSearchState()
+  const { scope, text, setText, setScope } = useSearchState()
   // where the caret is in the text, null when the input isn't focused
   const [caret, setCaret] = useState(null)
   // rows are new objects on every render, so the highlighted row is kept by its value
@@ -66,7 +66,6 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
     e.preventDefault()
     if (!q) return
 
-    setOpen(false)
     router.push(searchHref(q, router))
   }
 
@@ -134,11 +133,14 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
 
   const searching = loading && searchGroups.length === 0
 
-  // rows are links and do the navigation
-  const onPick = item => {
-    setOpen(false)
-    if (['user', 'sub', 'post', 'comment'].includes(item?.type)) reset()
-  }
+  // closes the panel when the route changes, unless it's a shallow change (e.g. the url replace after each page load)
+  useEffect(() => {
+    const close = (url, { shallow }) => {
+      if (!shallow) setOpen(false)
+    }
+    router.events.on('routeChangeStart', close)
+    return () => router.events.off('routeChangeStart', close)
+  }, [router.events, setOpen])
 
   const bar = (
     <Autocomplete.InputGroup className={searchBarClasses({ className })}>
@@ -169,11 +171,11 @@ export default function Search ({ className, inline, open, setOpen, inputRef }) 
       {/* on touch screens the results always scroll by at least 1px, so a drag
           on a short list stays in the box instead of scrolling the page */}
       <div className='pointer-coarse:min-h-[calc(100%+1px)]'>
-        <Results searching={searching} loading={loading} empty={emptyText(lookup)} onPick={onPick} onPrefix={addPrefix} canScope={canScope} onScope={addScope} previews={!inline} resultsRef={resultsRef} />
+        <Results searching={searching} loading={loading} empty={emptyText(lookup)} onPrefix={addPrefix} canScope={canScope} onScope={addScope} previews={!inline} resultsRef={resultsRef} />
       </div>
     </div>
   )
-  const footer = <Footer mode={lookup.mode} tabHint={tabItem && scopeHint(tabItem)} keyHints={!inline} onPick={onPick} onPrefix={addPrefix} />
+  const footer = <Footer mode={lookup.mode} tabHint={tabItem && scopeHint(tabItem)} keyHints={!inline} onPrefix={addPrefix} />
 
   return (
     <form onSubmit={onSubmit} className={inline ? 'flex flex-col h-full' : undefined}>

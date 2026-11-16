@@ -139,14 +139,13 @@ function CommentHit ({ item }) {
 
 const HITS = { post: PostHit, comment: CommentHit }
 
-export function Row ({ item, onPick, onScope }) {
+export function Row ({ item, onScope }) {
   const Hit = HITS[item.type]
 
   return (
     <AutocompleteItem
       value={item}
       render={<Link href={item.value} prefetch={false} />}
-      onClick={() => onPick(item)}
       className={cn(Hit && styles.hit, Hit && 'flex-col items-stretch gap-0 py-1', onScope && 'pe-(--scope-width)')}
       action={onScope && <ScopeButton item={item} onScope={onScope} />}
     >
@@ -165,7 +164,7 @@ export function Row ({ item, onPick, onScope }) {
   )
 }
 
-export function Tile ({ item, onPick, onScope, previewHandle }) {
+export function Tile ({ item, onScope, previewHandle }) {
   const textClassName = cn('flex flex-col min-w-0 py-2 px-3', onScope && 'pe-(--scope-width)')
   const text = (
     <>
@@ -178,7 +177,6 @@ export function Tile ({ item, onPick, onScope, previewHandle }) {
     <AutocompleteTile
       value={item}
       render={<Link href={item.value} prefetch={false} />}
-      onClick={() => onPick(item)}
       className={item.muted && styles.muted}
       action={onScope && <ScopeButton item={item} onScope={onScope} />}
     >

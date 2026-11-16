@@ -1,4 +1,4 @@
-import { SCOPES } from '@/lib/search'
+import { SCOPES, SEARCH_PATH, USER_SEARCH_PATH } from '@/lib/search'
 import { cn } from '@/lib/cn'
 import CloseIcon from '@/svgs/close-line.svg'
 import styles from './search.module.css'
@@ -13,6 +13,13 @@ export const PLACEHOLDER = 'search anything'
 
 export function scopeWords ({ sub, user }) {
   return [sub && `in ~${sub}`, user && `by @${user}`].filter(Boolean).join(' ')
+}
+
+// the what filter of the search page we're on
+export function filterWords ({ pathname, query = {} }) {
+  if (pathname === USER_SEARCH_PATH) return 'in stackers'
+  const what = pathname === SEARCH_PATH && query.what
+  return ['posts', 'comments', 'bookmarks'].includes(what) ? `in ${what}` : ''
 }
 
 export function scopeHint (item) {

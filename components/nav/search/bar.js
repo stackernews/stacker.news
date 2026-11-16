@@ -25,24 +25,22 @@ function Chip ({ prefix, name, onRemove }) {
       <span className='truncate' title={`${prefix}${name}`}>
         <span className='text-muted font-normal'>{prefix}</span>{name}
       </span>
-      <button
-        type='button'
-        aria-label={`remove ${prefix}${name}`}
-        className={cn(styles.clear, 'flex shrink-0 pointer-coarse:hitbox-8')}
-        // the click doesn't reach the bar, which opens the search on phones
-        onClick={event => {
-          event.stopPropagation()
-          onRemove()
-        }}
-      >
-        <CloseIcon width={12} height={12} />
-      </button>
+      {onRemove && (
+        <button
+          type='button'
+          aria-label={`remove ${prefix}${name}`}
+          className={cn(styles.clear, 'flex shrink-0 pointer-coarse:hitbox-8')}
+          onClick={onRemove}
+        >
+          <CloseIcon width={12} height={12} />
+        </button>
+      )}
     </span>
   )
 }
 
 export function ScopeChips ({ scope, onRemove }) {
   return SCOPES.map(({ type, prefix }) => scope[type] && (
-    <Chip key={type} prefix={prefix} name={scope[type]} onRemove={() => onRemove(type)} />
+    <Chip key={type} prefix={prefix} name={scope[type]} onRemove={onRemove ? () => onRemove(type) : undefined} />
   ))
 }

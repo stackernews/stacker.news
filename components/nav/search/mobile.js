@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { useRouter } from 'next/router'
 import { Drawer } from '@base-ui/react/drawer'
 import { cn } from '@/lib/cn'
 import { navLinkClasses } from '@/components/ui/nav'
@@ -11,16 +10,9 @@ import { useSearchState } from './state'
 import styles from './search.module.css'
 
 export function MobileSearch ({ bar, className }) {
-  const router = useRouter()
   const inputRef = useRef(null)
   const [open, setOpen] = useState(false)
   const { scope, text, setScope } = useSearchState()
-
-  useEffect(() => {
-    const close = () => setOpen(false)
-    router.events.on('routeChangeStart', close)
-    return () => router.events.off('routeChangeStart', close)
-  }, [router.events])
 
   // the safe area is read when the popup mounts, while the keyboard is still down
   const popupRef = useCallback(popup => {

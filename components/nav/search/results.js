@@ -16,8 +16,8 @@ const SCROLL_END_MS = 200
 // Status and Empty always render for screen readers, so they're padded only when they have text
 const STATUS_CLASSES = 'not-empty:px-4 not-empty:pt-3 not-empty:pb-1 text-xs text-muted'
 
-function GroupLink ({ href, onPick, children }) {
-  return <Link href={href} className={cn(styles.action, 'pointer-coarse:hitbox-11')} onMouseDown={keepFocus} onClick={() => onPick()}>{children}</Link>
+function GroupLink ({ href, children }) {
+  return <Link href={href} className={cn(styles.action, 'pointer-coarse:hitbox-11')} onMouseDown={keepFocus}>{children}</Link>
 }
 
 function GroupAction ({ label, onClick, prefix, onPrefix }) {
@@ -96,7 +96,7 @@ function TilePreviewCard ({ handle, resultsRef }) {
   )
 }
 
-export function Results ({ searching, loading, empty, onPick, onPrefix, canScope, onScope, previews, resultsRef }) {
+export function Results ({ searching, loading, empty, onPrefix, canScope, onScope, previews, resultsRef }) {
   const [previewHandle] = useState(createPreviewCardHandle)
 
   return (
@@ -115,7 +115,7 @@ export function Results ({ searching, loading, empty, onPick, onPrefix, canScope
                 className='flex items-center gap-2'
                 action={group.action && <GroupAction {...group.action} onPrefix={onPrefix} />}
               >
-                {group.href ? <GroupLink href={group.href} onPick={onPick}>{group.label}</GroupLink> : group.label}
+                {group.href ? <GroupLink href={group.href}>{group.label}</GroupLink> : group.label}
                 {loading && <Moon className='spin shrink-0' width={12} height={12} aria-hidden />}
               </AutocompleteGroupLabel>
             )}
@@ -123,13 +123,13 @@ export function Results ({ searching, loading, empty, onPick, onPrefix, canScope
               ? (
                 <div role='presentation' className={cn('grid gap-2 px-4 pt-1 grid-cols-1 md:[--scope-width:--spacing(8)]', group.layout === 'tiles' ? 'md:grid-cols-[repeat(auto-fit,minmax(6rem,1fr))]' : 'md:grid-cols-2')}>
                   <Autocomplete.Collection>
-                    {item => <Tile key={item.value} item={item} onPick={onPick} onScope={canScope(item) ? onScope : undefined} previewHandle={previews ? previewHandle : undefined} />}
+                    {item => <Tile key={item.value} item={item} onScope={canScope(item) ? onScope : undefined} previewHandle={previews ? previewHandle : undefined} />}
                   </Autocomplete.Collection>
                 </div>
                 )
               : (
                 <Autocomplete.Collection>
-                  {item => <Row key={item.value} item={item} onPick={onPick} onScope={canScope(item) ? onScope : undefined} />}
+                  {item => <Row key={item.value} item={item} onScope={canScope(item) ? onScope : undefined} />}
                 </Autocomplete.Collection>
                 )}
           </Autocomplete.Group>
@@ -140,10 +140,10 @@ export function Results ({ searching, loading, empty, onPick, onPrefix, canScope
   )
 }
 
-export function Footer ({ mode, tabHint, keyHints, onPick, onPrefix }) {
+export function Footer ({ mode, tabHint, keyHints, onPrefix }) {
   return (
     <div className={cn(styles.footer, 'flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 text-xs text-muted')}>
-      {mode === 'browse' && <Link href='/territory' className={cn(styles.action, 'whitespace-nowrap')} onMouseDown={keepFocus} onClick={() => onPick()}>create a territory</Link>}
+      {mode === 'browse' && <Link href='/territory' className={cn(styles.action, 'whitespace-nowrap')} onMouseDown={keepFocus}>create a territory</Link>}
       {keyHints && mode === 'search' && <span className='whitespace-nowrap'>press <Kbd>↵</Kbd> for all results</span>}
       {keyHints && tabHint && <span className='whitespace-nowrap'><Kbd>tab</Kbd> {tabHint}</span>}
       <span className='ms-auto whitespace-nowrap'>

@@ -12,7 +12,7 @@ import styles from './search.module.css'
 export function MobileSearch ({ bar, className }) {
   const inputRef = useRef(null)
   const [open, setOpen] = useState(false)
-  const { scope, text, setScope } = useSearchState()
+  const { scope, text } = useSearchState()
 
   // the safe area is read when the popup mounts, while the keyboard is still down
   const popupRef = useCallback(popup => {
@@ -32,7 +32,7 @@ export function MobileSearch ({ bar, className }) {
       {bar
         ? (
           <div className={searchBarClasses({ className })} onClick={openNow}>
-            <ScopeChips scope={scope} onRemove={type => setScope({ [type]: undefined })} />
+            <ScopeChips scope={scope} />
             {/* base ui's own opening is skipped, the tap goes on to the bar */}
             <Drawer.Trigger
               aria-label='open search'

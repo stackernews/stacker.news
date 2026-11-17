@@ -55,7 +55,7 @@ async function readMagicBytes (url, { timeout = TIMEOUT_GET, byteLimit = BYTE_LI
       }
     } finally {
       try { reader.releaseLock?.() } catch {}
-      try { res.body?.cancel?.() } catch {}
+      try { await res.body.cancel() } catch {}
     }
     const buf = new Uint8Array(received)
     let offset = 0

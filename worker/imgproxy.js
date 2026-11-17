@@ -3,6 +3,7 @@ import { isJob } from '@/lib/item'
 import { decodeProxyUrl } from '@/lib/url'
 import { imgProxyEnabled, createImgproxyPath } from '@/lib/imgproxy'
 import { snFetch } from '@/lib/fetch'
+import internalFetch from '@/lib/egress/internal-fetch'
 
 if (!imgProxyEnabled) {
   console.warn('IMGPROXY_* env vars not set, imgproxy calls are no-ops now')
@@ -12,6 +13,8 @@ const IMGPROXY_URL = process.env.IMGPROXY_URL_DOCKER || process.env.NEXT_PUBLIC_
 const MEDIA_CHECK_URL = process.env.MEDIA_CHECK_URL_DOCKER || process.env.NEXT_PUBLIC_MEDIA_CHECK_URL
 
 const cache = new Map()
+// snFetch can fail to reach the gateway, or the gateway can report its own outage.
+const retryableGatewayErrors = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'EHOSTUNREACH', 'ENETUNREACH', 'ERR_PROXY_UNAVAILABLE'])
 
 // based on heuristics. see https://stacker.news/items/266838
 const imageUrlMatchers = [
@@ -27,22 +30,13 @@ const imageUrlMatchers = [
 ]
 const exclude = [
   u => process.env.NODE_ENV === 'production' && u.protocol !== 'https:',
-  u => u.host.endsWith('.onion') || u.host.endsWith('.b32.ip') || u.host.endsWith('.loki'),
+  u => ['.onion', '.i2p', '.loki'].some(suffix => u.hostname.endsWith(suffix)),
   u => ['twitter.com', 'x.com', 'nitter.it', 'nitter.at', 'xcancel.com'].some(h => h === u.host),
   u => u.host === 'stacker.news',
   u => u.host === 'news.ycombinator.com',
   u => u.host === 'www.youtube.com' || u.host === 'youtu.be',
   u => u.host === 'github.com'
 ]
-
-function matchUrl (matchers, url) {
-  try {
-    return matchers.some(matcher => matcher(new URL(url)))
-  } catch (err) {
-    console.log(url, err)
-    return false
-  }
-}
 
 export async function imgproxy ({ data: { id, forceFetch = false }, models }) {
   if (!imgProxyEnabled) return
@@ -117,7 +111,7 @@ const getMetadata = async (url) => {
   // video metadata, dimensions, format
   const options = '/vm:1/d:1/f:1'
   const imgproxyUrl = new URL(createImgproxyPath({ url, options, pathname: '/info' }), IMGPROXY_URL).toString()
-  const res = await fetch(imgproxyUrl)
+  const res = await internalFetch(imgproxyUrl, { signal: AbortSignal.timeout(30000) })
   const { width, height, format, video_streams: videoStreams } = await res.json()
   return { dimensions: { width, height }, format, video: !!videoStreams?.length }
 }
@@ -125,57 +119,46 @@ const getMetadata = async (url) => {
 const isMediaURL = async (url, { forceFetch }) => {
   if (cache.has(url)) return cache.get(url)
 
-  if (!forceFetch && matchUrl(imageUrlMatchers, url)) {
-    return true
+  const parsed = URL.parse(url)
+  if (!parsed || (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')) return false
+  if (!forceFetch) {
+    if (imageUrlMatchers.some(matches => matches(parsed))) return true
+    if (exclude.some(matches => matches(parsed))) return false
   }
-  if (!forceFetch && matchUrl(exclude, url)) {
-    return false
-  }
-
-  let isMedia = false
 
   // primary: media check service
   try {
     console.log('[imgproxy] media check service url:', `${MEDIA_CHECK_URL}/${encodeURIComponent(url)}`)
-    const res = await fetch(`${MEDIA_CHECK_URL}/${encodeURIComponent(url)}`)
+    const res = await internalFetch(`${MEDIA_CHECK_URL}/${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(30000) })
     if (res.ok) {
       const data = await res.json()
-      isMedia = data.isImage || data.isVideo
+      const isMedia = data.isImage || data.isVideo
+      if (typeof isMedia !== 'boolean') throw new Error('missing media classification')
       cache.set(url, isMedia)
       console.log('[imgproxy] media check service response:', data)
       return isMedia
     }
+    res.body?.destroy()
   } catch (err) {
-    console.log('[imgproxy] media check service failed, falling back to direct fetch:', url, err)
+    console.log('[imgproxy] media check service failed, falling back to gateway:', url, err)
   }
 
-  // fallback: first run HEAD with small timeout
-  try {
-    // https://stackoverflow.com/a/68118683
-    const res = await snFetch(url, { timeout: 1000, method: 'HEAD' })
-    const type = (res.headers.get('content-type') ?? '').toLowerCase()
-    isMedia = type.startsWith('image/') || type.startsWith('video/')
-  } catch (err) {
-    console.log(url, err)
+  for (const [method, timeout] of [['HEAD', 1000], ['GET', 10000]]) {
+    try {
+      const res = await snFetch(url, { method, timeout })
+      const type = (res.headers.get('content-type') ?? '').toLowerCase()
+      res.body?.destroy()
+      const media = type.startsWith('image/') || type.startsWith('video/')
+      if (media || method === 'GET') {
+        cache.set(url, media)
+        return media
+      }
+    } catch (err) {
+      if (retryableGatewayErrors.has(err.code)) throw err
+      console.log(url, err)
+    }
   }
 
-  // For HEAD requests, positives are most likely true positives.
-  // However, negatives may be false negatives
-  if (isMedia) {
-    cache.set(url, true)
-    return true
-  }
-
-  // if not known yet, run GET request with longer timeout
-  try {
-    const res = await snFetch(url, { timeout: 10000 })
-    const type = (res.headers.get('content-type') ?? '').toLowerCase()
-    res.body?.destroy?.() // we only needed the header; release the socket
-    isMedia = type.startsWith('image/') || type.startsWith('video/')
-  } catch (err) {
-    console.log(url, err)
-  }
-
-  cache.set(url, isMedia)
-  return isMedia
+  // An inconclusive probe skips just this link. A later item can try it again.
+  return false
 }

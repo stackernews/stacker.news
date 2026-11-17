@@ -1,5 +1,5 @@
 import { parseSafeHost, safeRedirectPath } from '@/lib/safe-url'
-import { SN_MAIN_DOMAIN } from '@/lib/domains'
+import internalFetch from '@/lib/egress/internal-fetch'
 import { DOMAINS_AUTH_VERIFIER_COOKIE, isValidHex64 } from '@/lib/domains/auth'
 import * as cookie from 'cookie'
 import { cookieOptions, buildMultiAuthCookies, MULTI_AUTH_LIST, SESSION_COOKIE } from '@/lib/auth'
@@ -76,7 +76,7 @@ async function exchangeCode (domainName, code, verifier) {
   const fetchHeaders = new Headers()
   fetchHeaders.set('Content-Type', 'application/json')
 
-  const response = await fetch(`${SN_MAIN_DOMAIN.origin}/api/auth/domains/token`, {
+  const response = await internalFetch(`${process.env.SELF_URL}/api/auth/domains/token`, {
     method: 'POST',
     headers: fetchHeaders,
     body,

@@ -19,7 +19,7 @@ import { indexItem, indexAllItems } from './search'
 import { timestampItem } from './ots'
 import { computeStreaks, checkStreak } from './streak'
 import { nip57 } from './nostr'
-import fetch from 'cross-fetch'
+import internalFetch from '@/lib/egress/internal-fetch'
 import { authenticatedLndGrpc } from '@/lib/lnd'
 import { views, rankViews } from './views'
 import { imgproxy } from './imgproxy'
@@ -67,7 +67,7 @@ async function work () {
   const apollo = new ApolloClient({
     link: new HttpLink({
       uri: `${process.env.SELF_URL}/api/graphql`,
-      fetch
+      fetch: internalFetch
     }),
     cache: new InMemoryCache(),
     defaultOptions: {

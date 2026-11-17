@@ -121,7 +121,7 @@ export default function Growth ({ ssrData }) {
 
   return (
     <Layout>
-      <UserAnalyticsHeader pathname={`stackers/${sub}`} label={null} />
+      <UserAnalyticsHeader pathname={`stackers/${sub}`} sub={sub} />
       <GrowthTotals totals={growthTotals} sub={sub} />
       <div className='grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mt-4'>
         <div>

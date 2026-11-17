@@ -1,5 +1,8 @@
 // environment variables are loaded from files and imports run before the rest of the code
 import './loadenv'
+// Validate startup proxy settings and configure gRPC before clients connect.
+// Default HTTP stays direct; user-directed HTTP needs an explicit proxy agent.
+import '@/lib/egress/bootstrap'
 import PgBoss from 'pg-boss'
 import createPrisma from '@/lib/create-prisma'
 import {
@@ -50,13 +53,6 @@ import {
 } from './domainVerification.js'
 import { untrackOldItems } from './untrackOldItems'
 import { isLndMaintenance } from '@/api/lnd/maintenance'
-
-// WebSocket polyfill
-import ws from 'isomorphic-ws'
-
-if (typeof WebSocket === 'undefined') {
-  global.WebSocket = ws
-}
 
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)

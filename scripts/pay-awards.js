@@ -8,12 +8,6 @@ const csv = require('csv-parser')
 const { createObjectCsvWriter } = require('csv-writer')
 const readline = require('readline')
 const fetch = require('node-fetch')
-const ws = require('isomorphic-ws')
-
-// Add WebSocket polyfill for Node.js
-if (typeof WebSocket === 'undefined') {
-  global.WebSocket = ws
-}
 
 const nwc = require('@getalby/sdk')
 

@@ -69,8 +69,8 @@
     "graphql-scalar": "^0.1.0",
     "graphql-tag": "^2.12.6",
     "graphql-type-json": "^0.3.2",
+    "https-proxy-agent": "7.0.5",
     "ipaddr.js": "^2.4.0",
-    "isomorphic-ws": "^5.0.0",
     "katex": "^0.19.0",
     "lexical": "^0.45.0",
     "light-bolt11-decoder": "^3.2.0",
@@ -137,7 +137,7 @@
     "yup": "^1.4.0"
   },
   "engines": {
-    "node": "22.x"
+    "node": ">=22.21.0 <23"
   },
   "standard": {
     "plugins": [

@@ -18,6 +18,7 @@ import {
 } from '@/lib/constants'
 import { msatsToSats, roundedZapAmounts } from '@/lib/format'
 import uu from 'url-unshort'
+import { getAgent } from '@/lib/proxy'
 import { actSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
@@ -602,6 +603,10 @@ export default {
       const res = {}
       try {
         const response = await snFetch(url, { protocol: 'http', redirect: 'follow', size: 2 * 1024 * 1024 })
+        if (!response.ok) {
+          response.body?.destroy()
+          throw new Error(`unexpected status: ${response.status}`)
+        }
         const html = await response.text()
         const doc = domino.createWindow(html).document
         const titleRuleSet = {
@@ -619,7 +624,8 @@ export default {
       } catch { }
 
       try {
-        const unshorted = await uu().expand(url)
+        const agent = getAgent({ signal: AbortSignal.timeout(30_000) })
+        const unshorted = await uu({ request: { agent: { http: agent, https: agent } } }).expand(url)
         if (unshorted) {
           res.unshorted = unshorted
         }

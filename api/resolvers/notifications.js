@@ -477,7 +477,7 @@ export default {
         console.log(`[webPush] created subscription for user ${me.id}: endpoint=${endpoint}`)
       }
 
-      await sendPushSubscriptionReply(dbPushSubscription)
+      sendPushSubscriptionReply(dbPushSubscription).catch(console.error)
 
       return dbPushSubscription
     },

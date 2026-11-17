@@ -15,7 +15,9 @@
 ## Tor opens a SOCKS proxy on port 9050 by default -- even if you don't
 ## configure one below. Set "SOCKSPort 0" if you plan to run Tor only
 ## as a relay, and not make any local application connections yourself.
-SOCKSPort 0.0.0.0:9050 # Default: Bind to localhost:9050 for local connections.
+SOCKSPort 0.0.0.0:9050 OnionTrafficOnly # Default: Bind to localhost:9050 for local connections.
+# Shorten pending setup waits; this does not set established tunnels' idle timeout.
+SocksTimeout 20
 #SOCKSPort 192.168.0.1:9100 # Bind to this address:port too.
 HTTPTunnelPort 0.0.0.0:7050
 ## Entry policies to allow/deny SOCKS requests based on IP address.

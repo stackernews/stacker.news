@@ -1,8 +1,8 @@
-import { datePivot, isAbortLike, raceAbort } from '@/lib/time'
+import { datePivot, isAbortLike, raceAbort, throwIfAborted } from '@/lib/time'
 import { authenticatedLndGrpc } from '@/lib/lnd'
 import { createInvoice as lndCreateInvoice, getInvoice } from 'ln-service'
-import { TOR_REGEXP } from '@/lib/url'
 import { WalletPermissionsError } from '@/wallets/lib/errors'
+import { WALLET_CREATE_INVOICE_TIMEOUT_MS, WALLET_EXTERNAL_TX_CHECK_TIMEOUT_MS } from '@/lib/constants'
 
 export const name = 'LND_GRPC'
 export const supportsDescriptionHash = true
@@ -13,13 +13,13 @@ export const createInvoice = async (
   { signal } = {}
 ) => {
   try {
-    const isOnion = TOR_REGEXP.test(socket)
-
+    throwIfAborted(signal)
     const { lnd } = authenticatedLndGrpc({
       socket,
       macaroon,
-      cert
-    }, isOnion)
+      cert,
+      deadline: Date.now() + WALLET_CREATE_INVOICE_TIMEOUT_MS
+    }, true)
 
     const invoice = await raceAbort(
       lndCreateInvoice({
@@ -27,6 +27,10 @@ export const createInvoice = async (
         ...(descriptionHash ? { description_hash: descriptionHash } : { description }),
         mtokens: String(msats),
         expires_at: datePivot(new Date(), { seconds: expiry })
+      }).finally(() => {
+        // raceAbort only stops waiting. Keep the channels open until ln-service
+        // finishes AddInvoice and its follow-up LookupInvoice (or the deadline).
+        Object.values(lnd).forEach(client => client.close())
       }),
       signal
     )
@@ -37,7 +41,7 @@ export const createInvoice = async (
     // LND errors can be in this shape: [code, type, { err: { code, details, metadata } }]
     const lndErr = unwrapLndError(err)
     const details = lndErr?.details || lndErr?.message || lndErr?.toString?.()
-    throw new Error(details)
+    throw lndConnectionError(err) ?? new Error(details)
   }
 }
 
@@ -46,19 +50,24 @@ export const checkInvoice = async (
   { cert, macaroon, socket },
   { signal } = {}
 ) => {
-  const isOnion = TOR_REGEXP.test(socket)
+  throwIfAborted(signal)
   const { lnd } = authenticatedLndGrpc({
     cert,
     macaroon,
-    socket
-  }, isOnion)
+    socket,
+    // raceAbort stops waiting; a deadline also terminates an in-flight RPC.
+    deadline: Date.now() + WALLET_EXTERNAL_TX_CHECK_TIMEOUT_MS
+  }, true)
   let invoice
   try {
     invoice = await raceAbort(getInvoice({ id: hash, lnd }), signal)
   } catch (err) {
     if (isAbortLike(err)) throw err
     if (isLndPermissionError(err)) throw new WalletPermissionsError('lnd macaroon cannot read invoices')
-    throw err
+    throw lndConnectionError(err) ?? err
+  } finally {
+    // each call builds its own channels; an unclosed one holds a proxy tunnel
+    Object.values(lnd).forEach(client => client.close())
   }
 
   if (invoice.is_confirmed) {
@@ -98,4 +107,13 @@ function isLndPermissionError (err) {
 
 function unwrapLndError (err) {
   return Array.isArray(err) ? err[2]?.err ?? err : err
+}
+
+function lndConnectionError (err) {
+  const lndErr = unwrapLndError(err)
+  // grpc-js discards both CONNECT refusals and proxy request errors. Only replace
+  // its empty UNAVAILABLE detail; retain any concrete error or resolution note.
+  if (lndErr?.code === 14 && /^No connection established\. Last error: undefined\.(?: Resolution note:\s*)?$/.test(lndErr.details)) {
+    return new Error('Could not reach your LND node through our gateway. Check the node address and availability, then retry. If this persists, contact support.', { cause: err })
+  }
 }

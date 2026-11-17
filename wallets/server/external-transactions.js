@@ -18,7 +18,7 @@ import { verifyPreimage } from '@/wallets/lib/preimage'
 import { protocolHasInvoiceChecker } from '@/wallets/server/protocols/util'
 import { checkLnurlVerifyInvoice } from '@/wallets/server/protocols/lnurlVerify'
 import { truncateToCharLength } from '@/lib/validate'
-import { TOR_REGEXP } from '@/lib/url'
+import { isOnionHost } from '@/lib/url'
 import { walletLogger } from './logger'
 import { requireExternalSendConfirmationIfNeeded } from './external-transaction-duplicates'
 import { notifyExternalReceive } from '@/lib/webPush'
@@ -395,7 +395,7 @@ export async function recordExternalTransactionObservation (
   await logExternalTransactionTransition(models, updated, {
     detail: observation.detail
   })
-  await externalReceiveSettledSideEffects(updated, metadata)
+  externalReceiveSettledSideEffects(updated, metadata).catch(console.error)
   return updated
 }
 
@@ -471,7 +471,7 @@ function sanitizeLnurlVerifyUrl (value) {
     const parsed = new URL(value)
     const supportedProtocol = parsed.protocol === 'https:' ||
       (parsed.protocol === 'http:' &&
-        (process.env.NODE_ENV === 'development' || TOR_REGEXP.test(parsed.hostname)))
+        (process.env.NODE_ENV === 'development' || isOnionHost(parsed.hostname)))
     return supportedProtocol ? parsed.toString() : null
   } catch {
     return null

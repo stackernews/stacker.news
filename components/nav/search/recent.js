@@ -64,6 +64,7 @@ export const useRecentSearchEntries = open => useRecentEntries(SEARCHES, open)
 
 export function useRememberHistory (sub) {
   const router = useRouter()
+  // searches on /stackers/search aren't saved
   const q = router.pathname === SEARCH_PATH && typeof router.query.q === 'string' ? router.query.q : undefined
   const { addRecent: addSub } = useRecent(SUBS)
   const { addRecent: addSearch } = useRecent(SEARCHES)

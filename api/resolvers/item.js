@@ -361,12 +361,14 @@ function typeFilterSql (type) {
   }
 }
 
-function itemSortSql (by, type) {
+function itemSortSql (by, type, sort) {
   switch (by) {
     case 'comments':
       return { expression: Prisma.sql`"Item".ncomments`, cast: Prisma.raw('INTEGER') }
     case 'sats':
-      return { expression: Prisma.sql`"Item".ranktop`, cast: Prisma.raw('DOUBLE PRECISION') }
+      return sort === 'user'
+        ? { expression: Prisma.sql`"Item".msats`, cast: Prisma.raw('BIGINT') }
+        : { expression: Prisma.sql`"Item".ranktop`, cast: Prisma.raw('DOUBLE PRECISION') }
     case 'downsats':
       return { expression: Prisma.sql`"Item"."downMsats"`, cast: Prisma.raw('BIGINT') }
     default:
@@ -429,7 +431,7 @@ export default {
           }
 
           table = type === 'bookmarks' ? 'Bookmark' : 'Item'
-          const sortSql = itemSortSql(by, type)
+          const sortSql = itemSortSql(by, type, sort)
           const keyset = itemKeysetCursor(cursor, decodedCursor)
           const cursorFilterSql = keyset
             ? Prisma.sql`(${sortSql.expression}, "Item".id) < (${keyset.key}::${sortSql.cast}, ${keyset.id}::INTEGER)`

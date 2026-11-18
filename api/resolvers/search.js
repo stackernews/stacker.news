@@ -1010,9 +1010,9 @@ export default {
     quickSearch: async (parent, { q }, { me, search, userLoader }) => {
       await validateSchema(searchSchema, { q })
 
-      const { query, quotes, nym, territory } = queryParts(q)
+      const { query, quotes, nym, url, territory } = queryParts(q)
       const quoteParts = quoteClauses(quotes)
-      const should = [...quoteParts.queries, ...(query.length ? quickTextQueries(query) : [])]
+      const should = [...urlQueries(url), ...quoteParts.queries, ...(query.length ? quickTextQueries(query) : [])]
       if (should.length === 0) return { posts: [], comments: [] }
 
       const { postsSatsFilter, commentsSatsFilter } = await loadSatsFilters(me, userLoader)

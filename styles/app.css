@@ -9,6 +9,12 @@ html {
 html:has([data-sn-editor]:focus) {
   scroll-padding-top: calc(var(--sn-header-height) + 35px);
 }
+/* the padding covers the nav, so the search form counts as out of view and focusing
+   or typing in it scrolls the page. the comments navigator is in the nav too and
+   scrolls to comments while it has focus, so it needs the padding */
+html:has([data-sn-navigation] form:focus-within) {
+  scroll-padding-top: 0;
+}
 
 #nprogress .bar {
   background: var(--sn-primary) !important;

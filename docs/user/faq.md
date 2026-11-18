@@ -188,7 +188,7 @@ When Stacker News first launched without territories, much of the discussion foc
 
 ### How do I found a territory?
 
-Click [here](/territory) or scroll to the bottom in the territory dropdown menu and click on 'create'.
+Click [here](/territory) or open the search bar and click on 'create a territory' at the bottom.
 
 ### How much does it cost to found a territory?
 

@@ -2,8 +2,12 @@ import { useRouter } from 'next/router'
 import { Select, DatePicker } from './form'
 import { WHENS } from '@/lib/constants'
 import { whenToFrom } from '@/lib/time'
+import { territoryHref } from '@/lib/navigation'
+import SubSelect from './sub-select'
 
-export function UserAnalyticsHeader ({ pathname = null, label = 'for' }) {
+const PREPEND_SUBS = ['all']
+
+export function UserAnalyticsHeader ({ pathname = null, label = 'for', sub }) {
   const router = useRouter()
 
   const path = pathname || 'satistics/graph'
@@ -26,6 +30,20 @@ export function UserAnalyticsHeader ({ pathname = null, label = 'for' }) {
   return (
     <div className='text-muted font-bold my-0 flex items-center flex-wrap'>
       <div className='text-muted font-bold mb-2 flex items-center'>
+        {sub && (
+          <>
+            stacker analytics in
+            <SubSelect
+              sub={sub}
+              prependSubs={PREPEND_SUBS}
+              id='analytics-sub'
+              aria-label='territory'
+              groupClassName='mb-0 mx-2 min-w-0'
+              className='w-auto max-w-36'
+              onChange={(formik, e) => router.push(territoryHref(router.asPath, e.target.value))}
+            />
+          </>
+        )}
         {label}
         <Select
           groupClassName={label ? 'mb-0 mx-2' : 'mb-0 me-2'}

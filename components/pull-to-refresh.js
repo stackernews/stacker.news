@@ -4,6 +4,9 @@ import styles from './pull-to-refresh.module.css'
 
 const REFRESH_THRESHOLD = 150
 
+const isPageScrollLocked = () =>
+  [document.documentElement, document.body].some(element => window.getComputedStyle(element).overflowY === 'hidden')
+
 export default function PullToRefresh ({ children, className }) {
   const router = useRouter()
   const [pullDistance, setPullDistance] = useState(0)
@@ -27,8 +30,7 @@ export default function PullToRefresh ({ children, className }) {
   useEffect(checkPWA, [])
 
   const handleTouchStart = useCallback((e) => {
-    // don't handle if the user is not scrolling from the top of the page, is not on a PWA or if we want Android's native PTR
-    if (!isPWA || window.scrollY > 0) return
+    if (!isPWA || window.scrollY > 0 || isPageScrollLocked()) return
     touchStartY.current = e.touches[0].clientY
   }, [isPWA])
 
@@ -49,8 +51,7 @@ export default function PullToRefresh ({ children, className }) {
   }, [isPWA])
 
   const handleTouchEnd = useCallback(() => {
-    if (touchStartY.current === 0 || touchEndY.current === 0) return
-    if (touchEndY.current - touchStartY.current > REFRESH_THRESHOLD) {
+    if (touchStartY.current !== 0 && touchEndY.current - touchStartY.current > REFRESH_THRESHOLD) {
       router.push(router.asPath)
     }
     clearPullDistance()
@@ -77,12 +78,7 @@ export default function PullToRefresh ({ children, className }) {
   }, [pullDistance])
 
   return (
-    <main
-      className={className}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
+    <main className={className}>
       <p
         className={`${styles.pullMessage}`}
         style={{ opacity: pullDistance > 0 ? 1 : 0, top: `${Math.max(-20, Math.min(-20 + pullDistance / 2, 5))}px` }}

@@ -230,3 +230,9 @@ export const UPDATE_ITEM_USER_VIEW = gql`
     updateCommentsViewAt(id: $id, meCommentsViewedAt: $meCommentsViewedAt)
   }
 `
+
+export const EMBED = gql`
+  query embed($url: String!) {
+    embed(url: $url)
+  }
+`

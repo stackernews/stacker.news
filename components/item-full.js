@@ -57,7 +57,7 @@ function ItemEmbed ({ url, imgproxyUrls }) {
   if (provider) {
     return (
       <div className='mt-4'>
-        <Embed src={url} {...provider} topLevel />
+        <Embed src={url} {...provider} full />
       </div>
     )
   }

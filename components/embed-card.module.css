@@ -1,0 +1,84 @@
+@layer components {
+
+.card {
+    border: 1px solid var(--sn-border-color-subtle);
+}
+
+.clipped {
+    mask-image: linear-gradient(#000 calc(100% - var(--sn-clip-fade)), transparent);
+}
+
+.avatar {
+    background-color: var(--sn-body-secondary-bg);
+}
+
+.icon {
+    fill: var(--sn-muted);
+}
+
+/* provider logo */
+.source:hover .icon {
+    fill: var(--sn-body-color);
+}
+
+.media img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 32rem;
+    object-fit: cover;
+    background-color: var(--sn-body-secondary-bg);
+}
+
+/* 2 or more pictures: a grid of squares, with an odd count the last picture takes the full width */
+.media:has(> :nth-child(2)) {
+    grid-template-columns: 1fr 1fr;
+}
+
+.media:has(> :nth-child(2)) img {
+    height: 100%;
+    aspect-ratio: 1;
+}
+
+.media > :last-child:nth-child(odd):not(:first-child) {
+    grid-column: span 2;
+}
+
+.media > :last-child:nth-child(odd):not(:first-child) img {
+    aspect-ratio: 2;
+}
+
+/* play button over the poster */
+.play {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.play svg {
+    width: 3.5rem;
+    height: 3.5rem;
+    margin: auto;
+    padding: 0.75rem;
+    border-radius: 50%;
+    fill: #fff;
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+.play:hover svg {
+    background-color: var(--sn-info);
+}
+
+.preview {
+    border: 1px solid var(--sn-border-color-subtle);
+}
+
+.preview:hover {
+    background-color: var(--sn-comment-bg);
+}
+
+}

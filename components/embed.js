@@ -1,78 +1,8 @@
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef } from 'react'
 import classNames from 'classnames'
-import useDarkMode from './dark-mode'
-import Button from '@/components/ui/button'
-import { TwitterTweetEmbed } from 'react-twitter-embed'
 import LiteYouTubeEmbed from 'react-lite-youtube-embed'
 import 'react-lite-youtube-embed/dist/LiteYouTubeEmbed.css'
-
-function TweetSkeleton ({ className }) {
-  return (
-    <div className={classNames('sn-tweets-skeleton', className)}>
-      <div className='sn-tweet-skeleton'>
-        <div className='sn-tweet-skeleton__img clouds' />
-        <div className='sn-tweet-skeleton__content'>
-          <div className='sn-tweet-skeleton__line clouds' />
-          <div className='sn-tweet-skeleton__line clouds' />
-          <div className='sn-tweet-skeleton__line clouds' />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export const NostrEmbed = memo(function NostrEmbed ({ className, darkMode, id }) {
-  const [show, setShow] = useState(false)
-  const iframeRef = useRef(null)
-
-  useEffect(() => {
-    if (!iframeRef.current) return
-
-    const setHeightFromIframe = (e) => {
-      if (e.origin !== 'https://njump.me' || !e?.data?.height || e.source !== iframeRef.current.contentWindow) return
-      iframeRef.current.height = `${e.data.height}px`
-    }
-
-    window?.addEventListener('message', setHeightFromIframe)
-
-    const handleIframeLoad = () => {
-      iframeRef.current.contentWindow.postMessage({ setDarkMode: darkMode }, '*')
-    }
-
-    if (iframeRef.current.complete) {
-      handleIframeLoad()
-    } else {
-      iframeRef.current.addEventListener('load', handleIframeLoad)
-    }
-
-    // https://github.com/vercel/next.js/issues/39451
-    iframeRef.current.src = `https://njump.me/${id}?embed=yes`
-
-    return () => {
-      window?.removeEventListener('message', setHeightFromIframe)
-      iframeRef.current?.removeEventListener('load', handleIframeLoad)
-    }
-  }, [iframeRef.current, darkMode])
-
-  return (
-    <div className={classNames('sn-nostr-container', !show && 'sn-embed-contained', className)}>
-      <iframe
-        ref={iframeRef}
-        width='100%'
-        style={{ maxWidth: '100%' }}
-        height={iframeRef.current?.height || '100%'}
-        frameBorder='0'
-        sandbox='allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox'
-        allow=''
-      />
-      {!show &&
-        <Button size='md' variant='info' className='sn-embed-show-full' onClick={() => setShow(true)}>
-          <div>show full note</div>
-          <small className='font-normal italic'>or other stuff</small>
-        </Button>}
-    </div>
-  )
-})
+import EmbedCard from './embed-card'
 
 const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
   const iframeRef = useRef(null)
@@ -117,36 +47,11 @@ const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
   )
 }
 
-const Embed = memo(function Embed ({ src, provider, id, meta, className, topLevel }) {
-  const [darkMode] = useDarkMode()
-  const [overflowing, setOverflowing] = useState(true)
-  const [show, setShow] = useState(false)
+const Embed = memo(function Embed ({ src, provider, id, meta, data, full, className }) {
   const embedClass = className || `sn-embed--${provider}`
 
-  if (provider === 'twitter') {
-    return (
-      <>
-        <div className={classNames('sn-twitter-container', !show && 'sn-embed-contained', embedClass)}>
-          <TwitterTweetEmbed
-            tweetId={id}
-            options={{ theme: darkMode ? 'dark' : 'light', width: topLevel ? 550 : 350 }}
-            key={darkMode ? '1' : '2'}
-            placeholder={<TweetSkeleton className={embedClass} />}
-            onLoad={() => setOverflowing(true)}
-          />
-          {overflowing && !show &&
-            <Button size='lg' variant='info' className='sn-embed-show-full' onClick={() => setShow(true)}>
-              show full tweet
-            </Button>}
-        </div>
-      </>
-    )
-  }
-
-  if (provider === 'nostr') {
-    return (
-      <NostrEmbed src={src} className={embedClass} id={id} darkMode={darkMode} />
-    )
+  if (provider === 'twitter' || provider === 'nostr') {
+    return <EmbedCard src={src} provider={provider} data={data} full={full} className={embedClass} />
   }
 
   if (provider === 'wavlake') {

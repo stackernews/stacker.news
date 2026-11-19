@@ -18,6 +18,7 @@ import {
 } from '@/lib/constants'
 import { msatsToSats, roundedZapAmounts } from '@/lib/format'
 import uu from 'url-unshort'
+import { getEmbedData } from '@/lib/embeds'
 import { actSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
@@ -626,6 +627,14 @@ export default {
       } catch { }
 
       return res
+    },
+    embed: async (parent, { url }) => {
+      try {
+        return await getEmbedData(url)
+      } catch (err) {
+        console.error('error fetching embed:', url, err)
+        return null
+      }
     },
     dupes: async (parent, { url }, { me, models }) => {
       const urlObj = new URL(ensureProtocol(url))

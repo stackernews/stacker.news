@@ -102,6 +102,7 @@ export const ITEM_FULL_FIELDS = gql`
     text
     lexicalState
     html
+    urlEmbed
     root {
       id
       createdAt

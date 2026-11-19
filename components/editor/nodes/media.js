@@ -315,7 +315,7 @@ export function MediaOrLink ({ linkFallback = true, editable, mediaRef, ...props
         </>
       )
 
-      // ItemEmbed doesn't create a container for us, in that case we wrap the content in the sn-media span
+      // UrlEmbed doesn't create a container for us, in that case we wrap the content in the sn-media span
       return preserveScroll(() => media?.style ? <span className='sn-media' style={media.style}>{content}</span> : content)
     }
   }

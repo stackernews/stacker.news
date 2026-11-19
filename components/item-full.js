@@ -52,12 +52,12 @@ function BioItem ({ item, handleClick }) {
   )
 }
 
-function ItemEmbed ({ url, imgproxyUrls }) {
+function UrlEmbed ({ url, imgproxyUrls, urlEmbed }) {
   const provider = parseEmbedUrl(url)
   if (provider) {
     return (
       <div className='mt-4'>
-        <Embed src={url} {...provider} full />
+        <Embed src={url} {...provider} data={urlEmbed} full />
       </div>
     )
   }
@@ -116,7 +116,7 @@ function TopLevelItem ({ item, noReply, tocContainerRef, ...props }) {
     >
       <article className={classNames(styles.fullItemContainer, 'topLevel')} ref={textRef}>
         {item.text && <ItemText item={item} readerRef={onReaderRef} />}
-        {item.url && !isBelowFilter && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
+        {item.url && !isBelowFilter && <UrlEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} urlEmbed={item.urlEmbed} />}
         {item.poll && <Poll item={item} />}
         {item.bounty &&
           <div className='font-bold mt-2'>

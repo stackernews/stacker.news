@@ -13,7 +13,7 @@ import { COMMENT_DEPTH_LIMIT } from '@/lib/constants'
 import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled'
 import PgBoss from 'pg-boss'
 import { lexicalStateLoader } from '@/lib/lexical/server/loader'
-import { createUserLoader, createSubLoader } from '@/api/loaders'
+import { createUserLoader, createSubLoader, createItemEmbedsLoader } from '@/api/loaders'
 
 const apolloServer = new ApolloServer({
   typeDefs,
@@ -94,6 +94,7 @@ const apolloHandler = startServerAndCreateNextHandler(apolloServer, {
       boss,
       userLoader,
       subLoader,
+      itemEmbedsLoader: createItemEmbedsLoader(models),
       lexicalStateLoader: lexicalStateLoader({ me, userLoader })
     }
   }

@@ -202,6 +202,9 @@ export async function onBegin (tx, payInId, args) {
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
     VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true,
               now() + interval '5 seconds', now() + interval '1 day')`
+  await tx.$executeRaw`
+    INSERT INTO pgboss.job (name, data, retrylimit, retrydelay, retrybackoff)
+    VALUES ('embeds', jsonb_build_object('id', ${id}::INTEGER), 5, 60, true)`
 
   await performBotBehavior(tx, args)
 

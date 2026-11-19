@@ -1,0 +1,161 @@
+@layer components {
+
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: 1px solid var(--sn-border-color-subtle);
+    border-radius: 12px;
+    line-height: 1.4;
+    /* the reader keeps whitespace, but in a card only the post text should keep it */
+    white-space: normal;
+    overflow-wrap: anywhere;
+    /* the embed wrapper disables selection for iframes, card text should be selectable */
+    user-select: text;
+}
+
+/* text, media, link preview and quote of a post */
+.body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.body:empty {
+    display: none;
+}
+
+/* a collapsed body clips its content, without this it would squash the pictures to fit */
+.body > * {
+    flex-shrink: 0;
+}
+
+/* collapsed until the expand button is clicked */
+.contained {
+    max-height: var(--sn-embed-contained-height);
+    overflow: hidden;
+}
+
+/* fade the last lines of a clipped body, like the text before `show more` */
+.clipped {
+    mask-image: linear-gradient(#000 calc(100% - 3lh), transparent);
+}
+
+/* author and date are links styled as plain text */
+.author,
+.author:hover {
+    color: inherit;
+    text-decoration: none;
+}
+
+.avatar {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: var(--sn-body-secondary-bg);
+}
+
+/* provider logo in the top right corner, links to the original post */
+.source {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+}
+
+.icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    fill: var(--sn-muted);
+}
+
+.source:hover .icon {
+    fill: var(--sn-body-color);
+}
+
+.media {
+    display: grid;
+    gap: 2px;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.media img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 32rem;
+    object-fit: cover;
+    background-color: var(--sn-body-secondary-bg);
+}
+
+/* 2 or more pictures: a grid of squares, with an odd count the last picture takes the full width */
+.media:has(> :nth-child(2)) {
+    grid-template-columns: 1fr 1fr;
+}
+
+.media:has(> :nth-child(2)) img {
+    height: 100%;
+    aspect-ratio: 1;
+}
+
+.media > :last-child:nth-child(odd):not(:first-child) {
+    grid-column: span 2;
+}
+
+.media > :last-child:nth-child(odd):not(:first-child) img {
+    aspect-ratio: 2;
+}
+
+/* play button over the poster */
+.play {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.play svg {
+    width: 3.5rem;
+    height: 3.5rem;
+    margin: auto;
+    padding: 0.75rem;
+    border-radius: 50%;
+    fill: #fff;
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+.play:hover svg {
+    background-color: var(--sn-info);
+}
+
+.preview {
+    display: block;
+    overflow: hidden;
+    border: 1px solid var(--sn-border-color-subtle);
+    border-radius: 12px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.preview:hover {
+    color: inherit;
+    background-color: var(--sn-comment-bg);
+}
+
+.preview img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 16rem;
+    object-fit: cover;
+}
+
+}

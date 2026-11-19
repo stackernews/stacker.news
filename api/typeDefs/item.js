@@ -157,6 +157,7 @@ export default gql`
     parentOtsHash: String
     forwards: [ItemForward]
     imgproxyUrls: JSONObject
+    urlEmbed: JSONObject
     rel: String
     apiKey: Boolean
     cost: Int!

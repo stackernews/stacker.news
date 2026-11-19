@@ -18,7 +18,7 @@ import { NOFOLLOW_LIMIT } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 import { MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER, multiAuthMiddleware } from '@/lib/auth'
 import { lexicalStateLoader } from '@/lib/lexical/server/loader'
-import { createUserLoader, createSubLoader } from '@/api/loaders'
+import { createUserLoader, createSubLoader, createItemEmbedsLoader } from '@/api/loaders'
 import { getDomainBranding, SN_MAIN_DOMAIN } from '@/lib/domains'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
@@ -47,6 +47,7 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
           search,
           userLoader,
           subLoader,
+          itemEmbedsLoader: createItemEmbedsLoader(models),
           lexicalStateLoader: lexicalStateLoader({ me: viewer, userLoader })
         }
       })()

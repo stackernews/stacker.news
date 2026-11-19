@@ -347,6 +347,30 @@ model Upload {
   @@index([userId], map: "Upload.userId_index")
 }
 
+model Embed {
+  id         Int         @id @default(autoincrement())
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @default(now()) @updatedAt @map("updated_at")
+  // 'twitter' or 'nostr', from parseEmbedUrl
+  provider   String
+  // the post's id at the provider: a tweet id, or a nostr id as written in the link
+  providerId String
+  data       Json
+  itemEmbeds ItemEmbed[]
+
+  @@unique([provider, providerId])
+}
+
+model ItemEmbed {
+  itemId  Int
+  embedId Int
+  item    Item  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  embed   Embed @relation(fields: [embedId], references: [id], onDelete: Cascade)
+
+  @@id([itemId, embedId])
+  @@index([embedId])
+}
+
 model Earn {
   id                     Int                   @id @default(autoincrement())
   createdAt              DateTime              @default(now()) @map("created_at")
@@ -461,6 +485,7 @@ model Item {
   User                 User[]
   itemForwards         ItemForward[]
   itemUploads          ItemUpload[]
+  itemEmbeds           ItemEmbed[]
   uploadId             Int?
   netInvestment        Int                   @default(0)
   apiKey               Boolean               @default(false)

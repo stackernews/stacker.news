@@ -1,4 +1,3 @@
-import { getProviders } from 'next-auth/react'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from './api/auth/[...nextauth]'
 import Link from 'next/link'
@@ -6,7 +5,7 @@ import { StaticLayout } from '@/components/layout'
 import Login from '@/components/login'
 import { isExternal } from '@/lib/url'
 import { formatHost, parseSafeHost } from '@/lib/safe-url'
-import { MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
+import { getPublicProviders, MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
 import { getDomainBranding } from '@/lib/domains'
 
 export async function getServerSideProps ({ req, res, query: { callbackUrl, multiAuth = false, domain = null, error = null } }) {
@@ -19,7 +18,8 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
     ? { subName: branding.subName, title: branding.title }
     : null
 
-  let session = await getServerSession(req, res, getAuthOptions(req))
+  const authOptions = getAuthOptions(req)
+  let session = await getServerSession(req, res, authOptions)
 
   // required to prevent infinite redirect loops if we switch to anon
   // but are on a page that would redirect us to /signup.
@@ -59,7 +59,7 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
     }
   }
 
-  const providers = await getProviders()
+  const providers = getPublicProviders(authOptions.providers)
 
   return {
     props: {

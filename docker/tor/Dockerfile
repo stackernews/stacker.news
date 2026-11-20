@@ -9,7 +9,7 @@ ADD torrc /etc/tor/torrc.template
 ADD tor.sh /tor.sh
 ADD services.conf /services.conf
 RUN mkdir -p /tordata && groupadd -g 1000 tor && useradd -u 1000 -g 1000 -m tor && chown -R tor:tor /tordata
-EXPOSE 9050 9051 7050
+EXPOSE 9050 9051
 VOLUME "/tordata"
 USER tor
 ENTRYPOINT [ "bash", "/tor.sh" ]

@@ -1,5 +1,8 @@
 // environment variables are loaded from files and imports run before the rest of the code
 import './loadenv'
+// Validate startup proxy settings and configure gRPC before clients connect.
+// Default HTTP stays direct; user-directed HTTP needs an explicit proxy agent.
+import '@/lib/egress/bootstrap'
 import PgBoss from 'pg-boss'
 import createPrisma from '@/lib/create-prisma'
 import {
@@ -19,7 +22,7 @@ import { indexItem, indexAllItems } from './search'
 import { timestampItem } from './ots'
 import { computeStreaks, checkStreak } from './streak'
 import { nip57 } from './nostr'
-import fetch from 'cross-fetch'
+import internalFetch from '@/lib/egress/internal-fetch'
 import { authenticatedLndGrpc } from '@/lib/lnd'
 import { views, rankViews } from './views'
 import { imgproxy } from './imgproxy'
@@ -51,13 +54,6 @@ import {
 import { untrackOldItems } from './untrackOldItems'
 import { isLndMaintenance } from '@/api/lnd/maintenance'
 
-// WebSocket polyfill
-import ws from 'isomorphic-ws'
-
-if (typeof WebSocket === 'undefined') {
-  global.WebSocket = ws
-}
-
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)
   const models = createPrisma({
@@ -67,7 +63,7 @@ async function work () {
   const apollo = new ApolloClient({
     link: new HttpLink({
       uri: `${process.env.SELF_URL}/api/graphql`,
-      fetch
+      fetch: internalFetch
     }),
     cache: new InMemoryCache(),
     defaultOptions: {

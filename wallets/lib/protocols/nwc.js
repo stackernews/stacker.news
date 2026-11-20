@@ -39,8 +39,7 @@ export default [
           'Allow `get_balance` too if you want Stacker News to show this wallet balance.'
         ],
         required: true,
-        // send wallet: relays are dialed by the user's browser, so private/LAN is allowed
-        validate: nwcUrlValidator({ allowPrivate: true }),
+        validate: nwcUrlValidator(),
         encrypt: true
       }
     ],

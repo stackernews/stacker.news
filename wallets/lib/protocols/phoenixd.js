@@ -20,8 +20,7 @@ export default [
         name: 'url',
         type: 'text',
         label: 'url',
-        // send wallet: dialed by the user's browser, so private/LAN addresses are allowed
-        validate: urlValidator('clearnet', { allowPrivate: true }),
+        validate: urlValidator('clearnet'),
         required: true,
         share: true
       },

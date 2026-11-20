@@ -1,3 +1,25 @@
+# App, capture and imgproxy use internal `sandbox`; worker also joins internal
+# `domains-internal`. Privoxy forwards to Smokescreen (public) or Tor (onion-only).
+# dnsmasq bridges domains-internal/default for domain DNS outside the proxy.
+x-egress-env: &egress_env
+  # Set before Node starts for HTTPS, native fetch and WebSocket proxy support.
+  # App/worker bootstrap keeps default HTTP direct for gRPC CONNECT and AWS IMDS.
+  NODE_USE_ENV_PROXY: 1
+  HTTP_PROXY: &gateway http://privoxy:8118
+  HTTPS_PROXY: *gateway
+  http_proxy: *gateway
+  https_proxy: *gateway
+  # Pin these before Next snapshots the environment for development reloads.
+  NO_PROXY: ""
+  no_proxy: ""
+  no_grpc_proxy: ""
+  grpc_proxy: *gateway
+# An internal network cannot publish ports, so a forwarder per service carries the
+# host's port into it.
+x-publish: &publish
+  image: alpine/socat:1.8.0.3
+  restart: unless-stopped
+  networks: [default, sandbox]
 x-env_file: &env_file
   - path: .env.development
     required: true
@@ -22,7 +44,49 @@ x-depends-on-bitcoin: &depends_on_bitcoin
     restart: true
 
 services:
+  privoxy:
+    build: ./docker/privoxy
+    restart: unless-stopped
+    networks: [sandbox]
+    # 512 client threads, each with client/upstream sockets, plus process overhead.
+    pids_limit: 1024
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 4096
+    depends_on:
+      smokescreen: {condition: service_healthy}
+  smokescreen:
+    build: ./docker/egress
+    # Prevent Docker client proxy settings from chaining the policy gateway.
+    environment:
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      http_proxy: ""
+      https_proxy: ""
+      NO_PROXY: ""
+      no_proxy: ""
+    # Resolve single-label wallet exceptions through Docker service discovery.
+    dns_search: ["."]
+    dns_opt: ["ndots:1"]
+    restart: unless-stopped
+    networks: [default, sandbox]
+  publish-app:
+    <<: *publish
+    command: TCP-LISTEN:3000,fork,reuseaddr TCP:app:3000
+    ports: ["3000:3000"]
+  publish-capture:
+    <<: *publish
+    profiles: [images, capture]
+    command: TCP-LISTEN:5678,fork,reuseaddr TCP:capture:5678
+    ports: ["5678:5678"]
+  publish-imgproxy:
+    <<: *publish
+    profiles: [images]
+    command: TCP-LISTEN:8080,fork,reuseaddr TCP:imgproxy:8080
+    ports: ["3001:8080"]
   db:
+    networks: [default, sandbox]
     container_name: db
     build: ./docker/db
     restart: unless-stopped
@@ -48,6 +112,7 @@ services:
       - -c
       - log_error_verbosity=terse
   tor:
+    networks: [default, sandbox]
     build:
       context: ./docker/tor
     container_name: tor
@@ -73,15 +138,17 @@ services:
         - GID=${CURRENT_GID}
         - NODE_VERSION=${SN_NODE_VERSION:?Use ./sndev or set SN_NODE_VERSION from .node-version}
     restart: unless-stopped
+    networks: [sandbox]
     healthcheck:
       <<: *healthcheck
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-    depends_on: *depends_on_db
+      test: ["CMD", "curl", "--noproxy", "*", "-f", "http://localhost:3000"]
+    depends_on:
+      <<: *depends_on_db
+      privoxy: {condition: service_healthy}
+      # app's host port lives on publish-app
+      publish-app: {condition: service_started}
     env_file: *env_file
-    expose:
-      - "3000"
-    ports:
-      - "3000:3000"
+    environment: *egress_env
     volumes:
       - ./:/app
     labels:
@@ -93,21 +160,21 @@ services:
     build:
       context: ./capture
     restart: unless-stopped
-    depends_on: *depends_on_app
+    networks: [sandbox]
+    depends_on:
+      <<: *depends_on_app
+      publish-capture: {condition: service_started}
     profiles:
       - images
       - capture
     healthcheck:
       <<: *healthcheck
-      test: ["CMD", "curl", "-f", "http://localhost:5678/health"]
+      test: ["CMD", "curl", "--noproxy", "*", "-f", "http://localhost:5678/health"]
     env_file: *env_file
     environment:
+      <<: *egress_env
       # configure to screenshot production, because local dev is too slow
-      - CAPTURE_URL=http://stacker.news
-    expose:
-      - "5678"
-    ports:
-      - "5678:5678"
+      CAPTURE_URL: http://stacker.news
     labels:
       CONNECT: "localhost:5678"
     cpu_shares: "${CPU_SHARES_LOW}"
@@ -120,20 +187,19 @@ services:
         - GID=${CURRENT_GID}
         - NODE_VERSION=${SN_NODE_VERSION:?Use ./sndev or set SN_NODE_VERSION from .node-version}
     restart: unless-stopped
+    networks: [sandbox, domains-internal]
     depends_on:
       <<:
          - *depends_on_db
          - *depends_on_app
     env_file: *env_file
+    environment: *egress_env
     volumes:
       - ./:/app
     entrypoint: ["/bin/sh", "-c"]
     command:
       - npm run worker:dev
     cpu_shares: "${CPU_SHARES_IMPORTANT}"
-    networks:
-      - default
-      - domains-network
   imgproxy:
     container_name: imgproxy
     image: darthsim/imgproxy:v3.23.0
@@ -143,15 +209,17 @@ services:
       <<: *healthcheck
       test: [ "CMD", "imgproxy", "health" ]
     restart: unless-stopped
+    networks: [sandbox]
+    depends_on:
+      publish-imgproxy: {condition: service_started}
+      privoxy: {condition: service_healthy}
     env_file: *env_file
-    ports:
-      - "3001:8080"
-    expose:
-      - "8080"
+    environment: *egress_env
     labels:
       - "CONNECT=localhost:3001"
     cpu_shares: "${CPU_SHARES_LOW}"
   aws:
+    networks: [default, sandbox]
     container_name: aws
     image: localstack/localstack:4.12
     # healthcheck:
@@ -181,6 +249,7 @@ services:
       - "CONNECT=localhost:4566"
     cpu_shares: "${CPU_SHARES_LOW}"
   opensearch:
+    networks: [default, sandbox]
     image: opensearchproject/opensearch:3.3.0
     container_name: opensearch
     profiles:
@@ -315,6 +384,7 @@ services:
         '
     cpu_shares: "${CPU_SHARES_MODERATE}"
   sn_lnd:
+    networks: [default, sandbox]
     build:
       context: ./docker/lnd
       args:
@@ -761,6 +831,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     cpu_shares: "${CPU_SHARES_LOW}"
   mailhog:
+    networks: [default, sandbox]
     image: mailhog/mailhog:latest
     container_name: mailhog
     profiles:
@@ -957,9 +1028,11 @@ services:
       - ./docker/dnsmasq/dnsmasq.d:/etc/dnsmasq.d
     cpu_shares: "${CPU_SHARES_LOW}"
     networks:
-      domains-network:
-        ipv4_address: 172.30.0.2
+      default: {}
+      domains-internal:
+        ipv4_address: 172.31.0.2
   caddy:
+    networks: [default, sandbox]
     # ALB-equivalent: terminates TLS for custom domains and forwards plain
     # HTTP to the next.js app, so dev mirrors the prod traffic shape and
     # browsers treat custom domains as secure contexts.
@@ -1001,9 +1074,14 @@ volumes:
 
 networks:
   default: {}
-  domains-network:
-    name: domains-network
+  sandbox:
+    internal: true
+  domains-internal:
     driver: bridge
+    # worker is on this network, so it must not offer a route out either
+    internal: true
     ipam:
       config:
-        - subnet: 172.30.0.0/24
+        - subnet: 172.31.0.0/24
+          # Keep dynamic allocations away from dnsmasq's fixed address.
+          ip_range: 172.31.0.128/25

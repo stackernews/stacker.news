@@ -1,0 +1,13 @@
+listen-address 0.0.0.0:8118
+# Request destinations, startup warnings and errors go to container stderr.
+debug 1
+debug 4096
+debug 8192
+# No actions or filter files: preserve content, headers and end-to-end TLS.
+# Budgeted together with the container's file-descriptor and task limits.
+max-client-connections 512
+socket-timeout 120
+keep-alive-timeout 10
+# Last match wins. Onion names are resolved by Tor, never local DNS.
+forward / smokescreen:4750
+forward-socks5t .onion tor:9050 .

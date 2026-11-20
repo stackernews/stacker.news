@@ -1,0 +1,33 @@
+ip: 0.0.0.0
+port: 4750
+connect_timeout: 10s
+# Reap tunnels that carry nothing, e.g. a destination that accepts and then stalls.
+# The longest silent wait for a response is 60s.
+idle_timeout: 2m
+# Supplement Smokescreen's defaults with the special-use ranges rejected by the
+# former ipaddr.js guard. Exact sndev hostname exceptions below still take priority.
+deny_ranges:
+  - 0.0.0.0/8
+  - 192.0.0.0/24
+  - 192.0.2.0/24
+  - 192.31.196.0/24
+  - 192.52.193.0/24
+  - 192.88.99.0/24
+  - 192.175.48.0/24
+  - 198.18.0.0/15
+  - 198.51.100.0/24
+  - 203.0.113.0/24
+  - 240.0.0.0/4
+  - '::ffff:0:0:0/96'
+  - '100::/64'
+  - '2001::/23'
+  - '2001:db8::/32'
+  - '2620:4f:8000::/48'
+  - '3fff::/20'
+  - '5f00::/16'
+  - 'fec0::/10'
+# sndev services a user-supplied URL may point at (regtest wallets, uploads, the
+# app itself). Only these exact names skip the private-IP filter; a public name
+# that resolves to one of their addresses is still denied.
+unsafe_ip_filter_bypassed_domains:
+  [app, aws, lnd, cln, lnbits, lnbits-v1, eclair, lnpub]

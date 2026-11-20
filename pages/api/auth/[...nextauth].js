@@ -10,6 +10,7 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import { getToken, encode as encodeJWT } from 'next-auth/jwt'
 import { schnorr } from '@noble/curves/secp256k1'
 import { notifyReferral } from '@/lib/webPush'
+import internalFetch from '@/lib/egress/internal-fetch'
 import { hashEmail } from '@/lib/crypto'
 import { multiAuthMiddleware, setMultiAuthCookies, cookieOptions } from '@/lib/auth'
 import { getDomainMapping } from '@/lib/domains'
@@ -464,11 +465,14 @@ export const getAuthOptions = (req, res) => ({
   events: getEventCallbacks()
 })
 
+// LIST_MONK_URL is operator-configured; this trusted service call goes direct.
 async function enrollInNewsletter ({ email }) {
   if (process.env.LIST_MONK_URL && process.env.LIST_MONK_AUTH) {
     try {
-      const response = await fetch(process.env.LIST_MONK_URL + '/api/subscribers', {
+      const response = await internalFetch(process.env.LIST_MONK_URL + '/api/subscribers', {
         method: 'POST',
+        redirect: 'error',
+        signal: AbortSignal.timeout(10000),
         headers: {
           'Content-Type': 'application/json',
           Authorization: 'Basic ' + Buffer.from(process.env.LIST_MONK_AUTH).toString('base64')

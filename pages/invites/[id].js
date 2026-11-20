@@ -1,5 +1,4 @@
 import Login from '@/components/login'
-import { getProviders } from 'next-auth/react'
 import { getServerSession } from 'next-auth/next'
 import models from '@/api/models'
 import { gql } from '@apollo/client'
@@ -8,10 +7,12 @@ import getSSRApolloClient from '@/api/ssrApollo'
 import Link from 'next/link'
 import { CenterLayout } from '@/components/layout'
 import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
+import { getPublicProviders } from '@/lib/auth'
 import pay from '@/api/payIn'
 
 export async function getServerSideProps ({ req, res, query: { id, error = null, onboarding = null } }) {
-  const session = await getServerSession(req, res, getAuthOptions(req))
+  const authOptions = getAuthOptions(req)
+  const session = await getServerSession(req, res, authOptions)
 
   const client = await getSSRApolloClient({ req, res })
   const { data } = await client.query({
@@ -54,7 +55,7 @@ export async function getServerSideProps ({ req, res, query: { id, error = null,
 
   return {
     props: {
-      providers: await getProviders(),
+      providers: getPublicProviders(authOptions.providers),
       callbackUrl: callbackUrl.toString(),
       invite: data.invite,
       error

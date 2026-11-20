@@ -23,6 +23,7 @@ import fetch from 'cross-fetch'
 import { authenticatedLndGrpc } from '@/lib/lnd'
 import { views, rankViews } from './views'
 import { imgproxy } from './imgproxy'
+import { embeds } from './embeds'
 import { deleteItem } from './ephemeralItems'
 import { deleteUnusedImages } from './deleteUnusedImages'
 import { territoryBilling } from './territory'
@@ -171,6 +172,7 @@ async function work () {
   await boss.work('views-*', jobWrapper(views))
   await boss.work('rankViews', jobWrapper(rankViews))
   await boss.work('deleteItem', jobWrapper(deleteItem))
+  await boss.work('embeds', jobWrapper(embeds))
   await boss.work('territoryBilling', jobWrapper(territoryBilling))
   await boss.work('ofac', jobWrapper(ofac))
   await boss.work('saltAndHashEmails', jobWrapper(saltAndHashEmails))

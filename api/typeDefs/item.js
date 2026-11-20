@@ -6,6 +6,7 @@ export default gql`
     items(sub: String, sort: String, type: String, cursor: String, name: String, when: String, from: String, to: String, by: String, limit: Limit! = ${LIMIT}): Items
     item(id: ID!): Item
     pageTitleAndUnshorted(url: String!): TitleUnshorted
+    embed(url: String!): JSONObject
     dupes(url: String!): [Item!]
     related(cursor: String, title: String, id: ID, minMatch: String, limit: Limit! = ${LIMIT}): Items
     search(q: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items
@@ -156,6 +157,7 @@ export default gql`
     parentOtsHash: String
     forwards: [ItemForward]
     imgproxyUrls: JSONObject
+    urlEmbed: JSONObject
     rel: String
     apiKey: Boolean
     cost: Int!

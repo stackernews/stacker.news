@@ -1,6 +1,11 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { BlockWithAlignableContents } from '@lexical/react/LexicalBlockWithAlignableContents'
-import { $applyNodeReplacement } from 'lexical'
+import { $applyNodeReplacement, createState, $getState, $setState } from 'lexical'
+
+// the embed data saved on the item. ItemContextExtension sets it after the node is created, so we keep it in a state
+const dataState = createState('data', {
+  parse: (value) => (typeof value === 'object' ? value : null)
+})
 
 export function $convertEmbedElement (domNode) {
   const provider = domNode.getAttribute('data-lexical-embed-provider')
@@ -58,7 +63,7 @@ export class EmbedNode extends DecoratorBlockNode {
 
   static importJSON (serializedNode) {
     const { provider, src, id, meta } = serializedNode
-    return $createEmbedNode({ provider, src, id, meta })
+    return $createEmbedNode({ provider, src, id, meta }).updateFromJSON(serializedNode)
   }
 
   static importDOM () {
@@ -116,13 +121,19 @@ export class EmbedNode extends DecoratorBlockNode {
     const classes = [
       placeholderClass,
       providerClasses?.container,
-      providerClasses?.embed
+      providerClasses?.embed,
+      providerClasses?.skeleton
     ]
-    // only twitter and nostr have a contained state
-    if (this.__provider === 'twitter' || this.__provider === 'nostr') {
-      classes.push(providerClasses?.contained)
-    }
     container.classList.add(...classes.filter(Boolean))
+
+    // tweets and nostr links show a skeleton until the client draws the card
+    if (providerClasses?.skeleton) {
+      for (let i = 0; i < 3; i++) {
+        const line = document.createElement('div')
+        line.className = 'clouds'
+        container.append(line)
+      }
+    }
 
     setEmbedHydrationAttributes(this, container)
 
@@ -162,6 +173,14 @@ export class EmbedNode extends DecoratorBlockNode {
     return this.__meta
   }
 
+  getData () {
+    return $getState(this, dataState)
+  }
+
+  setData (data) {
+    $setState(this, dataState, data)
+  }
+
   decorate (_editor, config) {
     const Embed = require('@/components/embed').default
 
@@ -181,8 +200,8 @@ export class EmbedNode extends DecoratorBlockNode {
           id={this.__id || ''}
           src={this.__src || ''}
           meta={this.__meta || {}}
+          data={this.getData()}
           className={config.theme?.embeds?.[this.__provider]?.embed}
-          topLevel={!!config.theme?.topLevel}
         />
       </BlockWithAlignableContents>
     )

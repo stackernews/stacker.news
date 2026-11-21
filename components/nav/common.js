@@ -18,7 +18,7 @@ import { cn } from '@/lib/cn'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
 import { useWalletIndicator } from '@/wallets/client/hooks'
-import SwitchAccountList, { SwitchAccountMenuItems, nextAccount, useAccounts, useIsLurker } from '@/components/account'
+import SwitchAccountList, { SwitchAccountMenuItems, nextAccount, useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { ObstacleButtons } from '@/components/obstacle'
 import { numWithUnits } from '@/lib/format'
@@ -338,7 +338,7 @@ export function Sorts ({ prefix, linkClassName }) {
 
 export function PostItem ({ className, prefix, size }) {
   const branding = useBranding()
-  const isLurker = useIsLurker()
+  const { me } = useMe()
   // when a custom primary color is set we let the button text follow --sn-btn-color
   // otherwise we use the default text-black
   const textOverride = branding?.primaryColor ? '' : 'text-black'
@@ -346,7 +346,7 @@ export function PostItem ({ className, prefix, size }) {
     <Link
       href={prefix + '/post'}
       className={buttonClasses({
-        variant: isLurker ? 'grey' : 'primary',
+        variant: me ? 'primary' : 'grey',
         size,
         className: cn(className, textOverride, 'md:py-1')
       })}

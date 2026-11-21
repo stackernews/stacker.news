@@ -9,7 +9,6 @@ import { useShowModal } from '@/components/modal'
 import { MenuItem, MenuSeparator } from '@/components/ui/menu'
 import AddIcon from '@/svgs/add-fill.svg'
 import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER } from '@/lib/auth'
-import { useBranding } from '@/components/territory-branding'
 
 const b64Decode = str => Buffer.from(str, 'base64').toString('utf-8')
 
@@ -139,14 +138,6 @@ function useAddAccount () {
     setPointerCookie(MULTI_AUTH_ANON, cookieOptions({ httpOnly: false }))
     router.push({ pathname: '/login', query: { callbackUrl: window.location.origin + router.asPath } })
   }, [router, setPointerCookie])
-}
-
-export const useIsLurker = () => {
-  const accounts = useAccounts()
-  const branding = useBranding()
-  if (branding) return false
-
-  return accounts.length === 0
 }
 
 export const useAccounts = () => {

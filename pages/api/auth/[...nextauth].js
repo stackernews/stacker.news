@@ -493,7 +493,15 @@ async function enrollInNewsletter ({ email }) {
 }
 
 export default async (req, res) => {
-  await NextAuth(req, res, getAuthOptions(req, res))
+  const [action, providerId] = req.query.nextauth ?? []
+  const options = getAuthOptions(req, res)
+
+  // aim oauth callback at the right session cookie if we're switching accounts
+  if (action === 'callback' && options.providers.some(({ id, type }) => id === providerId && type === 'oauth')) {
+    await multiAuthMiddleware(req, res)
+  }
+
+  await NextAuth(req, res, options)
 }
 
 function generateRandomString (length = 6, charset = BECH32_CHARSET) {

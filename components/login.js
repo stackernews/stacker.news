@@ -8,15 +8,12 @@ import { LightningAuthWithExplainer } from './lightning-auth'
 import { NostrAuthWithExplainer } from './nostr-auth'
 import LoginButton, { LoginWithNymButton } from './login-button'
 import { emailSchema } from '@/lib/validate'
-import Tooltip from '@/components/ui/tooltip'
 import * as cookie from 'cookie'
 import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
 import Link from 'next/link'
 import useCookie from './use-cookie'
 
-export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
-  const disabled = multiAuth
-
+export function EmailLoginForm ({ text, callbackUrl }) {
   return (
     <Form
       initial={{
@@ -25,7 +22,7 @@ export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
       schema={emailSchema}
       onSubmit={async ({ email }) => {
         window.sessionStorage.setItem('callback', JSON.stringify({ email, callbackUrl }))
-        signIn('email', { email, callbackUrl, multiAuth })
+        signIn('email', { email, callbackUrl })
       }}
     >
       <Input
@@ -34,9 +31,8 @@ export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
         placeholder='email@example.com'
         required
         autoFocus
-        disabled={disabled}
       />
-      <SubmitButton disabled={disabled} variant='secondary' className={styles.providerButton}>{text || 'Login'} with Email</SubmitButton>
+      <SubmitButton variant='secondary' className={styles.providerButton}>{text || 'Login'} with Email</SubmitButton>
     </Form>
   )
 }
@@ -71,9 +67,7 @@ export function authErrorMessage (error, signin) {
   return message
 }
 
-const multiAuthProviders = ['Lightning', 'Nostr']
-
-export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signin, domainData }) {
+export default function Login ({ providers, callbackUrl, error, text, Header, Footer, signin, domainData }) {
   const [errorMessage, setErrorMessage] = useState(authErrorMessage(error, signin))
   const router = useRouter()
   const [, setPointerCookie] = useCookie(MULTI_AUTH_POINTER)
@@ -85,8 +79,6 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
       setPointerCookie(MULTI_AUTH_ANON, cookieOptions({ httpOnly: false }))
     }
   }, [signin, domainData, setPointerCookie])
-
-  multiAuth = typeof multiAuth === 'string' ? multiAuth === 'true' : !!multiAuth
 
   // signup/signin awareness cookie
   useEffect(() => {
@@ -100,15 +92,15 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
     // email first, remove lightning if signing up
     Object.values(providers || {})
       .sort((a, b) => a.name === 'Email' ? -1 : b.name === 'Email' ? 1 : 0)
-      .filter(provider => multiAuth ? multiAuthProviders.includes(provider.name) : signin || provider.name !== 'Lightning'),
-  [providers, signin, multiAuth])
+      .filter(provider => signin || provider.name !== 'Lightning'),
+  [providers, signin])
 
   if (router.query.type === 'lightning') {
-    return <LightningAuthWithExplainer callbackUrl={callbackUrl} text={text} multiAuth={multiAuth} />
+    return <LightningAuthWithExplainer callbackUrl={callbackUrl} text={text} />
   }
 
   if (router.query.type === 'nostr') {
-    return <NostrAuthWithExplainer callbackUrl={callbackUrl} text={text} multiAuth={multiAuth} />
+    return <NostrAuthWithExplainer callbackUrl={callbackUrl} text={text} />
   }
 
   return (
@@ -132,12 +124,10 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
         switch (provider.name) {
           case 'Email':
             return (
-              <Tooltip key={provider.id} content='not available for account switching yet' disabled={!multiAuth}>
-                <div className='w-full'>
-                  <EmailLoginForm text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} />
-                  <div className='my-4 mt-6 text-center text-muted font-bold'>or</div>
-                </div>
-              </Tooltip>
+              <div key={provider.id} className='w-full'>
+                <EmailLoginForm text={text} callbackUrl={callbackUrl} />
+                <div className='my-4 mt-6 text-center text-muted font-bold'>or</div>
+              </div>
             )
           case 'Lightning':
           case 'Slashtags':
@@ -159,17 +149,13 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
             )
           default:
             return (
-              <Tooltip key={provider.id} content='not available for account switching yet' disabled={!multiAuth}>
-                <div className='w-full'>
-                  <LoginButton
-                    className={`mt-2 ${styles.providerButton}`}
-                    type={provider.id.toLowerCase()}
-                    onClick={() => signIn(provider.id, { callbackUrl, multiAuth })}
-                    text={`${text || 'Login'} with`}
-                    disabled={multiAuth}
-                  />
-                </div>
-              </Tooltip>
+              <LoginButton
+                className={`mt-2 ${styles.providerButton}`}
+                key={provider.id}
+                type={provider.id.toLowerCase()}
+                onClick={() => signIn(provider.id, { callbackUrl })}
+                text={`${text || 'Login'} with`}
+              />
             )
         }
       })}

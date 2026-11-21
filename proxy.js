@@ -94,12 +94,6 @@ async function redirectToAuth (request, searchParams, domain, signup) {
   if (searchParams.has('callbackUrl')) {
     redirectUrl.searchParams.set('callbackUrl', searchParams.get('callbackUrl'))
   }
-  // forward the "add account" intent so the main /login renders the multi-auth UI
-  // instead of short-circuiting to callbackUrl when the user already has a session.
-  // never paired with signup, which always creates a fresh user.
-  if (!signup && searchParams.get('multiAuth') === 'true') {
-    redirectUrl.searchParams.set('multiAuth', 'true')
-  }
 
   const response = NextResponse.redirect(redirectUrl)
   response.cookies.set(

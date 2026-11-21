@@ -196,9 +196,6 @@ function getCallbacks (req, res) {
 async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
   const { k1, pubkey } = credentials
 
-  // are we trying to add a new account for switching between?
-  const multiAuth = typeof req.body.multiAuth === 'string' ? req.body.multiAuth === 'true' : !!req.body.multiAuth
-
   try {
     // does the given challenge (k1) exist in our db?
     const lnauth = await prisma.lnAuth.findUnique({ where: { k1 } })
@@ -219,8 +216,7 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
         // we have not seen this pubkey before
 
         // only update our pubkey if we're logged in (token exists)
-        // and we're not currently trying to add a new account
-        if (token?.id && !multiAuth) {
+        if (token?.id) {
           user = await prisma.user.update({ where: { id: token.id }, data: { [pubkeyColumnName]: pubkey } })
         } else {
           // create a new user only if we're trying to sign up

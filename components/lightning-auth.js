@@ -11,7 +11,7 @@ import { useRouter } from 'next/router'
 import { FAST_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 import classNames from 'classnames'
 
-function QrAuth ({ k1, encodedUrl, callbackUrl, multiAuth }) {
+function QrAuth ({ k1, encodedUrl, callbackUrl }) {
   const query = gql`
   {
     lnAuth(k1: "${k1}") {
@@ -23,7 +23,7 @@ function QrAuth ({ k1, encodedUrl, callbackUrl, multiAuth }) {
 
   useEffect(() => {
     if (data?.lnAuth?.pubkey) {
-      signIn('lightning', { ...data.lnAuth, callbackUrl, multiAuth })
+      signIn('lightning', { ...data.lnAuth, callbackUrl })
     }
   }, [data?.lnAuth])
 
@@ -92,15 +92,15 @@ function LightningExplainer ({ text, children, backButton, stacked }) {
   )
 }
 
-export function LightningAuthWithExplainer ({ text, callbackUrl, multiAuth, backButton = true, stacked }) {
+export function LightningAuthWithExplainer ({ text, callbackUrl, backButton = true, stacked }) {
   return (
     <LightningExplainer text={text} backButton={backButton} stacked={stacked}>
-      <LightningAuth callbackUrl={callbackUrl} multiAuth={multiAuth} />
+      <LightningAuth callbackUrl={callbackUrl} />
     </LightningExplainer>
   )
 }
 
-export function LightningAuth ({ callbackUrl, multiAuth }) {
+export function LightningAuth ({ callbackUrl }) {
   // query for challenge
   const [createAuth, { data, error }] = useMutation(gql`
     mutation createAuth {
@@ -116,5 +116,5 @@ export function LightningAuth ({ callbackUrl, multiAuth }) {
 
   if (error) return <div>error</div>
 
-  return data ? <QrAuth {...data.createAuth} callbackUrl={callbackUrl} multiAuth={multiAuth} /> : <QrSkeleton status='generating' />
+  return data ? <QrAuth {...data.createAuth} callbackUrl={callbackUrl} /> : <QrSkeleton status='generating' />
 }

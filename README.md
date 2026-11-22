@@ -149,16 +149,18 @@ COMPOSE_PROFILES=images,payments
 
 #### Merging compose files
 
-By default `sndev start` will merge `docker-compose.yml` with `docker-compose.override.yml`. Specify any overrides you want to merge with `docker-compose.override.yml`.
+By default `sndev start` merges `docker-compose.override.yml` into `docker-compose.yml`.
 
-For example, if you want to replace the db seed with a custom seed file located in `docker/db/another.sql`, you'd create a `docker-compose.override.yml` file with the following:
+To initialize a new database volume from your own seed, save your gzip-compressed SQL file as `docker/db/another.sql.gz` and add this to `docker-compose.override.yml`:
 
 ```yml
 services:
   db:
     volumes:
-      - ./docker/db/another.sql:/docker-entrypoint-initdb.d/seed.sql
+      - ./docker/db/another.sql.gz:/docker-entrypoint-initdb.d/000_seed.sql.gz
 ```
+
+Compose matches volume entries by their container path. Run `./sndev compose config db` to confirm that `000_seed.sql.gz` points to your file. PostgreSQL runs the seed only when initializing an empty data directory.
 
 You can read more about [docker compose override files](https://docs.docker.com/compose/multiple-compose-files/merge/).
 

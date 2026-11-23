@@ -125,7 +125,8 @@ function MeDropdown ({ me, dropNavKey }) {
         <MenuTrigger className={navLinkClasses({ className: 'max-w-full font-normal px-0' })}>
           <div className='flex min-w-0 items-center'>
             <span className={navLinkClasses({ active: topKey === me.name, className: 'min-w-0 p-0' })}>
-              <Indicator show={indicator} top='2px' right='-5px' className='max-w-full'>
+              {/* the dot overhangs the name's corner; me-1 keeps the overhang out of the gap to the sats */}
+              <Indicator show={indicator} top='2px' right='-5px' className={cn('max-w-full', indicator && 'me-1')}>
                 <span className='block max-w-32 truncate lg:max-w-48' title={`@${me.name}`}>@{me.name}</span>
               </Indicator>
             </span>
@@ -343,11 +344,11 @@ export function RightCorner ({ dropNavKey }) {
   const { me } = useMe()
   const accounts = useAccounts()
   return (
-    <div className='flex min-w-0 items-center gap-2'>
+    <div className='flex min-w-0 items-center gap-3'>
       {me
         ? (
           <>
-            <NavNotifications className='shrink-0 px-1' />
+            <NavNotifications className='shrink-0 px-0' />
             <MeDropdown me={me} dropNavKey={dropNavKey} />
             <NavWalletSummary className='inline-flex shrink-0 items-center' />
           </>

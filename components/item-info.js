@@ -53,17 +53,12 @@ function itemTitle (item) {
   if (item.downSats) {
     title += ` \\ ${numWithUnits(item.downSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
   }
-  if (item.meSats || item.meDontLikeSats || item.meAnonSats) {
-    const satSources = []
-    if (item.meSats || item.meAnonSats) {
-      satSources.push(`${numWithUnits((item.meSats || 0) + (item.meAnonSats || 0), { abbreviate: false })} worth`)
-    }
-    if (item.meDontLikeSats) {
-      satSources.push(`${numWithUnits(item.meDontLikeSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`)
-    }
-    if (satSources.length) {
-      title += ` (${satSources.join(' & ')} from me)`
-    }
+  const myZapSats = (item.meSats || 0) + (item.meAnonSats || 0)
+  if (myZapSats) {
+    title += ` \\ you zapped ${numWithUnits(myZapSats, { abbreviate: false })} worth`
+  }
+  if (item.meDontLikeSats) {
+    title += ` \\ you downzapped ${numWithUnits(item.meDontLikeSats, { abbreviate: false })}`
   }
   return title
 }

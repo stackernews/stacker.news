@@ -464,22 +464,19 @@ export default {
 
       await validateSchema(pushSubscriptionSchema, { endpoint, p256dh, auth })
 
-      let subscription = await models.pushSubscription.findUnique({ where: { endpoint } })
-      if (subscription) {
-        // only the device that has the keys can claim the push subscription
-        if (subscription.p256dh !== p256dh || subscription.auth !== auth) {
-          throw new GqlInputError('subscription not found')
-        }
-        // update the owner of the push subscription
-        subscription = await models.pushSubscription.update({
-          data: { userId: me.id },
-          where: { id: subscription.id }
-        })
-      } else {
-        // create new subscription
-        subscription = await models.pushSubscription.create({
-          data: { userId: me.id, endpoint, p256dh, auth }
-        })
+      // a row with this endpoint but other keys is neither updated nor returned,
+      // only the device holding the keys can claim the subscription
+      const [subscription] = await models.$queryRaw`
+        INSERT INTO "PushSubscription" ("userId", endpoint, p256dh, auth)
+        VALUES (${Number(me.id)}::INTEGER, ${endpoint}, ${p256dh}, ${auth})
+        ON CONFLICT (endpoint) DO UPDATE
+          SET "userId" = EXCLUDED."userId"
+          WHERE "PushSubscription".p256dh = EXCLUDED.p256dh
+            AND "PushSubscription".auth = EXCLUDED.auth
+        RETURNING *, (xmax = 0) AS inserted`
+
+      if (!subscription) throw new GqlInputError('subscription not found')
+      if (subscription.inserted) {
         console.log(`[webPush] created subscription for user ${me.id}: endpoint=${endpoint}`)
         await sendPushSubscriptionReply(subscription)
       }

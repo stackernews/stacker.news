@@ -51,6 +51,8 @@
 .sidebar {
     --sidebar-top: calc(var(--sn-header-height) + 1px);
     scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sn-border-color) transparent;
     /* Match the main column's 2rem bottom spacing. */
     max-height: calc(100dvh - var(--sidebar-top) - 2rem);
 }

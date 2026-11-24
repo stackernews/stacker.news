@@ -35,7 +35,7 @@ function TopTerritories () {
                   <li key={territory.name} className={`${styles.hunk} flex flex-wrap items-baseline gap-x-2 py-0.5`}>
                     <Link
                       href={branding?.subName === territory.name ? '/' : `${prefix}/~${territory.name}`}
-                      className={`${styles.title} mb-0 min-w-0 wrap-break-word visited:text-reset`}
+                      className='min-w-0 wrap-break-word text-sm text-muted hover:text-reset'
                     >
                       {territory.name}
                     </Link>

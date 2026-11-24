@@ -138,7 +138,7 @@ export const ServiceWorkerProvider = ({ children }) => {
 
     // saves the push subscription again if the account or the subscription changed since the last save
     const saveIfChanged = async () => {
-      const subscription = await registration.pushManager.getSubscription()
+      const subscription = await registration.pushManager?.getSubscription()
       if (!subscription) return
 
       const saved = savedPushSubscriptionValue(me.id, subscription.endpoint)

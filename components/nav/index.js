@@ -6,14 +6,14 @@ import { usePrefix, useNavKeys } from '../territory-domains'
 import { cn } from '@/lib/cn'
 import styles from '../header.module.css'
 
-export default function Navigation ({ sub, hideMobileNav = false, containerClassName }) {
+export default function Navigation ({ sub, hideMobileNav = false }) {
   const router = useRouter()
   const prefix = usePrefix(sub)
   const { topNavKey, dropNavKey } = useNavKeys(router.asPath)
 
   return (
     <StickyHeader className={hideMobileNav && 'hidden md:block'}>
-      <Container className={containerClassName}>
+      <Container>
         <NavigationRow prefix={prefix} topNavKey={topNavKey} dropNavKey={dropNavKey} />
       </Container>
     </StickyHeader>

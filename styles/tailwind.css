@@ -29,8 +29,9 @@
   --text-base: .93rem;
   --text-base--line-height: 1.75;
 
-  /* page column: a 900px content column inside the 1rem gutters */
-  --container-page: 932px;
+  /* page width, sized from the reading column: 512px of post text (~80 chars, most titles on one line)
+     + 27px upvote gutter + 15px right inset = 554px main column, + 24px gap + 280px sidebar + 2 * 16px gutters */
+  --container-page: 890px;
 }
 
 /* inline so utilities read the live theme and territory values */

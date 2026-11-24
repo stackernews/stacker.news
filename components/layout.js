@@ -24,16 +24,15 @@ export default function Layout ({
   const { data } = useQuery(ACTIVE_SUBS, { fetchPolicy: 'cache-only' })
   const navSub = navSubFromPath(router.asPath, sub, data?.activeSubs)
   const desktopSidebar = useDesktopSidebar()
-  const widthClassName = twoColumns ? 'lg:max-w-[1024px]' : ''
   const hasSidebar = contain && twoColumns
 
   return (
     <SearchStateProvider sub={navSub} user={user?.name}>
       {seo && <Seo sub={sub} item={item} user={user} />}
-      <Navigation sub={navSub} hideMobileNav={hideMobileNav} containerClassName={widthClassName} />
+      <Navigation sub={navSub} hideMobileNav={hideMobileNav} />
       {hasSidebar
         ? (
-          <Container className={`${styles.columns} grid grow grid-cols-1 grid-rows-[1fr_auto] gap-x-6 md:grid-cols-[minmax(0,5fr)_minmax(0,2fr)] ${widthClassName}`}>
+          <Container className={`${styles.columns} grid grow grid-cols-1 grid-rows-[1fr_auto] gap-x-6 md:grid-cols-[minmax(0,1fr)_280px]`}>
             <PullToRefresh className={`flex min-w-0 flex-col pb-8 ${containClassName}`}>
               {children}
             </PullToRefresh>

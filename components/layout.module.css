@@ -44,7 +44,8 @@
 .footer {
     anchor-name: --page-footer;
     view-timeline: --page-footer block;
-    view-timeline-inset: 0;
+    /* the timeline sees the footer 2rem early, so the sidebar shrinks in time to stay 2rem above it */
+    view-timeline-inset: 0 -2rem;
 }
 
 .sidebar {
@@ -70,13 +71,13 @@
         .sidebar {
             animation: sidebarHeight linear both;
             animation-timeline: --page-footer;
-            animation-range: entry 0px entry calc(100dvh - var(--sidebar-top) - 2rem);
+            animation-range: entry 0px entry calc(100dvh - var(--sidebar-top));
         }
     }
 }
 
 @keyframes sidebarHeight {
-    from { max-height: calc(100dvh - var(--sidebar-top) - 2rem); }
+    from { max-height: calc(100dvh - var(--sidebar-top)); }
     to { max-height: 0px; }
 }
 }

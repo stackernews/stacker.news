@@ -113,13 +113,10 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
           dismissible
         >{errorMessage}
         </Alert>}
-      {/** custom domain auth sync button */}
-      {domainData && (
-        <LoginWithNymButton
-          className={styles.providerButton}
-          callbackUrl={callbackUrl}
-        />
-      )}
+      <LoginWithNymButton
+        className={styles.providerButton}
+        callbackUrl={callbackUrl}
+      />
       {sortedProviders.map(provider => {
         switch (provider.name) {
           case 'Email':

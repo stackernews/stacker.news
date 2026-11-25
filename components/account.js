@@ -6,7 +6,7 @@ import { useQuery } from '@apollo/client/react'
 import { UserListRow } from '@/components/user-list'
 import useCookie from '@/components/use-cookie'
 import { useShowModal } from '@/components/modal'
-import { MenuItem, MenuSeparator } from '@/components/ui/menu'
+import { MenuItem } from '@/components/ui/menu'
 import AddIcon from '@/svgs/add-fill.svg'
 import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER } from '@/lib/auth'
 
@@ -76,32 +76,29 @@ const AccountListRow = ({ account, selected, ...props }) => {
   )
 }
 
-export function SwitchAccountMenuItems () {
+export function SwitchAccountMenuItems ({ callbackUrl }) {
   const accounts = useAccounts()
   const showModal = useShowModal()
-  const addAccount = useAddAccount()
 
   return (
     <>
       {accounts.slice(0, MAX_MENU_ACCOUNTS).map(account => (
-        <AccountMenuItem key={account.id} account={account} />
+        <AccountMenuItem key={account.id} account={account} callbackUrl={callbackUrl} />
       ))}
       {accounts.length > MAX_MENU_ACCOUNTS && (
         <MenuItem onClick={() => showModal(onClose => <SwitchAccountList onClose={onClose} />)}>
           all accounts
         </MenuItem>
       )}
-      <MenuSeparator />
-      <MenuItem onClick={addAccount}>add account</MenuItem>
     </>
   )
 }
 
-function AccountMenuItem ({ account }) {
+function AccountMenuItem ({ account, callbackUrl }) {
   const { name } = useAccountProfile(account)
   const switchAccount = useSwitchAccount()
 
-  return <MenuItem onClick={() => switchAccount(account)}>@{name}</MenuItem>
+  return <MenuItem onClick={() => switchAccount(account, callbackUrl)}>@{name}</MenuItem>
 }
 
 // names and photos can change after the JWTs were issued
@@ -116,24 +113,28 @@ function useAccountProfile (account) {
   }
 }
 
-function useSwitchAccount () {
+export function useSwitchAccount () {
   const router = useRouter()
   const [, setPointerCookie] = useCookie(MULTI_AUTH_POINTER)
 
-  return useCallback((account) => {
+  return useCallback((account, callbackUrl) => {
     const anon = account.id === USER_ID.anon
     setPointerCookie(anon ? MULTI_AUTH_ANON : account.id, cookieOptions({ httpOnly: false }))
 
     // reload whatever page we're on to avoid any bugs due to missing authorization etc.
-    router.reload()
+    if (callbackUrl) {
+      window.location.assign(callbackUrl)
+    } else {
+      router.reload()
+    }
   }, [router, setPointerCookie])
 }
 
-function useAddAccount () {
+export function useAddAccount () {
   const router = useRouter()
   const [, setPointerCookie] = useCookie(MULTI_AUTH_POINTER)
 
-  // on @anon a login adds the account instead of linking it to the current one
+  // switch to anon and redirect to /login
   return useCallback(() => {
     setPointerCookie(MULTI_AUTH_ANON, cookieOptions({ httpOnly: false }))
     router.push({ pathname: '/login', query: { callbackUrl: window.location.origin + router.asPath } })

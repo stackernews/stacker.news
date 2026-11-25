@@ -18,7 +18,7 @@ import { cn } from '@/lib/cn'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
 import { useWalletIndicator } from '@/wallets/client/hooks'
-import SwitchAccountList, { SwitchAccountMenuItems, nextAccount, useAccounts } from '@/components/account'
+import SwitchAccountList, { SwitchAccountMenuItems, nextAccount, useAccounts, useAddAccount } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { ObstacleButtons } from '@/components/obstacle'
 import { numWithUnits } from '@/lib/format'
@@ -284,6 +284,8 @@ function SwitchAccountButton ({ handleClose }) {
 }
 
 function AccountQuickSwitchMenu ({ className }) {
+  const addAccount = useAddAccount()
+
   return (
     <Menu className={styles.dropdown}>
       <MenuTrigger
@@ -295,6 +297,8 @@ function AccountQuickSwitchMenu ({ className }) {
       </MenuTrigger>
       <MenuPopup align='end' positionMethod='fixed'>
         <SwitchAccountMenuItems />
+        <MenuSeparator />
+        <MenuItem onClick={addAccount}>add account</MenuItem>
       </MenuPopup>
     </Menu>
   )

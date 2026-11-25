@@ -67,8 +67,7 @@ export default [
         type: 'text',
         placeholder: '55.5.555.55:3010',
         required: true,
-        // send wallet: dialed by the user's browser, so private/LAN addresses are allowed
-        validate: socketValidator({ allowPrivate: true }),
+        validate: socketValidator(),
         share: true
       },
       {

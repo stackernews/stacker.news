@@ -13,7 +13,7 @@ export default {
       placeholder: '55.5.555.55:10001',
       hint: 'tor or clearnet',
       type: 'text',
-      validate: socketValidator(),
+      validate: socketValidator({ allowIPv6: false }),
       required: true
     },
     {

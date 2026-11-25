@@ -1,3 +1,4 @@
+import '../lib/egress/bootstrap.js'
 import { randomBytes } from 'node:crypto'
 import lnService from 'ln-service'
 import clientSpark from '../wallets/client/protocols/spark.js'

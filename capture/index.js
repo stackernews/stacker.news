@@ -3,6 +3,14 @@ import puppeteer from 'puppeteer-core'
 import mediaCheck from './media-check.js'
 import cors from 'cors'
 
+// Chromium uses HTTPS_PROXY for every scheme. Node fetch needs a proxy for each
+// scheme at process startup, including HTTP destinations reached by redirects.
+const uri = process.env.HTTPS_PROXY
+if (!/^http:\/\/[A-Za-z0-9._-]+:\d+$/.test(uri) || !URL.canParse(uri)) throw new Error('HTTPS_PROXY must be an http://host:port proxy URL with an ASCII hostname, without credentials or a path')
+if (process.env.NODE_USE_ENV_PROXY !== '1' || (process.env.http_proxy ?? process.env.HTTP_PROXY) !== uri || (process.env.https_proxy ?? process.env.HTTPS_PROXY) !== uri || process.env.NO_PROXY || process.env.no_proxy) {
+  throw new Error('Start Node with NODE_USE_ENV_PROXY=1, matching HTTP_PROXY/HTTPS_PROXY (and http_proxy/https_proxy if set), and no NO_PROXY bypasses')
+}
+
 const captureUrl = process.env.CAPTURE_URL || 'http://host.docker.internal:3000/'
 const captureBaseUrl = new URL(captureUrl)
 const port = process.env.PORT || 5678
@@ -52,7 +60,13 @@ const args = [
   '--no-zygote',
   '--password-store=basic',
   '--use-gl=swiftshader',
-  '--use-mock-keychain'
+  '--use-mock-keychain',
+  // every request, loopback included, goes through the egress proxy; QUIC and
+  // non-proxied WebRTC UDP would not
+  `--proxy-server=${uri}`,
+  '--proxy-bypass-list=<-loopback>',
+  '--disable-quic',
+  '--force-webrtc-ip-handling-policy=disable_non_proxied_udp'
 ]
 
 let browser
@@ -92,6 +106,7 @@ async function getBrowser () {
 
   browserPromise ||= puppeteer.launch({
     headless: 'new',
+    pipe: true,
     executablePath: DEFAULT_BROWSER,
     handleSIGINT: false,
     handleSIGTERM: false,

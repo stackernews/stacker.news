@@ -102,6 +102,7 @@ export const ITEM_FULL_FIELDS = gql`
     text
     lexicalState
     html
+    urlEmbed
     root {
       id
       createdAt
@@ -228,5 +229,11 @@ export const RELATED_ITEMS_WITH_ITEM = gql`
 export const UPDATE_ITEM_USER_VIEW = gql`
   mutation updateCommentsViewAt($id: ID!, $meCommentsViewedAt: Date!) {
     updateCommentsViewAt(id: $id, meCommentsViewedAt: $meCommentsViewedAt)
+  }
+`
+
+export const EMBED = gql`
+  query embed($url: String!) {
+    embed(url: $url)
   }
 `

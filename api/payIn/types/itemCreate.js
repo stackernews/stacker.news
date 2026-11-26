@@ -252,6 +252,9 @@ export async function onPaid (tx, payInId) {
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', ${item.id}::INTEGER), 21, true, now() + interval '5 seconds')`
+  await tx.$executeRaw`
+    INSERT INTO pgboss.job (name, data, retrylimit, retrydelay, retrybackoff)
+    VALUES ('embeds', jsonb_build_object('id', ${item.id}::INTEGER), 5, 60, true)`
 
   if (item.parentId) {
     // denormalize ncomments, lastCommentAt, commentCost for ancestors, and insert into reply table

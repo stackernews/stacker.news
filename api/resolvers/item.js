@@ -1,4 +1,4 @@
-import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
+import { embedKey, ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
 import { snFetch } from '@/lib/fetch'
 import { decodeCursor } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
@@ -18,6 +18,7 @@ import {
 } from '@/lib/constants'
 import { msatsToSats, roundedZapAmounts } from '@/lib/format'
 import uu from 'url-unshort'
+import { fetchableEmbed, getEmbedData } from '@/lib/embeds'
 import { actSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
@@ -626,6 +627,14 @@ export default {
       } catch { }
 
       return res
+    },
+    embed: async (parent, { url }) => {
+      try {
+        return await getEmbedData(url)
+      } catch (err) {
+        console.error('error fetching embed:', url, err)
+        return null
+      }
     },
     dupes: async (parent, { url }, { me, models }) => {
       const urlObj = new URL(ensureProtocol(url))
@@ -1386,12 +1395,21 @@ export default {
         AND state = 'created'`
       return reminderJobs[0]?.startafter ?? null
     },
-    lexicalState: async (item, args, { lexicalStateLoader }) => {
+    // embed of a link post
+    urlEmbed: async (item, args, { itemEmbedsLoader }) => {
+      const embed = item.url && fetchableEmbed(item.url)
+      if (!embed) return null
+
+      const embeds = await itemEmbedsLoader.load(item.id)
+      return embeds[embedKey(embed)] ?? null
+    },
+    lexicalState: async (item, args, { lexicalStateLoader, itemEmbedsLoader }) => {
       if (!item.text) return null
       return lexicalStateLoader.load({
         text: item.text,
         context: {
           imgproxyUrls: item.imgproxyUrls,
+          embeds: await itemEmbedsLoader.load(item.id),
           rel: item.rel,
           userId: item.userId,
           parentId: item.parentId,
@@ -1399,13 +1417,14 @@ export default {
         }
       })
     },
-    html: async (item, args, { lexicalStateLoader }) => {
+    html: async (item, args, { lexicalStateLoader, itemEmbedsLoader }) => {
       if (!item.text) return null
       try {
         const lexicalState = await lexicalStateLoader.load({
           text: item.text,
           context: {
             imgproxyUrls: item.imgproxyUrls,
+            embeds: await itemEmbedsLoader.load(item.id),
             rel: item.rel,
             userId: item.userId,
             parentId: item.parentId,

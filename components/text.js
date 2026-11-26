@@ -6,6 +6,7 @@ import { useRouter } from 'next/router'
 import classNames from 'classnames'
 import { CarouselProvider, useCarousel } from './carousel'
 import { SNReader } from './editor'
+import useClipped from './use-clipped'
 
 export function SearchText ({ text }) {
   return (
@@ -18,7 +19,8 @@ export function SearchText ({ text }) {
 export function useOverflow ({ containerRef }) {
   const router = useRouter()
   // is the text clipped by its max-height on the current screen size?
-  const [overflowing, setOverflowing] = useState(false)
+  // governed by --sn-text-max-height, so we only ask if it's clipping
+  const overflowing = useClipped(containerRef)
   // should we show the full text?
   const [show, setShow] = useState(false)
   const showOverflow = useCallback(() => setShow(true), [setShow])
@@ -36,42 +38,6 @@ export function useOverflow ({ containerRef }) {
       router.events.off('hashChangeStart', handleRouteChange)
     }
   }, [router.asPath, router.events])
-
-  // give the text a `show more` button if its max-height is clipping it
-  useEffect(() => {
-    const node = containerRef.current
-    if (!node) return
-
-    // governed by --sn-text-max-height, so we only ask if it's clipping
-    // 1px added for sub-pixel rounding
-    function checkOverflow () {
-      setOverflowing(node.scrollHeight > node.clientHeight + 1)
-    }
-
-    let resizeObserver
-    if ('ResizeObserver' in window) {
-      resizeObserver = new window.ResizeObserver(checkOverflow)
-      resizeObserver.observe(node)
-    }
-
-    // when media is loaded from autolinks, scrollHeight changes but box size may not
-    // which ResizeObserver doesn't detect, so we need to capture load events from media
-    // and recheck overflow when media loads.
-    function handleMediaLoad (e) {
-      if (e.target.tagName === 'IMG' || e.target.tagName === 'VIDEO') {
-        checkOverflow()
-      }
-    }
-    node.addEventListener('load', handleMediaLoad, true)
-
-    window.addEventListener('resize', checkOverflow)
-    checkOverflow()
-    return () => {
-      window.removeEventListener('resize', checkOverflow)
-      node.removeEventListener('load', handleMediaLoad, true)
-      resizeObserver?.disconnect()
-    }
-  }, [containerRef, setOverflowing])
 
   const Overflow = useMemo(() => {
     if (overflowing && !show) {

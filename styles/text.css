@@ -1,6 +1,8 @@
 :root {
-  /* text shown before `show more`, comments and topLevel override it */
+  /* text shown before `show more` */
   --sn-text-max-height: 200vh;
+  /* how many lines fade out above `show more` */
+  --sn-clip-fade: 2lh;
 }
 
 .sn-text {
@@ -75,9 +77,9 @@
   overflow: hidden;
 }
 
-/* fade the last 2 lines and hide the rest */
+/* fade the last lines and hide the rest */
 .sn-text--contained > [data-sn-reader='true'] {
-  mask-image: linear-gradient(#000 calc(var(--sn-text-max-height) - 2lh), transparent var(--sn-text-max-height));
+  mask-image: linear-gradient(#000 calc(var(--sn-text-max-height) - var(--sn-clip-fade)), transparent var(--sn-text-max-height));
 }
 
 .sn-text__show-full {
@@ -395,45 +397,31 @@ span + .sn-link {
   margin-bottom: calc(var(--grid-gap) * 0.5);
 }
 
-/* twitter and nostr */
-.sn-twitter-container,
-.sn-nostr-container {
-  position: relative;
-  overflow: hidden;
+/* skeleton of a tweet or nostr card: an avatar and two lines */
+.sn-embed-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: var(--sn-embed-contained-height);
+  padding: 0.75rem;
+  border: 1px solid var(--sn-border-color-subtle);
+  border-radius: 12px;
 }
 
-.sn-twitter-container iframe,
-.sn-nostr-container iframe {
-  border-radius: 13px;
+.sn-embed-skeleton > * {
+  flex-shrink: 0;
+  height: 0.75rem;
+  border-radius: 0.4rem;
 }
 
-.sn-nostr-container {
-  margin-right: 15px;
+.sn-embed-skeleton > :first-child {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
 }
 
-/* Contained state (collapsed) */
-.sn-embed-contained {
-  overflow: hidden;
-}
-
-.sn-embed-contained.sn-embed--twitter,
-.sn-embed-contained.sn-embed--nostr {
-  height: 150px;
-}
-
-.topLevel .sn-embed-contained.sn-embed--twitter,
-.topLevel .sn-embed-contained.sn-embed--nostr {
-  height: 200px;
-}
-
-/* overflow 'show full' button */
-.sn-embed-show-full {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  border-radius: 0;
-  line-height: 1.2;
-  padding: 0.75rem 1rem;
+.sn-embed-skeleton > :last-child {
+  width: 75%;
 }
 
 /* video wrapper and container */
@@ -485,72 +473,29 @@ span + .sn-link {
   overflow: hidden;
 }
 
-/* tweet skeleton */
-.sn-tweets-skeleton {
-  display: flex;
-  flex-flow: row wrap;
-  max-width: 350px;
-  width: 100%;
-  padding-right: 12px;
-}
-
-.topLevel .sn-tweets-skeleton {
-  max-width: 550px;
-}
-
-.sn-tweet-skeleton {
-  width: 100%;
-  border: 0.05rem solid var(--sn-border-color);
-  border-radius: 12px;
-  height: 150px;
-  padding: 1.5rem;
-}
-
-.topLevel .sn-tweet-skeleton {
-  height: 200px;
-}
-
-.sn-tweet-skeleton__img {
-  height: 48px;
-  width: 48px;
-  border-radius: 50%;
-}
-
-.sn-tweet-skeleton__content {
-  height: 50%;
-  margin-top: 1rem;
-}
-
-.sn-tweet-skeleton__line {
-  height: 25%;
-  margin: 0.5rem 0;
-  width: 100%;
-  border-radius: 0.4rem;
-}
-
-.sn-tweet-skeleton__line:last-child {
-  width: 75%;
-}
-
 /* embed dimensions per provider
    twitter embed */
 .sn-embed--twitter {
   width: 100%;
   max-width: 350px;
+  --sn-embed-contained-height: 150px;
 }
 
 .topLevel .sn-embed--twitter {
   max-width: 550px;
+  --sn-embed-contained-height: 200px;
 }
 
 /* nostr embed */
 .sn-embed--nostr {
   width: 100%;
   max-width: 350px;
+  --sn-embed-contained-height: 150px;
 }
 
 .topLevel .sn-embed--nostr {
   max-width: 550px;
+  --sn-embed-contained-height: 200px;
 }
 
 /* youtube embed */

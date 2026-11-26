@@ -41,11 +41,8 @@ const initialContentEditable = (editor, html) => {
 function ServerHTMLReader ({ html, innerClassName }) {
   return (
     <div
-      aria-autocomplete='none'
-      aria-readonly='true'
       className={innerClassName}
       contentEditable={false}
-      role='textbox'
       spellCheck
       data-sn-reader='true'
       data-lexical-editor='true'

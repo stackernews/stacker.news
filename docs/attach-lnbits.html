@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOSS Webpage</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
+    <style>
+        :root {
+            --primary: #FADA5E;
+            --secondary: #F6911D;
+            --info: #007cbe;
+            --success: #5c8001;
+            --danger: #c03221;
+            --light: #f8f9fa;
+            --dark: #212529;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+        }
+
+        #navbar {
+            overflow: hidden;
+            background-color: var(--secondary);
+        }
+
+        #navbar a {
+            float: left;
+            display: block;
+            color: var(--light);
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        #navbar a:hover {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        .content {
+            display: none;
+            padding: 20px;
+            border-radius: 0.4rem;
+            margin: 10px;
+            background: var(--light);
+            border: 1px solid var(--dark);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid var(--dark);
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--info);
+        }
+
+        #docLinks a {
+            display: block;
+            margin-top: 5px;
+            color: var(--dark);
+            background-color: var(--success);
+            padding: 10px;
+            border-radius: 0.4rem;
+            text-decoration: none;
+        }
+
+        #docLinks a:hover {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        /* Code block styling */
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        /* Inline code styling */
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            color: #d63384;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+<body>
+<h1 id="attachlnbits">attach lnbits</h1>
+<p>To test sending from an attached wallet, it's easiest to use <a href="https://lnbits.com/" rel="noopener noreferrer" target="_blank">lnbits</a> hooked up to a <a href="./local-lnd.md" rel="noopener noreferrer" target="_blank">local lnd node</a> in your regtest network.</p>
+<p>This will attempt to walk you through setting up lnbits with docker and connecting it to your local lnd node.</p>
+<p>🚨 this a dev guide. do not use this guide for real funds 🚨</p>
+<p>From <a href="https://docs.lnbits.org/guide/installation.html#option-3-docker" rel="noopener noreferrer" target="_blank">this guide</a>:</p>
+<h2 id="1preconfiguration">1. pre-configuration</h2>
+<p>Create a directory for lnbits, get the sample environment file, and create a shared data directory for lnbits to use:</p>
+<pre><code class="bash language-bash">mkdir lnbits
+cd lnbits
+wget https://raw.githubusercontent.com/lnbits/lnbits/main/.env.example -O .env
+mkdir data
+</code></pre>
+<h2 id="2configure">2. configure</h2>
+<p>To configure lnbits to use a <a href="./local-lnd.md" rel="noopener noreferrer" target="_blank">local lnd node</a> in your regtest network, go to <a href="https://lightningpolar.com/" rel="noopener noreferrer" target="_blank">polar</a> and click on the LND node you want to use as a funding source. Then click on <code>Connect</code>.</p>
+<p>In the <code>Connect</code> tab, click the <code>File paths</code> tab and copy the <code>TLS cert</code> and <code>Admin macaroon</code> files to the <code>data</code> directory you created earlier.</p>
+<pre><code class="bash language-bash">cp /path/to/tls.cert /path/to/admin.macaroon data/
+</code></pre>
+<p>Then, open the <code>.env</code> file you created and override the following values:</p>
+<pre><code class="bash language-bash">LNBITS_ADMIN_UI=true
+LNBITS_BACKEND_WALLET_CLASS=LndWallet
+LND_GRPC_ENDPOINT=host.docker.internal
+LND_GRPC_PORT=${Port from the polar connect page}
+LND_GRPC_CERT=data/tls.cert
+LND_GRPC_MACAROON=data/admin.macaroon
+</code></pre>
+<h2 id="2installandrunlnbits">2. Install and run lnbits</h2>
+<p>Pull the latest image:</p>
+<pre><code class="bash language-bash">docker pull lnbitsdocker/lnbits-legend
+docker run --detach --publish 5001:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbitsdocker/lnbits-legend
+</code></pre>
+<p>Note: we make lnbits available on the host's port 5001 here (on Mac, 5000 is used by AirPlay), but you can change that to whatever you want.</p>
+<h2 id="3accessingtheadminwallet">3. Accessing the admin wallet</h2>
+<p>By enabling the <a href="https://docs.lnbits.org/guide/admin_ui.html" rel="noopener noreferrer" target="_blank">Admin UI</a>, lnbits creates a so called super<em>user. Get this super</em>user id by running:</p>
+<pre><code class="bash language-bash">cat data/.super_user
+</code></pre>
+<p>Open your browser and go to <code>http://localhost:5001/wallet?usr=${super_user id from above}</code>. LNBits will redirect you to a default wallet we will use called <code>LNBits wallet</code>.</p>
+<h2 id="4fundthewallet">4. Fund the wallet</h2>
+<p>To fund <code>LNBits wallet</code>, click the <code>+</code> next the wallet balance. Enter the number of sats you want to credit the wallet and hit enter.</p>
+<h2 id="5attachthewallettostackernews">5. Attach the wallet to stackernews</h2>
+<p>Open up your local stackernews, go to <code>http://localhost:3000/settings/wallets</code> and click on <code>attach</code> in the <code>lnbits</code> card.</p>
+<p>In the form, fill in <code>lnbits url</code> with <code>http://localhost:5001</code>.</p>
+<p>Back in lnbits click on <code>API Docs</code> in the right pane. Copy the Admin key and paste it into the <code>admin key</code> field in the form.</p>
+<p>Click <code>attach</code> and you should be good to go.</p>
+<h2 id="debugging">Debugging</h2>
+<ul>
+<li>you can view lnbits logs with <code>docker logs lnbits</code> or in <code>data/logs/</code> in the <code>data</code> directory you created earlier</li>
+<li>with the <a href="https://docs.lnbits.org/guide/admin_ui.html" rel="noopener noreferrer" target="_blank">Admin UI</a>, you can modify LNBits in the GUI by clicking <code>Server</code> in left pane</li>
+</ul>
+</body>

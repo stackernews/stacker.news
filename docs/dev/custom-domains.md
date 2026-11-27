@@ -201,7 +201,7 @@ Cross-domain JWT authentication is a browser boundary problem: the main SN sessi
 ### Custom domain login flow
 
 1. The user opens `/login` or `/signup` on an `ACTIVE` custom domain.
-2. `proxy.js` mints a 32-byte hex verifier, stores it in the httpOnly `domains_auth_verifier` cookie on the custom domain, derives `challenge = sha256(verifier)`, then redirects to `/api/auth/domains/begin` on the custom domain with `domain`, `challenge`, `callbackUrl`, and optional `multiAuth`.
+2. `proxy.js` mints a 32-byte hex verifier, stores it in the httpOnly `domains_auth_verifier` cookie on the custom domain, derives `challenge = sha256(verifier)`, then redirects to `/api/auth/domains/begin` on the custom domain with `domain`, `challenge`, and `callbackUrl`.
 3. `begin.js` checks the domain is active, checks the challenge matches the custom-domain verifier cookie, normalizes the final redirect to a safe path, then redirects to main-domain `/login` or `/signup`. The main-domain `callbackUrl` becomes `/api/auth/domains/code?domain=...&challenge=...&redirectUri=...`.
 4. After main-domain auth succeeds, NextAuth calls `/api/auth/domains/code` on the main domain. `code.js` requires an active domain and a main-domain session, creates a random one-time `DomainAuthRequest` code tied to `{ userId, domainId, challenge }`, expiring after 5 minutes, then redirects back to the custom domain `/api/auth/domains/verify`.
 5. `verify.js` runs on the custom domain, reads the verifier cookie, posts `{ code, domainName, verifier }` to main-domain `/api/auth/domains/token`, then sets the returned JWT as the custom-domain session cookie. It also mirrors multi-auth cookies with the domain-bound JWT.

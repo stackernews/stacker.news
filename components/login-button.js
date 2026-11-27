@@ -3,14 +3,13 @@ import TwitterIcon from '@/svgs/twitter-fill.svg'
 import LightningIcon from '@/svgs/bolt.svg'
 import NostrIcon from '@/svgs/nostr.svg'
 import Button, { buttonClasses } from '@/components/ui/button'
-import { Menu, MenuTrigger, MenuPopup, MenuItem, MenuItemText } from '@/components/ui/menu'
+import { Menu, MenuTrigger, MenuPopup } from '@/components/ui/menu'
 import useCookie from './use-cookie'
-import { cookieOptions, MULTI_AUTH_POINTER } from '@/lib/auth'
-import { useAccounts } from './account'
+import { MULTI_AUTH_POINTER } from '@/lib/auth'
+import { SwitchAccountMenuItems, useAccounts, useSwitchAccount } from './account'
 import SNIcon from '@/svgs/sn.svg'
 import ArrowDownIcon from '@/svgs/editor/toolbar/arrow-down.svg'
 import { cn } from '@/lib/cn'
-import { useRouter } from 'next/router'
 
 export default function LoginButton ({ text, type, className, onClick, disabled }) {
   let Icon, variant
@@ -47,49 +46,39 @@ export default function LoginButton ({ text, type, className, onClick, disabled 
   )
 }
 
-export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
-  const router = useRouter()
+export function LoginWithNymButton ({ className, callbackUrl }) {
   const accounts = useAccounts()
-  const [pointerCookie, setPointerCookie] = useCookie(MULTI_AUTH_POINTER)
+  const [pointerCookie] = useCookie(MULTI_AUTH_POINTER)
+  const switchAccount = useSwitchAccount()
 
-  const account = accounts.find(account => account.id === Number(pointerCookie))
-  if (!accounts.length) return null
+  // the server keeps the list recent first, so on @anon this is the account used last
+  const current = accounts.find(account => account.id === Number(pointerCookie)) ?? accounts[0]
+  if (!current) return null
 
-  const title = account ? `Log in with @${account.name}` : 'Log in with @nym'
+  const title = `Continue as @${current.name}`
+  const menu = accounts.length > 1
 
   return (
-    <div className='inline-flex w-full mb-6'>
+    <div className={cn('flex w-full mb-6', className)}>
       <Button
         variant='success'
-        onClick={() => account && router.push(callbackUrl)}
-        disabled={disabled || !account}
-        className={cn('min-w-0 grow rounded-e-none', className)}
+        onClick={() => switchAccount(current, callbackUrl)}
+        className={cn('flex min-w-0 grow items-center justify-center', menu && 'rounded-e-none')}
         title={title}
       >
         <SNIcon width={20} height={20} className='me-4 shrink-0' />
-        <span className='truncate min-w-0'>{title}</span>
+        <span className='truncate'>{title}</span>
       </Button>
-      {(accounts.length > 1 || !account) && (
-        <Menu className='flex shrink-0'>
+      {menu && (
+        <Menu className='flex'>
           <MenuTrigger
-            title='select account'
-            className={buttonClasses({ variant: 'success', className: 'rounded-s-none w-10 px-0' })}
+            title='switch account'
+            className={buttonClasses({ variant: 'success', className: 'flex w-10 items-center justify-center rounded-s-none px-0' })}
           >
             <ArrowDownIcon width={16} height={16} />
           </MenuTrigger>
-          <MenuPopup align='end' className='w-40 p-2'>
-            {accounts.map(account => (
-              <MenuItem
-                key={account.id}
-                onClick={() => {
-                  setPointerCookie(account.id, cookieOptions({ httpOnly: false }))
-                }}
-                variant='compact'
-                active={Number(account.id) === Number(pointerCookie)}
-              >
-                <MenuItemText>{account.name}</MenuItemText>
-              </MenuItem>
-            ))}
+          <MenuPopup align='end'>
+            <SwitchAccountMenuItems callbackUrl={callbackUrl} />
           </MenuPopup>
         </Menu>
       )}

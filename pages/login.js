@@ -9,7 +9,7 @@ import { formatHost, parseSafeHost } from '@/lib/safe-url'
 import { MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
 import { getDomainBranding } from '@/lib/domains'
 
-export async function getServerSideProps ({ req, res, query: { callbackUrl, multiAuth = false, domain = null, error = null } }) {
+export async function getServerSideProps ({ req, res, query: { callbackUrl, domain = null, error = null } }) {
   // the ?domain= query param carries the custom domain's host as-is (with its port in local dev);
   // canonicalDomain is the formatted host the client uses when redirecting through /api/auth/sync.
   const parsedDomain = domain ? parseSafeHost(domain) : null
@@ -42,9 +42,8 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
     callbackUrl = '/'
   }
 
-  if (session && callbackUrl && !multiAuth) {
+  if (session && callbackUrl) {
     // in the case of auth linking we want to pass the error back to settings
-    // in the case of multi auth, don't redirect if there is already a session
     if (error) {
       const url = new URL(callbackUrl, process.env.NEXT_PUBLIC_URL)
       url.searchParams.set('error', error)
@@ -66,7 +65,6 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
       providers,
       callbackUrl,
       error,
-      multiAuth,
       canonicalDomain,
       domainData
     }
@@ -92,27 +90,14 @@ function LoginHeader ({ domainData }) {
   )
 }
 
-function MultiAuthHeader () {
-  return (
-    <>
-      <h3 className='w-full pb-2'>
-        Switch to existing account
-      </h3>
-      <div className='text-muted w-full text-start pb-6 leading-normal'>Hint: go back and switch to @anon to sign up with a new account.</div>
-    </>
-  )
-}
-
-export default function LoginPage ({ multiAuth, ...props }) {
-  const multiAuthBool = multiAuth === 'true'
+export default function LoginPage (props) {
   return (
     <StaticLayout footerLinks={false}>
       <Login
-        Footer={multiAuthBool ? undefined : () => <LoginFooter callbackUrl={props.callbackUrl} domain={props.canonicalDomain} />}
-        Header={multiAuthBool ? () => <MultiAuthHeader /> : () => <LoginHeader domainData={props.domainData} />}
+        Footer={() => <LoginFooter callbackUrl={props.callbackUrl} domain={props.canonicalDomain} />}
+        Header={() => <LoginHeader domainData={props.domainData} />}
         text='Log in'
         signin
-        multiAuth={multiAuth}
         {...props}
       />
     </StaticLayout>

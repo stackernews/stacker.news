@@ -12,7 +12,8 @@
 }
 
 .btn:hover,
-.btn:active {
+.btn:active,
+.btn[data-pressed] {
   color: var(--sn-btn-hover-color, var(--sn-btn-color));
 }
 

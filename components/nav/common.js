@@ -18,11 +18,12 @@ import { cn } from '@/lib/cn'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
 import { useWalletIndicator } from '@/wallets/client/hooks'
-import SwitchAccountList, { nextAccount, useAccounts, useIsLurker } from '@/components/account'
+import SwitchAccountList, { SwitchAccountMenuItems, nextAccount, useAccounts, useAddAccount } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { ObstacleButtons } from '@/components/obstacle'
 import { numWithUnits } from '@/lib/format'
 import { useBranding } from '@/components/territory-branding'
+import ArrowDownIcon from '@/svgs/arrow-down-s-fill.svg'
 
 export function Brand ({ className }) {
   const branding = useBranding()
@@ -262,14 +263,14 @@ export function LogoutDropdownItem ({ handleClose, className }) {
   )
 }
 
-function SwitchAccountButton ({ handleClose, className, width }) {
+function SwitchAccountButton ({ handleClose }) {
   const showModal = useShowModal()
 
   return (
     <Button
-      className={cn('items-center px-4 py-1', className)}
+      className='items-center px-4 py-1'
       variant='outline-grey-darkmode'
-      style={{ borderWidth: '2px', width: width || SWITCH_ACCOUNT_BUTTON_WIDTH }}
+      style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       onClick={() => {
         // login buttons rendered in the drawer aren't wrapped inside <Menu>
         // so we manually close the drawer in that case by passing down handleClose here
@@ -279,6 +280,27 @@ function SwitchAccountButton ({ handleClose, className, width }) {
     >
       switch account
     </Button>
+  )
+}
+
+function AccountQuickSwitchMenu ({ className }) {
+  const addAccount = useAddAccount()
+
+  return (
+    <Menu className={styles.dropdown}>
+      <MenuTrigger
+        className={buttonClasses({ variant: 'outline-grey-darkmode', className: cn('items-center', className) })}
+        style={{ borderWidth: '2px' }}
+      >
+        login
+        <ArrowDownIcon width={12} height={12} className='ms-1 -me-1' />
+      </MenuTrigger>
+      <MenuPopup align='end' positionMethod='fixed'>
+        <SwitchAccountMenuItems />
+        <MenuSeparator />
+        <MenuItem onClick={addAccount}>add account</MenuItem>
+      </MenuPopup>
+    </Menu>
   )
 }
 
@@ -320,7 +342,7 @@ export function Sorts ({ prefix, linkClassName }) {
 
 export function PostItem ({ className, prefix, size }) {
   const branding = useBranding()
-  const isLurker = useIsLurker()
+  const { me } = useMe()
   // when a custom primary color is set we let the button text follow --sn-btn-color
   // otherwise we use the default text-black
   const textOverride = branding?.primaryColor ? '' : 'text-black'
@@ -328,7 +350,7 @@ export function PostItem ({ className, prefix, size }) {
     <Link
       href={prefix + '/post'}
       className={buttonClasses({
-        variant: isLurker ? 'grey' : 'primary',
+        variant: me ? 'primary' : 'grey',
         size,
         className: cn(className, textOverride, 'md:py-1')
       })}
@@ -355,9 +377,10 @@ export function RightCorner ({ dropNavKey }) {
           )
         : (
           <>
-            <LoginButton width='auto' className={compactButtonClasses} />
             <SignUpButton width='auto' className={cn(compactButtonClasses, 'ps-3 pe-3')} />
-            {accounts.length > 0 && <SwitchAccountButton width='auto' className={compactButtonClasses} />}
+            {accounts.length > 0
+              ? <AccountQuickSwitchMenu className={compactButtonClasses} />
+              : <LoginButton width='auto' className={compactButtonClasses} />}
           </>
           )}
     </div>

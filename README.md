@@ -110,6 +110,8 @@ COMMANDS
   lightning:
     fund                   pay a bolt11 for funding
     withdraw               create a bolt11 for withdrawal
+    lnurl_auth             mock lnurl-auth
+    lnurl_withdraw         mock lnurl-withdraw
 
   db:
     psql                   open psql on db

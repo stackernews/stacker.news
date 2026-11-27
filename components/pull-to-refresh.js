@@ -58,12 +58,14 @@ export default function PullToRefresh ({ children, className }) {
 
   useEffect(() => {
     if (!isPWA) return
+    document.documentElement.style.overscrollBehaviorY = 'contain'
     document.body.style.overscrollBehaviorY = 'contain'
     document.addEventListener('touchstart', handleTouchStart)
     document.addEventListener('touchmove', handleTouchMove)
     document.addEventListener('touchend', handleTouchEnd)
     return () => {
       document.body.style.overscrollBehaviorY = ''
+      document.documentElement.style.overscrollBehaviorY = ''
       document.body.style.marginTop = '0px'
       document.removeEventListener('touchstart', handleTouchStart)
       document.removeEventListener('touchmove', handleTouchMove)

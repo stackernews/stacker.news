@@ -72,13 +72,12 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
   const router = useRouter()
   const [, setPointerCookie] = useCookie(MULTI_AUTH_POINTER)
 
-  // we can't signup if we're already logged in to another account
-  // for custom-domain signups, we first need to switch to anon.
+  // switch to anon on custom domains
   useEffect(() => {
-    if (!signin && domainData) {
+    if (domainData) {
       setPointerCookie(MULTI_AUTH_ANON, cookieOptions({ httpOnly: false }))
     }
-  }, [signin, domainData, setPointerCookie])
+  }, [domainData, setPointerCookie])
 
   // signup/signin awareness cookie
   useEffect(() => {

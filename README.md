@@ -8,7 +8,7 @@
 - Stacker News moderates forums with money
 - What You See is What We Ship (look ma, I invented an initialism)
 - 100% FOSS
-- We pay bitcoin for PRs, issues, documentation, code reviews and more
+- We pay bitcoin for issues that result in merges and responsibly disclosed vulnerabilities 
 - Next.js, postgres, graphql, and lnd
 
 <br>
@@ -204,22 +204,16 @@ The `domains` profile enables dnsmasq and custom-domain worker jobs. The bundled
             - [Merging compose files](#merging-compose-files)
 - [Contributing](#contributing)
     - [We pay bitcoin for contributions](#we-pay-bitcoin-for-contributions)
-    - [Pull request awards](#pull-request-awards)
-    - [Code review awards](#code-review-awards)
     - [Issue specification awards](#issue-specification-awards)
     - [Responsible disclosure of security or privacy vulnerability awards](#responsible-disclosure-of-security-or-privacy-vulnerability-awards)
-    - [Development documentation awards](#development-documentation-awards)
-    - [Helpfulness awards](#helpfulness-awards)
 - [Contribution extras](#contribution-extras)
     - [Dev chat](#dev-chat)
-    - [Triage permissions](#triage-permissions)
     - [Contributor badges on SN profiles](#contributor-badges-on-sn-profiles)
-    - [What else you got](#what-else-you-got)
 - [Development Tips](#development-tips)
     - [Linting](#linting)
     - [Database migrations](#database-migrations)
     - [Connecting to the local database](#connecting-to-the-local-database)
-    - [Running lncli on the local lnd nodes](#running-lncli-on-the-local-lnd-nodes)
+    - [Running cli on local lightning nodes](#running-cli-on-local-lightning-nodes)
     - [Testing local auth](#testing-local-auth)
         - [Login with Email](#login-with-email)
         - [Login with Github](#login-with-github)
@@ -236,18 +230,18 @@ The `domains` profile enables dnsmasq and custom-domain worker jobs. The bundled
 <br>
 
 # Contributing
-We want your help.
+We want your help. 
+
+BUT we will close PRs/issues/comments and possibly block you if you submit content to our repo that is fully automated, believed to be without a human in loop, or if you submit PRs/issues/comments that you did not read or do not understand and could not write yourself.
 
 <br>
 
 ## We pay bitcoin for contributions
-- pull requests closing existing issues
-- code review
 - issue specification whether for bugs, features, or enhancements
 - discovery of security vulnerabilities
 - discovery of privacy vulnerabilities
-- improvements to development documentation
-- helpfulness
+
+Payouts are given on a case by case basis. Requesting payouts, giving bitcoin or lightning addresses in PRs and issues will result in being blocked from the repo. If we think you deserve a payout we will ask for payment details.
 
 [View a current list of granted awards](awards.csv)
 
@@ -255,56 +249,6 @@ We want your help.
 
 ## Just in case
 *This document in no way legally entitles you to payments for contributions, entitles you to being a contributor, or entitles you to the attention of other contributors. This document lays out the system we **can** use to determine contribution awards which we generally intend to abide by but importantly we reserve the right to refuse payments or contributions, modify rules and award amounts, make exceptions to rules or reward amounts, and withhold awards for any reason at anytime, even just for the heck of it, at our sole discretion. If you need more certainty than what I've just described, don't participate. We provide awards as an experiment to make FOSS less sucky.*
-
-<br>
-
-## Pull request awards
-
-###  Rules
-1. PRs closing an issue will be awarded according to the `difficulty` tag on an issue,  e.g. `difficulty:easy` pays 100k sats.
-2. Issues are occasionally marked with a `priority` tag which multiplies the award of a PR closing an issue, e.g. an issue marked with `priority:high` and `difficulty:hard` awards 2m sats.
-3. An award is reduced by 10% of the award amount for each substantial change requested to the PR on code review, e.g. if two changes are requested on a PR closing an issue tagged with `difficulty:hard`, 800k sats will be awarded.
-	- Reductions are applied before `priority` multipliers, e.g. a PR closing a `priority:high` and `difficulty:hard` issue that's approved after two changes are requested awards 1.6m sats.
-	- You are responsible for understanding the issue and requirements **before requesting review on a PR**.
-	- There is no award reduction for asking specific questions on the issue itself or on the PR **before requesting review**
-	- There is no award reduction for asking more general questions in a discussion
-4. A PR must be merged by an SN engineer before a PR receives an award
-
-_Due to Rule 3, make sure that you mark your PR as a draft when you create it and it's not ready for review yet._
-
-### Difficulty award amounts
-
-| tag                           | description                                                                                                                                                                                      | award       |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
-| `difficulty:good-first-issue` | at most a couple lines of code in a couple files and does not require much familiarity with the codebase                                                                                         | `20k sats`  |
-| `difficulty:easy`             | at most a couple lines of code in a couple files but does require familiarity with the code base                                                                                                 | `100k sats` |
-| `difficulty:medium`           | more code, more places and could require adding columns in the db and some modification chunky db queries                                                                                        | `250k sats` |
-| `difficulty:medium-hard`      | even more code, even more places and requires either more sophisticated logic, more significant db modeling eg adding a table, and/or a deeper study of a something                              | `500k sats` |
-| `difficulty:hard`             | either a bigger lift than the what's required of medium-hard or very tricky in a particular way that might not require a lot of code but does require a lot of context/troubleshooting/expertise | `1m sats`   |
-
-### Priority multipliers
-
-| tag               | multiplier |
-| ----------------- | ---------- |
-| `priority:low`    | 0.5        |
-| `priority:medium` | 1.5        |
-| `priority:high`   | 2          |
-| `priority:urgent` | 3          |
-
-### Requesting modifications to reward amounts
-We try to assign difficulty and priority tags to issues accurately, but we're not perfect. If you believe an issue is mis-tagged, you can request a change to the issue's tags.
-
-<br>
-
-## Code review awards
-
-Code reviewers will be awarded the amount their code review reduced from the PR author's reward, e.g. two substantial problems/areas of improvement identified in a PR closing a `priority:high` and `difficulty:hard` issue awards 400k sats.
-
-### Rules
-1. The problem or improvement must be acknowledged as such by SN engineers explicitly
-2. A PR must be merged by an SN engineer before a PR's code reviewers receive an award
-
-Code review approvals are more than welcome, but we can't guarantee awards for them because the work performed to approve a PR is unverifiable.
 
 <br>
 
@@ -317,8 +261,6 @@ Issue specifiers will be awarded up to 10% of a PR award for issues resulting in
 2. Issue specification award amounts are based on the final PR award amounts
 	- that is, they are subject to PR award code review reductions and priority multipliers
 3. Award amounts will be reduced on the basis of how much additional help and specification is required by other contributors
-4. Issue specifiers who can close their own issues with their own PRs are also eligible for this 10%
-    - e.g an issue tagged as `difficulty:hard` that is both specified and closed by a PR from the same contributor without changes requested awards 1.1m sats
 
 ### Relative awards
 
@@ -351,42 +293,14 @@ Award amounts will be easiest to assess on a case by case basis. Upon confirmati
 
 <br>
 
-## Development documentation awards
-
-For significant changes to documentation, create an issue before making said changes. In such cases we will award documentation improvements in accordance with issue specification and PR awards.
-
-For changes on the order of something like a typo, we'll award a nominal amount at our discretion.
-
-<br>
-
-## Helpfulness awards
-
-Like issue specification awards, helping fellow contributors substantially in a well documented manner such that the helped fellow contributes a merged PR is eligible for a one-time relative reward.
-
-| circumstances                                                                          | award |
-| -------------------------------------------------------------------------------------- | ----- |
-| substantial and singular source of help                                                | 10%   |
-| substantial but nonsingular source of help                                             | 1-5%  |
-| source of relatively trivial help                                                      | 1%    |
-
-<br>
-
 # Contribution extras
 We want to make contributing to SN as rewarding as possible, so we offer a few extras to contributors.
 
 ## Dev chat
 We self-host a private chat server for contributors to SN. If you'd like to join, please respond in this [discussion](https://github.com/stackernews/stacker.news/discussions/1059).
 
-## Triage permissions
-We offer triage permissions to contributors after they've made a few contributions. I'll usually add them as I notice people contributing, but if I missed you and you'd like to be added, let me know!
-
 ## Contributor badges on SN profiles
 Contributors can get badges on their SN profiles by opening a pull request adding their SN nym to the [contributors.txt](/contributors.txt) file.
-
-## What else you got
-In the future we plan to offer more, like gratis github copilot subscriptions, reverse tunnels, codespaces, and merch.
-
-If you'd like to see something added, please make a suggestion.
 
 <br>
 

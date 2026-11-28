@@ -464,22 +464,31 @@ export default {
 
       await validateSchema(pushSubscriptionSchema, { endpoint, p256dh, auth })
 
-      let dbPushSubscription
-      if (oldEndpoint) {
-        dbPushSubscription = await models.pushSubscription.update({
-          data: { userId: me.id, endpoint, p256dh, auth }, where: { endpoint: oldEndpoint }
-        })
-        console.log(`[webPush] updated subscription of user ${me.id}: old=${oldEndpoint} new=${endpoint}`)
-      } else {
-        dbPushSubscription = await models.pushSubscription.create({
-          data: { userId: me.id, endpoint, p256dh, auth }
-        })
+      // a row with this endpoint but other keys is neither updated nor returned,
+      // only the device holding the keys can claim the subscription
+      const [subscription] = await models.$queryRaw`
+        INSERT INTO "PushSubscription" ("userId", endpoint, p256dh, auth)
+        VALUES (${Number(me.id)}::INTEGER, ${endpoint}, ${p256dh}, ${auth})
+        ON CONFLICT (endpoint) DO UPDATE
+          SET "userId" = EXCLUDED."userId"
+          WHERE "PushSubscription".p256dh = EXCLUDED.p256dh
+            AND "PushSubscription".auth = EXCLUDED.auth
+        RETURNING *, (xmax = 0) AS inserted`
+
+      if (!subscription) throw new GqlInputError('subscription not found')
+      if (subscription.inserted) {
         console.log(`[webPush] created subscription for user ${me.id}: endpoint=${endpoint}`)
+        await sendPushSubscriptionReply(subscription)
       }
 
-      await sendPushSubscriptionReply(dbPushSubscription)
+      // if the browser is replacing the subscription, we delete the old one
+      if (oldEndpoint && oldEndpoint !== endpoint) {
+        await models.pushSubscription.deleteMany({
+          where: { endpoint: oldEndpoint, userId: Number(me.id) }
+        })
+      }
 
-      return dbPushSubscription
+      return subscription
     },
     deletePushSubscription: async (parent, { endpoint }, { me, models }) => {
       if (!me) {

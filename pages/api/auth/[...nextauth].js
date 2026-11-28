@@ -19,6 +19,8 @@ import { BECH32_CHARSET } from '@/lib/constants'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
 import * as cookie from 'cookie'
 
+const prismaAdapter = PrismaAdapter(prisma)
+
 /**
  * Stores userIds in user table
  * @returns {Partial<import('next-auth').EventCallbacks>}
@@ -308,12 +310,16 @@ const getProviders = (req, res) => [
     }
   }),
   TwitterProvider({
-    clientId: process.env.TWITTER_ID,
-    clientSecret: process.env.TWITTER_SECRET,
-    profile (profile) {
+    clientId: process.env.TWITTER_CLIENT_ID,
+    clientSecret: process.env.TWITTER_CLIENT_SECRET,
+    version: '2.0',
+    authorization: { url: 'https://x.com/i/oauth2/authorize', params: { scope: 'users.read tweet.read' } },
+    token: { url: 'https://api.x.com/2/oauth2/token' },
+    userinfo: { url: 'https://api.x.com/2/users/me', params: { 'user.fields': 'username' } },
+    profile ({ data }) {
       return {
-        id: profile.id,
-        name: profile.screen_name
+        id: data.id,
+        name: data.username
       }
     }
   }),
@@ -331,7 +337,29 @@ export const getAuthOptions = (req, res) => ({
   callbacks: getCallbacks(req, res),
   providers: getProviders(req, res),
   adapter: {
-    ...PrismaAdapter(prisma),
+    ...prismaAdapter,
+    // oauth only identifies the user, so don't store provider tokens
+    // (twitter oauth 2 returns a numeric expires_at, but Account.expires_at is a string)
+    linkAccount: ({ userId, type, provider, providerAccountId }) =>
+      prisma.account.create({ data: { userId, type, provider, providerAccountId } }),
+    getUserByAccount: async ({ provider, providerAccountId }) => {
+      const user = await prismaAdapter.getUserByAccount({ provider, providerAccountId })
+      if (user || provider !== 'twitter') return user
+
+      // under oauth 1, twitter ids were stored after JSON.parse rounded them to a js number
+      const rounded = String(Number(providerAccountId))
+      if (rounded === providerAccountId) return null
+      const legacy = await prisma.account.findFirst({
+        where: {
+          provider,
+          providerAccountId: rounded,
+          // only oauth 1 rows hold tokens (v3 in access_token), so exact oauth 2 rows never match here
+          OR: [{ oauth_token: { not: null } }, { access_token: { not: null } }]
+        },
+        select: { user: true }
+      })
+      return legacy?.user ?? null
+    },
     createUser: data => {
       if (req.cookies.signin) return null
       // replace email with email hash in new user payload
@@ -493,7 +521,15 @@ async function enrollInNewsletter ({ email }) {
 }
 
 export default async (req, res) => {
-  await NextAuth(req, res, getAuthOptions(req, res))
+  const [action, providerId] = req.query.nextauth ?? []
+  const options = getAuthOptions(req, res)
+
+  // aim oauth callback at the right session cookie if we're switching accounts
+  if (action === 'callback' && options.providers.some(({ id, type }) => id === providerId && type === 'oauth')) {
+    await multiAuthMiddleware(req, res)
+  }
+
+  await NextAuth(req, res, options)
 }
 
 function generateRandomString (length = 6, charset = BECH32_CHARSET) {

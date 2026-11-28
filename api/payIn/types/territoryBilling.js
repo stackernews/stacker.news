@@ -40,6 +40,10 @@ export async function onBegin (tx, payInId, { name }) {
     throw new Error('Cannot bill a ONCE territory')
   }
 
+  if (sub.status === 'ACTIVE' && sub.billPaidUntil && new Date(sub.billPaidUntil) > new Date()) {
+    throw new Error('Territory billing is not due')
+  }
+
   let billedLastAt = sub.billPaidUntil
   let billingCost = sub.billingCost
 
